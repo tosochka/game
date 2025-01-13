@@ -15,28 +15,34 @@
             height: 100vh;
             font-family: Arial, sans-serif;
             color: white;
+            overscroll-behavior: none; /* Отключаем overscroll */
+            touch-action: none; /* Отключаем жесты */
         }
+
         #gameContainer {
             display: flex;
             align-items: flex-start;
             gap: 20px;
         }
+
         canvas {
             border: 2px solid white;
             cursor: none;
         }
+
         #touchpad {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 100px;
+            height: 20vh; /* Высота зависит от высоты экрана */
             background-color: rgba(255, 255, 255, 0.1);
             z-index: 1000;
             touch-action: none;
         }
+
         #scoreModal {
-            display: flex; /* Показываем модальное окно сразу */
+            display: flex;
             position: fixed;
             top: 0;
             left: 0;
@@ -47,35 +53,68 @@
             align-items: center;
             z-index: 1000;
         }
+
         #scoreModalContent {
             background-color: #222;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 2vh;
+            border-radius: 2vh;
             text-align: center;
             color: white;
-            width: 80%;
-            max-width: 300px;
+            width: 90%;
+            max-width: 400px;
         }
+
         #scoreModalContent h3 {
-            margin: 0 0 10px 0;
-            font-size: 20px;
+            margin: 0 0 2vh 0;
+            font-size: 4vh;
         }
+
         #scoreModalContent div {
-            margin-bottom: 10px;
-            font-size: 16px;
+            margin-bottom: 1.5vh;
+            font-size: 3vh;
         }
+
         #restartButton {
             width: 100%;
-            padding: 10px;
+            padding: 2vh;
             background-color: #444;
             color: white;
             border: none;
             cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
+            font-size: 3vh;
+            margin-top: 2vh;
         }
+
         #restartButton:hover {
             background-color: #666;
+        }
+
+        #orientationWarning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            font-size: 5vh;
+            text-align: center;
+            z-index: 2000;
+        }
+
+        #fullscreenWarning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            z-index: 10000;
         }
     </style>
 </head>
@@ -103,6 +142,16 @@
         </div>
     </div>
 
+    <!-- Предупреждение о неправильной ориентации -->
+    <div id="orientationWarning">
+        Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.
+    </div>
+
+    <!-- Уведомление о полноэкранном режиме -->
+    <div id="fullscreenWarning">
+        Игра работает в полноэкранном режиме. Не закрывайте её случайно!
+    </div>
+
     <!-- Звуковые эффекты (только OGG) -->
     <audio id="shootSound" src="shoot.ogg"></audio>
     <audio id="explosionSound" src="explosion.ogg"></audio>
@@ -116,10 +165,38 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const gameWidth = Math.min(window.innerWidth - 40, 400); // Адаптивная ширина
-        const gameHeight = Math.min(window.innerHeight - 200, 900); // Адаптивная высота
-        canvas.width = gameWidth;
-        canvas.height = gameHeight;
+        const minCanvasWidth = 300; // Минимальная ширина canvas
+        const maxCanvasWidth = 500; // Максимальная ширина canvas
+        const minCanvasHeight = 500; // Минимальная высота canvas
+        const maxCanvasHeight = 900; // Максимальная высота canvas
+
+        function resizeCanvas() {
+            const aspectRatio = 9 / 16; // Соотношение сторон (ширина / высота)
+            let newWidth = window.innerWidth - 40; // Ширина с отступами
+            let newHeight = window.innerHeight - 200; // Высота с отступами
+
+            // Ограничиваем размеры canvas
+            newWidth = Math.max(minCanvasWidth, Math.min(newWidth, maxCanvasWidth));
+            newHeight = Math.max(minCanvasHeight, Math.min(newHeight, maxCanvasHeight));
+
+            // Корректируем высоту в зависимости от ширины, чтобы сохранить пропорции
+            if (newHeight > newWidth / aspectRatio) {
+                newHeight = newWidth / aspectRatio;
+            } else {
+                newWidth = newHeight * aspectRatio;
+            }
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            // Пересчитываем позицию игрока
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 40;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+        resizeCanvas(); // Инициализация при загрузке
 
         // Загружаем изображения
         const backgroundImage = new Image();
@@ -782,6 +859,79 @@
             // Показываем модальное окно сразу при запуске
             document.getElementById('scoreModal').style.display = 'flex';
         });
+
+        // Проверка ориентации устройства
+        function checkOrientation() {
+            const orientationWarning = document.getElementById('orientationWarning');
+            const gameContainer = document.getElementById('gameContainer');
+
+            if (window.innerWidth > window.innerHeight) {
+                // Альбомная ориентация
+                orientationWarning.style.display = 'flex';
+                isPaused = true; // Ставим игру на паузу
+                stopBackgroundMusic(); // Останавливаем музыку
+            } else {
+                // Портретная ориентация
+                orientationWarning.style.display = 'none';
+                if (gameOver) return; // Если игра завершена, не снимаем паузу
+                isPaused = false; // Снимаем паузу
+                startBackgroundMusic(); // Возобновляем музыку
+            }
+        }
+
+        // Проверяем ориентацию при загрузке и изменении размера окна
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+        checkOrientation(); // Инициализация при загрузке
+
+        // Переход в полноэкранный режим
+        function enterFullscreen() {
+            const element = document.documentElement; // Весь документ
+
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.mozRequestFullScreen) { // Firefox
+                element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullscreen) { // Chrome, Safari, Opera
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) { // IE/Edge
+                element.msRequestFullscreen();
+            }
+        }
+
+        // Выход из полноэкранного режима
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) { // Firefox
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { // IE/Edge
+                document.msExitFullscreen();
+            }
+        }
+
+        // Переход в полноэкранный режим при запуске игры
+        enterFullscreen();
+
+        // Выход из полноэкранного режима при завершении игры
+        if (gameOver) {
+            exitFullscreen();
+        }
+
+        // Уведомление о полноэкранном режиме
+        function showFullscreenWarning() {
+            const warning = document.getElementById('fullscreenWarning');
+            warning.style.display = 'block';
+
+            setTimeout(() => {
+                warning.style.display = 'none';
+            }, 5000); // Уведомление исчезнет через 5 секунд
+        }
+
+        // Показываем уведомление при запуске игры
+        showFullscreenWarning();
     </script>
 </body>
 </html>
