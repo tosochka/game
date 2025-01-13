@@ -15,32 +15,26 @@
             height: 100vh;
             font-family: Arial, sans-serif;
             color: white;
-            overscroll-behavior: none; /* Отключаем overscroll */
-            touch-action: none; /* Отключаем жесты */
         }
-
         #gameContainer {
             display: flex;
             align-items: flex-start;
             gap: 20px;
         }
-
         canvas {
             border: 2px solid white;
             cursor: none;
         }
-
         #touchpad {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 20vh; /* Высота зависит от высоты экрана */
+            height: 15%;
             background-color: rgba(255, 255, 255, 0.1);
             z-index: 1000;
             touch-action: none;
         }
-
         #scoreModal {
             display: flex;
             position: fixed;
@@ -53,42 +47,36 @@
             align-items: center;
             z-index: 1000;
         }
-
         #scoreModalContent {
             background-color: #222;
-            padding: 2vh;
-            border-radius: 2vh;
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
             color: white;
-            width: 90%;
-            max-width: 400px;
+            width: 80%;
+            max-width: 300px;
         }
-
         #scoreModalContent h3 {
-            margin: 0 0 2vh 0;
-            font-size: 4vh;
+            margin: 0 0 10px 0;
+            font-size: 20px;
         }
-
         #scoreModalContent div {
-            margin-bottom: 1.5vh;
-            font-size: 3vh;
+            margin-bottom: 10px;
+            font-size: 16px;
         }
-
         #restartButton {
             width: 100%;
-            padding: 2vh;
+            padding: 10px;
             background-color: #444;
             color: white;
             border: none;
             cursor: pointer;
-            font-size: 3vh;
-            margin-top: 2vh;
+            font-size: 16px;
+            margin-top: 10px;
         }
-
         #restartButton:hover {
             background-color: #666;
         }
-
         #orientationWarning {
             display: none;
             position: fixed;
@@ -96,25 +84,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
-            justify-content: center;
-            align-items: center;
-            font-size: 5vh;
-            text-align: center;
-            z-index: 2000;
-        }
-
-        #fullscreenWarning {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 10px;
             background-color: rgba(0, 0, 0, 0.8);
             color: white;
+            font-size: 24px;
             text-align: center;
-            z-index: 10000;
+            padding-top: 20%;
+            z-index: 2000;
         }
     </style>
 </head>
@@ -142,14 +117,9 @@
         </div>
     </div>
 
-    <!-- Предупреждение о неправильной ориентации -->
+    <!-- Предупреждение об ориентации -->
     <div id="orientationWarning">
         Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.
-    </div>
-
-    <!-- Уведомление о полноэкранном режиме -->
-    <div id="fullscreenWarning">
-        <!-- Игра работает в полноэкранном режиме. Не закрывайте её случайно! -->
     </div>
 
     <!-- Звуковые эффекты (только OGG) -->
@@ -165,60 +135,54 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const minCanvasWidth = 300; // Минимальная ширина canvas
-        const maxCanvasWidth = 500; // Максимальная ширина canvas
-        const minCanvasHeight = 500; // Минимальная высота canvas
-        const maxCanvasHeight = 900; // Максимальная высота canvas
+        const MIN_CANVAS_WIDTH = 300;
+        const MAX_CANVAS_WIDTH = 600;
+        const MIN_CANVAS_HEIGHT = 500;
+        const MAX_CANVAS_HEIGHT = 1000;
+
+        let gameWidth, gameHeight;
 
         function resizeCanvas() {
-            const aspectRatio = 9 / 16; // Соотношение сторон (ширина / высота)
-            let newWidth = window.innerWidth - 40; // Ширина с отступами
-            let newHeight = window.innerHeight - 200; // Высота с отступами
+            const aspectRatio = 0.6;
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
 
-            // Ограничиваем размеры canvas
-            newWidth = Math.max(minCanvasWidth, Math.min(newWidth, maxCanvasWidth));
-            newHeight = Math.max(minCanvasHeight, Math.min(newHeight, maxCanvasHeight));
+            let canvasWidth = screenWidth * 0.9;
+            let canvasHeight = canvasWidth / aspectRatio;
 
-            // Корректируем высоту в зависимости от ширины, чтобы сохранить пропорции
-            if (newHeight > newWidth / aspectRatio) {
-                newHeight = newWidth / aspectRatio;
-            } else {
-                newWidth = newHeight * aspectRatio;
-            }
+            canvasWidth = Math.max(MIN_CANVAS_WIDTH, Math.min(canvasWidth, MAX_CANVAS_WIDTH));
+            canvasHeight = Math.max(MIN_CANVAS_HEIGHT, Math.min(canvasHeight, MAX_CANVAS_HEIGHT));
 
-            canvas.width = newWidth;
-            canvas.height = newHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
 
-            // Пересчитываем позицию игрока
+            gameWidth = canvasWidth;
+            gameHeight = canvasHeight;
+
             player.x = canvas.width / 2 - player.width / 2;
-            player.y = canvas.height - 40;
+            player.y = canvas.height - player.height - 10;
         }
 
         window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', resizeCanvas);
-        resizeCanvas(); // Инициализация при загрузке
+        resizeCanvas();
 
-        // Загружаем изображения
-        const backgroundImage = new Image();
-        backgroundImage.src = 'topographic-map.jpg';
+        function scaleObjectSize(baseSize, canvasDimension) {
+            return baseSize * (canvasDimension / 600);
+        }
 
-        const playerImage = new Image();
-        playerImage.src = 'player.png';
+        function scaleSpeed(baseSpeed, canvasDimension) {
+            return baseSpeed * (canvasDimension / 600);
+        }
 
-        const infantryImage = new Image();
-        infantryImage.src = 'infantry.png';
-
-        const tankImage = new Image();
-        tankImage.src = 'tank.png';
-
-        const rocketLauncherImage = new Image();
-        rocketLauncherImage.src = 'rocket_launcher.png';
+        function scaleFontSize(baseSize, canvasDimension) {
+            return baseSize * (canvasDimension / 600);
+        }
 
         const player = {
             x: canvas.width / 2 - 15,
             y: canvas.height - 40,
-            width: 25,
-            height: 30,
+            width: scaleObjectSize(25, canvas.width),
+            height: scaleObjectSize(30, canvas.height),
             speed: 20,
             color: 'green',
             missiles: [],
@@ -245,30 +209,28 @@
         let infantryCount = 0;
         let tankCount = 0;
         let rocketLauncherCount = 0;
-        let infantryHitCounter = 0; // Счетчик попаданий в пехоту
-
-        let enemySpawnInterval;
+        let infantryHitCounter = 0;
 
         const enemyTypes = [
-            { type: 'пехота', width: 10, height: 11, baseSpeed: 0.33, color: 'blue', score: 10, probability: 0.6 },
-            { type: 'танк', width: 20, height: 25, baseSpeed: 1, color: 'black', score: 20, probability: 0.3 },
-            { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.17, color: 'orange', score: 30, probability: 0.1 }
+            { type: 'пехота', width: scaleObjectSize(10, canvas.width), height: scaleObjectSize(11, canvas.height), baseSpeed: scaleSpeed(0.33, canvas.height), color: 'blue', score: 10, probability: 0.6 },
+            { type: 'танк', width: scaleObjectSize(20, canvas.width), height: scaleObjectSize(25, canvas.height), baseSpeed: scaleSpeed(1, canvas.height), color: 'black', score: 20, probability: 0.3 },
+            { type: 'РСЗО', width: scaleObjectSize(25, canvas.width), height: scaleObjectSize(35, canvas.height), baseSpeed: scaleSpeed(0.17, canvas.height), color: 'orange', score: 30, probability: 0.1 }
         ];
 
         const enemyShootingParams = {
             пехота: {
                 cooldown: 15000,
-                bulletSize: { width: 3, height: 6 },
+                bulletSize: { width: scaleObjectSize(3, canvas.width), height: scaleObjectSize(6, canvas.height) },
                 type: 'single'
             },
             танк: {
                 cooldown: 60000,
-                bulletSize: { width: 5, height: 10 },
+                bulletSize: { width: scaleObjectSize(5, canvas.width), height: scaleObjectSize(10, canvas.height) },
                 type: 'single'
             },
             РСЗО: {
                 cooldown: 30000,
-                bulletSize: { width: 5, height: 10 },
+                bulletSize: { width: scaleObjectSize(5, canvas.width), height: scaleObjectSize(10, canvas.height) },
                 type: 'burst',
                 burstCount: 5
             }
@@ -277,14 +239,12 @@
         let isSpacePressed = false;
         let lastHealthIncreaseScore = 0;
 
-        // Массив с ID звуковых файлов для попадания в пехоту
         const infantryHitSounds = [
             document.getElementById('infantryHitSound1'),
             document.getElementById('infantryHitSound2'),
             document.getElementById('infantryHitSound3')
         ];
 
-        // Функция для воспроизведения случайного звука попадания в пехоту
         function playInfantryHitSound() {
             const randomIndex = Math.floor(Math.random() * infantryHitSounds.length);
             const sound = infantryHitSounds[randomIndex];
@@ -297,18 +257,17 @@
             sound.play();
         }
 
-        // Логика для сенсорного ползунка
         const touchpad = document.getElementById('touchpad');
         let isTouching = false;
         let touchStartX = 0;
         let playerStartX = 0;
-        let isTap = false; // Флаг для определения тапа
+        let isTap = false;
 
         touchpad.addEventListener('touchstart', (e) => {
             isTouching = true;
             touchStartX = e.touches[0].clientX;
             playerStartX = player.x;
-            isTap = true; // Предполагаем, что это тап
+            isTap = true;
         });
 
         touchpad.addEventListener('touchmove', (e) => {
@@ -317,7 +276,6 @@
             const touchCurrentX = e.touches[0].clientX;
             const deltaX = touchCurrentX - touchStartX;
 
-            // Если пользователь начал двигать пальцем, это не тап
             if (Math.abs(deltaX) > 5) {
                 isTap = false;
             }
@@ -328,11 +286,24 @@
 
         touchpad.addEventListener('touchend', () => {
             if (isTap) {
-                shoot(); // Если это был тап, производим выстрел
+                shoot();
             }
             isTouching = false;
-            isTap = false; // Сбрасываем флаг тапа
+            isTap = false;
         });
+
+        function checkOrientation() {
+            if (window.innerWidth > window.innerHeight) {
+                isPaused = true;
+                document.getElementById('orientationWarning').style.display = 'block';
+            } else {
+                isPaused = false;
+                document.getElementById('orientationWarning').style.display = 'none';
+            }
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        checkOrientation();
 
         function getRandomEnemyType() {
             const random = Math.random();
@@ -365,9 +336,8 @@
 
         function drawPlayer() {
             const sway = Math.sin(Date.now() / 200) * 2;
-            if (playerImage.complete) {
-                ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
-            }
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x + sway, player.y, player.width, player.height);
         }
 
         function drawMissiles() {
@@ -402,21 +372,8 @@
                     ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
                     enemy.hit = false;
                 } else {
-                    let image;
-                    switch (enemy.type) {
-                        case 'пехота':
-                            image = infantryImage;
-                            break;
-                        case 'танк':
-                            image = tankImage;
-                            break;
-                        case 'РСЗО':
-                            image = rocketLauncherImage;
-                            break;
-                    }
-                    if (image && image.complete) {
-                        ctx.drawImage(image, enemy.x, enemy.y, enemy.width, enemy.height);
-                    }
+                    ctx.fillStyle = enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
                 }
                 enemy.y += enemy.speed;
 
@@ -658,9 +615,9 @@
                         playExplosionSound();
 
                         if (enemy.type === 'пехота') {
-                            infantryHitCounter++; // Увеличиваем счетчик попаданий
-                            if (infantryHitCounter % 10 === 0) { // Проверяем, кратно ли 10
-                                playInfantryHitSound(); // Воспроизводим звук
+                            infantryHitCounter++;
+                            if (infantryHitCounter % 10 === 0) {
+                                playInfantryHitSound();
                             }
                         }
 
@@ -708,7 +665,7 @@
 
         function restartGame() {
             gameOver = false;
-            document.getElementById('scoreModal').style.display = 'none'; // Скрываем модальное окно
+            document.getElementById('scoreModal').style.display = 'none';
             score = 0;
             infantryCount = 0;
             tankCount = 0;
@@ -735,9 +692,8 @@
         document.getElementById('restartButton').addEventListener('click', restartGame);
 
         function drawBackground() {
-            if (backgroundImage.complete) {
-                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
-            }
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         function drawHealthBar() {
@@ -816,17 +772,17 @@
         }
 
         function gameLoop() {
-            if (gameOver || player.health <= 0) {
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard(); // Обновляем данные в модальном окне
-                document.getElementById('scoreModal').style.display = 'flex'; // Показываем модальное окно
-                return;
-            }
-
             if (isPaused) {
                 drawPauseMenu();
                 requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            if (gameOver || player.health <= 0) {
+                updateHighScore();
+                stopBackgroundMusic();
+                updateScoreboard();
+                document.getElementById('scoreModal').style.display = 'flex';
                 return;
             }
 
@@ -856,82 +812,8 @@
             new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
             new Promise((resolve) => { backgroundImage.onload = resolve; })
         ]).then(() => {
-            // Показываем модальное окно сразу при запуске
             document.getElementById('scoreModal').style.display = 'flex';
         });
-
-        // Проверка ориентации устройства
-        function checkOrientation() {
-            const orientationWarning = document.getElementById('orientationWarning');
-            const gameContainer = document.getElementById('gameContainer');
-
-            if (window.innerWidth > window.innerHeight) {
-                // Альбомная ориентация
-                orientationWarning.style.display = 'flex';
-                isPaused = true; // Ставим игру на паузу
-                stopBackgroundMusic(); // Останавливаем музыку
-            } else {
-                // Портретная ориентация
-                orientationWarning.style.display = 'none';
-                if (gameOver) return; // Если игра завершена, не снимаем паузу
-                isPaused = false; // Снимаем паузу
-                startBackgroundMusic(); // Возобновляем музыку
-            }
-        }
-
-        // Проверяем ориентацию при загрузке и изменении размера окна
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', checkOrientation);
-        checkOrientation(); // Инициализация при загрузке
-
-        // Переход в полноэкранный режим
-        function enterFullscreen() {
-            const element = document.documentElement; // Весь документ
-
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.mozRequestFullScreen) { // Firefox
-                element.mozRequestFullScreen();
-            } else if (element.webkitRequestFullscreen) { // Chrome, Safari, Opera
-                element.webkitRequestFullscreen();
-            } else if (element.msRequestFullscreen) { // IE/Edge
-                element.msRequestFullscreen();
-            }
-        }
-
-        // Выход из полноэкранного режима
-        function exitFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.mozCancelFullScreen) { // Firefox
-                document.mozCancelFullScreen();
-            } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) { // IE/Edge
-                document.msExitFullscreen();
-            }
-        }
-
-        // Переход в полноэкранный режим при запуске игры
-        enterFullscreen();
-
-        // Выход из полноэкранного режима при завершении игры
-        if (gameOver) {
-            exitFullscreen();
-        }
-
-        // Уведомление о полноэкранном режиме
-        function showFullscreenWarning() {
-            const warning = document.getElementById('fullscreenWarning');
-            warning.style.display = 'block';
-
-            setTimeout(() => {
-                warning.style.display = 'none';
-            }, 5000); // Уведомление исчезнет через 5 секунд
-        }
-
-        // Показываем уведомление при запуске игры
-        showFullscreenWarning();
     </script>
 </body>
 </html>
