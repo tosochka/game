@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Залповый огонь</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Тосочка: Залповый огонь</title>
     <style>
         body {
             margin: 0;
@@ -20,32 +20,54 @@
             display: flex;
             align-items: flex-start;
             gap: 20px;
+            margin-bottom: 15vh; /* Отступ снизу для сенсорной зоны */
         }
         canvas {
             border: 2px solid white;
             cursor: none;
         }
-        #scoreboard {
-            width: 200px;
-            padding: 10px;
-            border: 2px solid white;
+        #touchpad {
+            position: fixed;
+            bottom: -10px; /* Сенсорная зона на 10px ниже нижней границы холста */
+            left: 50%; /* Центрируем по горизонтали */
+            transform: translateX(-50%); /* Смещаем на половину ширины */
+            width: calc(var(--game-width) + 8px); /* Ширина сенсорной зоны равна ширине холста + 8px (рамка) */
+            height: 15vh; /* Высота сенсорной зоны */
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px; /* Закругленные углы */
+            z-index: 1000;
+            touch-action: none;
+        }
+        #scoreModal {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #scoreModalContent {
             background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            width: 80%;
+            max-width: 300px;
         }
-        #scoreboard h3 {
+        #scoreModalContent h3 {
             margin: 0 0 10px 0;
-            text-align: center;
+            font-size: 20px;
         }
-        #scoreboard div {
+        #scoreModalContent div {
             margin-bottom: 10px;
+            font-size: 16px;
         }
-        #gameOver {
-            color: red;
-            font-size: 24px;
-            text-align: center;
-            display: none;
-        }
-        #restartButton {
-            display: none;
+        #restartButton, #instructionButton {
             width: 100%;
             padding: 10px;
             background-color: #444;
@@ -53,125 +75,148 @@
             border: none;
             cursor: pointer;
             font-size: 16px;
-            text-align: center;
+            margin-top: 10px;
         }
-        #restartButton:hover {
+        #restartButton:hover, #instructionButton:hover {
             background-color: #666;
         }
-        #helpButton {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #helpModal {
-            display: none;
+        #orientationWarning {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.9);
             color: white;
+            display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 2000;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        #helpModal div {
+        /* Стили для модального окна с инструкцией */
+        #instructionModal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #instructionModalContent {
             background-color: #222;
             padding: 20px;
             border-radius: 10px;
+            color: white;
+            width: 90%;
             max-width: 600px;
             max-height: 80vh;
-            overflow-y: auto;
+            overflow-y: auto; /* Включаем вертикальную прокрутку */
+            touch-action: pan-y; /* Разрешаем прокрутку на touch-устройствах */
         }
-        #closeHelpModal {
-            margin-top: 20px;
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
+        #instructionModalContent h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        #instructionModalContent h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        #instructionModalContent p {
+            margin: 10px 0;
+        }
+        #instructionModalContent ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        #instructionModalContent li {
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
-        <div id="scoreboard">
+    </div>
+
+    <!-- Сенсорный ползунок -->
+    <div id="touchpad"></div>
+
+    <!-- Модальное окно для боевой сводки -->
+    <div id="scoreModal">
+        <div id="scoreModalContent">
             <h3>Боевая сводка</h3>
-            <div>Очки: <span id="totalScore">0</span></div>
-            <div>Рекорд: <span id="highScoreDisplay">0</span></div>
-            <div>Пехота: <span id="infantryCount">0</span></div>
-            <div>Танки: <span id="tankCount">0</span></div>
-            <div>РСЗО: <span id="rocketLauncherCount">0</span></div>
-            <div>Уровень: <span id="level">1</span></div>
-            <div>Сложность: <span id="difficultyLevel">0</span></div>
-            <div>Здоровье: <span id="healthDisplay">100%</span></div>
-            <div id="gameOver">В РЕМБАТ</div>
-            <button id="restartButton">Начать заново</button>
+            <div>Очки: <span id="modalTotalScore">0</span></div>
+            <div>Рекорд: <span id="modalHighScoreDisplay">0</span></div>
+            <div>Пехота: <span id="modalInfantryCount">0</span></div>
+            <div>Танки: <span id="modalTankCount">0</span></div>
+            <div>РСЗО: <span id="modalRocketLauncherCount">0</span></div>
+            <div>Уровень: <span id="modalLevel">1</span></div>
+            <div>Сложность: <span id="modalDifficultyLevel">0</span></div>
+            <div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
+            <!-- Новая кнопка "Инструкция по выживанию" -->
+            <button id="instructionButton">Инструкция по выживанию</button>
+            <button id="restartButton">Начать игру</button>
         </div>
     </div>
 
-    <!-- Кнопка "Помощь" -->
-    <button id="helpButton">Помощь</button>
-
-    <!-- Модальное окно с описанием игры -->
-    <div id="helpModal">
-        <div>
-            <h2>Игра: Тосочка, версия 1.0</h2>
-            <h3>Описание:</h3>
+    <!-- Модальное окно для инструкции -->
+    <div id="instructionModal">
+        <div id="instructionModalContent">
+            <h2>Инструкция по выживанию</h2>
+            <h3>Игра: Тосочка, Z.O.V.</h3>
+            <p><strong>Описание:</strong></p>
             <p>
                 Вы — командир артиллерийского расчета, задача которого — защитить свои позиции от наступающих вражеских сил. 
                 Враги атакуют волнами: пехота, танки, реактивные системы залпового огня (РСЗО) стремятся прорвать вашу оборону. 
                 Ваша задача — уничтожать врагов, набирать очки и не допустить их прорыва. 
                 С каждым уровнем сложность игры увеличивается: враги становятся быстрее и опаснее.
-            </p>
-            <p>
                 Используйте свою артиллерию, чтобы остановить их и установить новый рекорд!
             </p>
-            <h3>Особенности:</h3>
+            <p><strong>Особенности:</strong></p>
             <ul>
                 <li>Вражеская пехота, танки и РСЗО — каждый, имеет свои характеристики и поведение.</li>
                 <li>Вы стреляете залпами снарядов, которые взрываются на различных дистанциях, в зависимости от погодных условий и рельефа местности.</li>
                 <li>У вас есть показатель живучести батареи, который снижается при попадании вражеских снарядов. Но за каждые полученные 100 очков, уровень живучести увеличивается на 1%.</li>
                 <li>Результаты лучших игр сохраняются, так что вы можете соревноваться не только с самим собой.</li>
             </ul>
-            <h3>Управление:</h3>
+            <p><strong>Управление:</strong></p>
             <ul>
-                <li><strong>Мышь:</strong> перемещение курсора по экрану, перемещая позицию артиллерии.</li>
-                <li><strong>Левый клик</strong> производит залповый выстрел.</li>
-                <li><strong>Клавиатура:</strong> стрелка влево (←) — переместит артиллерию влево, стрелка вправо (→) — переместит артиллерию вправо.</li>
-                <li><strong>Пробел</strong> — залповый выстрел.</li>
-                <li><strong>P или Enter</strong> — поставит и снимет игру с паузы.</li>
+                <li>Перемещайте позицию своей артиллерии, касаясь и двигая пальцем по сенсорной зоне внизу экрана.</li>
+                <li>Чтобы стрелять, просто коснитесь (тапните) в любом месте сенсорной зоны.</li>
+                <li>Нажмите на экран в любой области игрового поля, чтобы поставить или снять паузу.</li>
             </ul>
-            <h3>Советы для игроков:</h3>
+            <p><strong>Советы для игроков:</strong></p>
             <ul>
                 <li>Следите за уровнем живучести: не допускайте, чтобы вражеские снаряды попадали в вас. Помните, танки и РСЗО наносят больше урона, чем пехота противника.</li>
                 <li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
                 <li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
             </ul>
-            <button id="closeHelpModal">Закрыть</button>
         </div>
     </div>
 
-    <!-- Звуковые эффекты -->
-    <audio id="shootSound" src="shoot.mp3"></audio>
-    <audio id="explosionSound" src="explosion.mp3"></audio>
-    <audio id="backgroundMusic" src="background.mp3" loop></audio>
-    <audio id="hitSound" src="hit.mp3"></audio>
-    <audio id="infantryHitSound1" src="infantry_hit1.mp3"></audio>
-    <audio id="infantryHitSound2" src="infantry_hit2.mp3"></audio>
-    <audio id="infantryHitSound3" src="infantry_hit3.mp3"></audio>
+    <!-- Звуковые эффекты (только OGG) -->
+    <audio id="shootSound" src="shoot.ogg"></audio>
+    <audio id="explosionSound" src="explosion.ogg"></audio>
+    <audio id="backgroundMusic" src="background.ogg" loop></audio>
+    <audio id="hitSound" src="hit.ogg"></audio>
+    <audio id="infantryHitSound1" src="infantry_hit1.ogg"></audio>
+    <audio id="infantryHitSound2" src="infantry_hit2.ogg"></audio>
+    <audio id="infantryHitSound3" src="infantry_hit3.ogg"></audio>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const gameWidth = 400;
-        const gameHeight = 900;
-        canvas.width = gameWidth;
-        canvas.height = gameHeight;
+        // Инициализация размеров холста
+        let gameWidth, gameHeight;
 
         // Загружаем изображения
         const backgroundImage = new Image();
@@ -190,8 +235,8 @@
         rocketLauncherImage.src = 'rocket_launcher.png';
 
         const player = {
-            x: canvas.width / 2 - 15,
-            y: canvas.height - 40,
+            x: 0,
+            y: 0,
             width: 25,
             height: 30,
             speed: 20,
@@ -220,14 +265,14 @@
         let infantryCount = 0;
         let tankCount = 0;
         let rocketLauncherCount = 0;
-        let infantryHitCounter = 0; // Счетчик попаданий в пехоту
+        let infantryHitCounter = 0;
 
         let enemySpawnInterval;
 
         const enemyTypes = [
-            { type: 'пехота', width: 10, height: 11, baseSpeed: 0.33, color: 'blue', score: 10, probability: 0.6 },
-            { type: 'танк', width: 20, height: 25, baseSpeed: 1, color: 'black', score: 20, probability: 0.3 },
-            { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.17, color: 'orange', score: 30, probability: 0.1 }
+            { type: 'пехота', width: 10, height: 11, baseSpeed: 0.11, color: 'blue', score: 10, probability: 0.6 },
+            { type: 'танк', width: 20, height: 25, baseSpeed: 0.33, color: 'black', score: 20, probability: 0.3 },
+            { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.06, color: 'orange', score: 30, probability: 0.1 }
         ];
 
         const enemyShootingParams = {
@@ -252,14 +297,12 @@
         let isSpacePressed = false;
         let lastHealthIncreaseScore = 0;
 
-        // Массив с ID звуковых файлов для попадания в пехоту
         const infantryHitSounds = [
             document.getElementById('infantryHitSound1'),
             document.getElementById('infantryHitSound2'),
             document.getElementById('infantryHitSound3')
         ];
 
-        // Функция для воспроизведения случайного звука попадания в пехоту
         function playInfantryHitSound() {
             const randomIndex = Math.floor(Math.random() * infantryHitSounds.length);
             const sound = infantryHitSounds[randomIndex];
@@ -272,26 +315,42 @@
             sound.play();
         }
 
-        // Получаем элементы для модального окна
-        const helpButton = document.getElementById('helpButton');
-        const helpModal = document.getElementById('helpModal');
-        const closeHelpModal = document.getElementById('closeHelpModal');
+        // Логика для сенсорного ползунка
+        const touchpad = document.getElementById('touchpad');
+        let isTouching = false;
+        let touchStartX = 0;
+        let playerStartX = 0;
+        let isTap = false;
 
-        // Открываем модальное окно при нажатии на кнопку "Помощь"
-        helpButton.addEventListener('click', () => {
-            helpModal.style.display = 'flex';
+        touchpad.addEventListener('touchstart', (e) => {
+            isTouching = true;
+            const touchpadRect = touchpad.getBoundingClientRect();
+            touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
+            playerStartX = player.x;
+            isTap = true;
         });
 
-        // Закрываем модальное окно при нажатии на кнопку "Закрыть"
-        closeHelpModal.addEventListener('click', () => {
-            helpModal.style.display = 'none';
-        });
+        touchpad.addEventListener('touchmove', (e) => {
+            if (!isTouching) return;
 
-        // Закрываем модальное окно при клике вне его области
-        window.addEventListener('click', (event) => {
-            if (event.target === helpModal) {
-                helpModal.style.display = 'none';
+            const touchpadRect = touchpad.getBoundingClientRect();
+            const touchCurrentX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
+            const deltaX = touchCurrentX - touchStartX;
+
+            if (Math.abs(deltaX) > 5) {
+                isTap = false;
             }
+
+            const newPlayerX = playerStartX + deltaX;
+            player.x = Math.max(0, Math.min(newPlayerX, canvas.width - player.width));
+        });
+
+        touchpad.addEventListener('touchend', () => {
+            if (isTap) {
+                shoot();
+            }
+            isTouching = false;
+            isTap = false;
         });
 
         function getRandomEnemyType() {
@@ -309,7 +368,7 @@
         function updateEnemySpeeds() {
             speedMultiplier = 1 + level * 0.1;
             const difficultyLevel = Math.round((speedMultiplier - 1) * 100);
-            document.getElementById('difficultyLevel').textContent = difficultyLevel;
+            document.getElementById('modalDifficultyLevel').textContent = difficultyLevel;
         }
 
         function updateLevel() {
@@ -472,7 +531,7 @@
                         angle: angle,
                         speed: 4,
                         type: 'burst',
-                        source: 'РСЗО' // Явно указываем источник
+                        source: 'РСЗО'
                     });
                 }
             }
@@ -485,7 +544,6 @@
                     hitSound.currentTime = 0;
                     hitSound.play();
 
-                    // Проверяем, есть ли свойство source у снаряда
                     if (missile.source) {
                         switch (missile.source) {
                             case 'пехота':
@@ -498,8 +556,7 @@
                                 player.health = 0;
                                 break;
                         }
-                    } else {
-                        // Если свойство source отсутствует, считаем, что это снаряд РСЗО
+                    } else if (missile.type === 'burst') {
                         player.health = 0;
                     }
 
@@ -598,14 +655,14 @@
         }
 
         function updateScoreboard() {
-            document.getElementById('totalScore').textContent = score;
-            document.getElementById('highScoreDisplay').textContent = highScore;
-            document.getElementById('infantryCount').textContent = infantryCount;
-            document.getElementById('tankCount').textContent = tankCount;
-            document.getElementById('rocketLauncherCount').textContent = rocketLauncherCount;
-            document.getElementById('level').textContent = level;
-            document.getElementById('difficultyLevel').textContent = Math.round((speedMultiplier - 1) * 100);
-            document.getElementById('healthDisplay').textContent = `${player.health}%`;
+            document.getElementById('modalTotalScore').textContent = score;
+            document.getElementById('modalHighScoreDisplay').textContent = highScore;
+            document.getElementById('modalInfantryCount').textContent = infantryCount;
+            document.getElementById('modalTankCount').textContent = tankCount;
+            document.getElementById('modalRocketLauncherCount').textContent = rocketLauncherCount;
+            document.getElementById('modalLevel').textContent = level;
+            document.getElementById('modalDifficultyLevel').textContent = Math.round((speedMultiplier - 1) * 100);
+            document.getElementById('modalHealthDisplay').textContent = `${player.health}%`;
 
             if (score >= lastHealthIncreaseScore + 100 && player.health < 100) {
                 player.health += 1;
@@ -625,9 +682,9 @@
                         playExplosionSound();
 
                         if (enemy.type === 'пехота') {
-                            infantryHitCounter++; // Увеличиваем счетчик попаданий
-                            if (infantryHitCounter % 10 === 0) { // Проверяем, кратно ли 10
-                                playInfantryHitSound(); // Воспроизводим звук
+                            infantryHitCounter++;
+                            if (infantryHitCounter % 10 === 0) {
+                                playInfantryHitSound();
                             }
                         }
 
@@ -675,8 +732,7 @@
 
         function restartGame() {
             gameOver = false;
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('restartButton').style.display = 'none';
+            document.getElementById('scoreModal').style.display = 'none';
             score = 0;
             infantryCount = 0;
             tankCount = 0;
@@ -686,7 +742,7 @@
             lastRszShotTime = 0;
             player.health = 100;
             lastHealthIncreaseScore = 0;
-            infantryHitCounter = 0; // Сбрасываем счетчик попаданий
+            infantryHitCounter = 0;
             updateScoreboard();
             player.missiles = [];
             enemies.length = 0;
@@ -697,6 +753,7 @@
             clearInterval(enemySpawnInterval);
             enemySpawnInterval = setInterval(spawnEnemy, 1000);
 
+            resizeCanvas();
             gameLoop();
         }
 
@@ -787,8 +844,8 @@
             if (gameOver || player.health <= 0) {
                 updateHighScore();
                 stopBackgroundMusic();
-                document.getElementById('gameOver').style.display = 'block';
-                document.getElementById('restartButton').style.display = 'block';
+                updateScoreboard();
+                document.getElementById('scoreModal').style.display = 'flex';
                 return;
             }
 
@@ -816,6 +873,88 @@
             requestAnimationFrame(gameLoop);
         }
 
+        function resizeCanvas() {
+            const maxWidth = 400; // Максимальная ширина игрового поля
+            const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
+
+            // Рассчитываем ширину и высоту холста
+            gameWidth = Math.min(window.innerWidth - 40, maxWidth);
+            gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
+
+            // Устанавливаем размеры холста
+            canvas.width = gameWidth;
+            canvas.height = gameHeight;
+
+            // Позиционируем холст по центру горизонтально и вверху вертикально
+            canvas.style.position = 'absolute';
+            canvas.style.left = '50%'; // Центрируем по горизонтали
+            canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+            canvas.style.top = '0';
+
+            // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
+            document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+
+            // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 40;
+        }
+
+        function checkOrientation() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+
+            if (!isPortrait) {
+                isPaused = true; // Ставим игру на паузу
+                showOrientationWarning(); // Показываем предупреждение
+            } else {
+                isPaused = false; // Снимаем с паузы, если ориентация правильная
+                hideOrientationWarning(); // Скрываем предупреждение
+                resizeCanvas(); // Обновляем размеры холста
+            }
+        }
+
+        function showOrientationWarning() {
+            const warning = document.createElement('div');
+            warning.id = 'orientationWarning';
+            warning.style.position = 'fixed';
+            warning.style.top = '0';
+            warning.style.left = '0';
+            warning.style.width = '100%';
+            warning.style.height = '100%';
+            warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            warning.style.color = 'white';
+            warning.style.display = 'flex';
+            warning.style.justifyContent = 'center';
+            warning.style.alignItems = 'center';
+            warning.style.zIndex = '2000';
+            warning.style.fontSize = '24px';
+            warning.style.textAlign = 'center';
+            warning.style.padding = '20px';
+            warning.style.boxSizing = 'border-box';
+            warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
+            document.body.appendChild(warning);
+        }
+
+        function hideOrientationWarning() {
+            const warning = document.getElementById('orientationWarning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+
+        // Проверка ориентации при загрузке страницы и изменении размера окна
+        checkOrientation();
+        window.addEventListener('resize', () => {
+            checkOrientation(); // Проверяем ориентацию
+            resizeCanvas(); // Обновляем размеры холста
+        });
+
+        // Запрет масштабирования на touch-устройствах
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== 1) {
+                event.preventDefault(); // Запрещаем масштабирование
+            }
+        }, { passive: false });
+
         // Ожидание загрузки всех изображений
         Promise.all([
             new Promise((resolve) => { playerImage.onload = resolve; }),
@@ -824,47 +963,40 @@
             new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
             new Promise((resolve) => { backgroundImage.onload = resolve; })
         ]).then(() => {
-            startBackgroundMusic();
-            enemySpawnInterval = setInterval(spawnEnemy, 1000);
-            gameLoop();
+            resizeCanvas(); // Устанавливаем начальные размеры холста
+            document.getElementById('scoreModal').style.display = 'flex';
         });
 
-        document.addEventListener('mousemove', (e) => {
-            if (gameOver) return;
+        // Логика для модального окна с инструкцией
+        const instructionModal = document.getElementById('instructionModal');
+        const instructionButton = document.getElementById('instructionButton');
+        const instructionModalContent = document.getElementById('instructionModalContent');
 
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-
-            player.x = Math.max(0, Math.min(mouseX - player.width / 2, canvas.width - player.width));
+        // Открываем модальное окно с инструкцией
+        instructionButton.addEventListener('click', () => {
+            instructionModal.style.display = 'flex';
         });
 
-        canvas.addEventListener('click', () => {
-            if (gameOver) return;
-            shoot();
+        // Закрываем модальное окно при клике в любом месте
+        instructionModal.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
         });
 
-        window.addEventListener('keydown', (e) => {
-            if (gameOver) return;
+        // Обработка прокрутки текста внутри модального окна
+        let startY = 0;
 
-            if (e.key === 'ArrowLeft' && player.x > 0) {
-                player.x -= player.speed;
-            }
-            if (e.key === 'ArrowRight' && player.x < canvas.width - player.width) {
-                player.x += player.speed;
-            }
-            if (e.key === ' ' && !isSpacePressed) {
-                isSpacePressed = true;
-                shoot();
-            }
-            if (e.key === 'p' || e.key === 'Enter') {
-                togglePause();
-            }
+        instructionModalContent.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY; // Запоминаем начальную позицию касания
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (e.key === ' ') {
-                isSpacePressed = false;
-            }
+        instructionModalContent.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            const deltaY = startY - currentY; // Вычисляем разницу по Y
+
+            // Прокручиваем содержимое
+            instructionModalContent.scrollBy(0, deltaY);
+
+            startY = currentY; // Обновляем начальную позицию
         });
     </script>
 </body>
