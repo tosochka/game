@@ -197,7 +197,7 @@
             <ul>
                 <li>Следите за уровнем живучести: не допускайте, чтобы вражеские снаряды попадали в вас. Помните, танки и РСЗО наносят больше урона, чем пехота противника.</li>
                 <li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
-                <li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атаках.</li>
+                <li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
             </ul>
         </div>
     </div>
@@ -304,35 +304,30 @@
         ];
 
         let defeatHandled = false;
-        let isGameOver = false;
 
         function handleDefeat() {
-            isGameOver = true; // Блокируем управление игроком
+            defeatHandled = true;
 
-            // Воспроизведение звука поражения
+            // Останавливаем игровой цикл
+            cancelAnimationFrame(gameLoop);
+
+            // Блокируем управление
+            isTouching = false;
+            isTap = false;
+
+            // Проигрываем звук поражения
             const defeatSound = document.getElementById('defeatSound');
             defeatSound.currentTime = 0;
             defeatSound.play();
 
-            // Заключительный залповый выстрел
-            setTimeout(() => {
-                shoot(); // Производим залповый выстрел
-            }, 1000); // Задержка перед выстрелом (1 секунда)
-
-            // Ожидание завершения анимации взрывов
-            setTimeout(() => {
-                // Очистка снарядов и врагов
-                player.missiles = [];
-                enemies.length = 0;
-                enemyMissiles.length = 0;
-
-                // Переход в меню
+            // Ждем завершения звука и переходим в меню
+            defeatSound.onended = () => {
                 updateHighScore();
                 stopBackgroundMusic();
                 updateScoreboard();
                 document.getElementById('scoreModal').style.display = 'flex';
-                isGameOver = false; // Сбрасываем флаг завершения игры
-            }, 5000); // Задержка перед переходом в меню (5 секунд)
+                defeatHandled = false; // Сбрасываем флаг для следующей игры
+            };
         }
 
         function playInfantryHitSound() {
@@ -355,7 +350,6 @@
         let isTap = false;
 
         touchpad.addEventListener('touchstart', (e) => {
-            if (isGameOver) return; // Блокируем управление, если игра завершена
             isTouching = true;
             const touchpadRect = touchpad.getBoundingClientRect();
             touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
@@ -364,7 +358,8 @@
         });
 
         touchpad.addEventListener('touchmove', (e) => {
-            if (isGameOver || !isTouching) return; // Блокируем управление, если игра завершена
+            if (!isTouching) return;
+
             const touchpadRect = touchpad.getBoundingClientRect();
             const touchCurrentX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
             const deltaX = touchCurrentX - touchStartX;
@@ -378,7 +373,6 @@
         });
 
         touchpad.addEventListener('touchend', () => {
-            if (isGameOver) return; // Блокируем управление, если игра завершена
             if (isTap) {
                 shoot();
             }
@@ -858,28 +852,8 @@
         function gameLoop() {
             if (gameOver || player.health <= 0) {
                 if (!defeatHandled) {
-                    handleDefeat(); // Запускаем процесс завершения игры
-                    defeatHandled = true;
+                    handleDefeat();
                 }
-
-                // Продолжаем обновлять игру, чтобы отобразить заключительный залп и движение врагов
-                if (isGameOver) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    drawBackground();
-                    drawPlayer();
-                    drawMissiles();
-                    drawEnemies();
-                    drawEnemyMissiles();
-                    drawHealthBar();
-                    avoidCollisions();
-                    checkPlayerCollision();
-                    checkCollisionsWithMissiles();
-                    checkEnemyMissileCollisions();
-                    enemyShoot();
-                    updateLevel();
-                }
-
-                requestAnimationFrame(gameLoop);
                 return;
             }
 
