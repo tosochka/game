@@ -311,9 +311,8 @@
             // Останавливаем игровой цикл
             cancelAnimationFrame(gameLoop);
 
-            // Блокируем управление
-            isTouching = false;
-            isTap = false;
+            // Блокируем только сенсорную зону внизу экрана
+            touchpad.style.pointerEvents = 'none'; // Отключаем взаимодействие с сенсорной зоной
 
             // Автоматически производим завершающий залповый выстрел
             performFinalShot();
@@ -323,13 +322,43 @@
             defeatSound.currentTime = 0;
             defeatSound.play();
 
+            // Флаг для отслеживания завершения взрывов снарядов
+            let missilesExploded = false;
+
+            // Проверяем, завершились ли все взрывы снарядов
+            function checkMissilesExploded() {
+                if (player.missiles.length === 0) {
+                    missilesExploded = true;
+                    tryTransitionToMenu();
+                }
+            }
+
+            // Проверяем, завершились ли оба события (звук и взрывы)
+            function tryTransitionToMenu() {
+                if (missilesExploded && defeatSound.ended) {
+                    // Восстанавливаем взаимодействие с сенсорной зоной
+                    touchpad.style.pointerEvents = 'auto';
+
+                    updateHighScore();
+                    stopBackgroundMusic();
+                    updateScoreboard();
+                    document.getElementById('scoreModal').style.display = 'flex';
+                    defeatHandled = false; // Сбрасываем флаг для следующей игры
+                }
+            }
+
+            // Отслеживаем завершение звука
             defeatSound.onended = () => {
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard();
-                document.getElementById('scoreModal').style.display = 'flex';
-                defeatHandled = false; // Сбрасываем флаг для следующей игры
+                tryTransitionToMenu();
             };
+
+            // Отслеживаем завершение взрывов снарядов
+            const checkMissilesInterval = setInterval(() => {
+                checkMissilesExploded();
+                if (missilesExploded) {
+                    clearInterval(checkMissilesInterval); // Останавливаем проверку
+                }
+            }, 100); // Проверяем каждые 100 мс
         }
 
         function performFinalShot() {
@@ -346,7 +375,7 @@
                     angle: angle,
                     speed: speedVariation,
                     willReachEnd: false, // Снаряды не долетают до конца экрана
-                    explosionY: player.y - 10 // Взрываемся вплотную с игроком
+                    explosionY: player.y - 1 // Взрываемся вплотную с игроком
                 });
             }
 
