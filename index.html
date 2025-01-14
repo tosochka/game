@@ -308,9 +308,6 @@
         function handleDefeat() {
             defeatHandled = true;
 
-            // Останавливаем игровой цикл
-            cancelAnimationFrame(gameLoop);
-
             // Блокируем только сенсорную зону внизу экрана
             touchpad.style.pointerEvents = 'none'; // Отключаем взаимодействие с сенсорной зоной
 
@@ -375,7 +372,7 @@
                     angle: angle,
                     speed: speedVariation,
                     willReachEnd: false, // Снаряды не долетают до конца экрана
-                    explosionY: player.y - 1 // Взрываемся вплотную с игроком
+                    explosionY: canvas.height / 2 // Взрываемся на середине экрана
                 });
             }
 
