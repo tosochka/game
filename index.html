@@ -870,6 +870,8 @@
         }
 
         function shoot() {
+            if (isGameEnding) return; // Если игра завершается, выходим
+
             const currentTime = Date.now();
             if (currentTime - lastShotTime < 1000 / maxShotsPerSecond) return;
             lastShotTime = currentTime;
