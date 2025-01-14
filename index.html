@@ -117,36 +117,10 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Функция для определения ориентации устройства
-        function isPortrait() {
-            return window.innerHeight > window.innerWidth;
-        }
-
-        // Функция для установки размеров холста
-        function setCanvasSize() {
-            const maxWidth = 400; // Максимальная ширина холста
-            const maxHeight = 900; // Максимальная высота холста
-
-            if (isPortrait()) {
-                // Портретная ориентация: адаптируем размеры под экран
-                canvas.width = Math.min(window.innerWidth - 40, maxWidth);
-                canvas.height = Math.min(window.innerHeight - 200, maxHeight);
-            } else {
-                // Альбомная ориентация: фиксируем размеры как при портретной ориентации
-                canvas.width = Math.min(window.innerHeight - 200, maxWidth);
-                canvas.height = Math.min(window.innerWidth - 40, maxHeight);
-            }
-
-            // Обновляем позицию игрока после изменения размеров холста
-            player.x = canvas.width / 2 - 15;
-            player.y = canvas.height - 40;
-        }
-
-        // Устанавливаем размеры холста при загрузке страницы
-        setCanvasSize();
-
-        // Обновляем размеры холста при изменении ориентации устройства
-        window.addEventListener('resize', setCanvasSize);
+        const gameWidth = Math.min(window.innerWidth - 40, 400); // Адаптивная ширина
+        const gameHeight = Math.min(window.innerHeight - 200, 900); // Адаптивная высота
+        canvas.width = gameWidth;
+        canvas.height = gameHeight;
 
         // Загружаем изображения
         const backgroundImage = new Image();
@@ -459,7 +433,7 @@
                         angle: angle,
                         speed: 4,
                         type: 'burst',
-                        source: 'РСЗО'
+                        source: 'РСЗО' // Добавляем источник
                     });
                 }
             }
@@ -472,6 +446,7 @@
                     hitSound.currentTime = 0;
                     hitSound.play();
 
+                    // Проверяем наличие свойства source
                     if (missile.source) {
                         switch (missile.source) {
                             case 'пехота':
@@ -481,11 +456,12 @@
                                 player.health -= 50;
                                 break;
                             case 'РСЗО':
-                                player.health = 0;
+                                player.health = 0; // Снаряды РСЗО мгновенно уничтожают игрока
                                 break;
                         }
                     } else if (missile.type === 'burst') {
-                        player.health = 0;
+                        // Если source отсутствует, но тип снаряда - 'burst' (РСЗО), наносим урон
+                        player.health = 0; // Снаряды РСЗО мгновенно уничтожают игрока
                     }
 
                     if (player.health < 0) {
