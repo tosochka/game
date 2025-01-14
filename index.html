@@ -17,14 +17,17 @@
             color: white;
         }
         #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
             display: flex;
-            align-items: flex-start;
-            gap: 20px;
-            margin-bottom: 15vh;
+            justify-content: center;
+            align-items: center;
         }
         canvas {
             border: 2px solid white;
             cursor: none;
+            background-color: #000;
         }
         #touchpad {
             position: fixed;
@@ -89,7 +92,9 @@
             color: white;
             font-size: 24px;
             text-align: center;
-            padding-top: 40%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             z-index: 2000;
         }
     </style>
@@ -136,10 +141,38 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const gameWidth = Math.min(window.innerWidth - 40, 400);
-        const gameHeight = Math.min(window.innerHeight - 200, 900);
-        canvas.width = gameWidth;
-        canvas.height = gameHeight;
+        // Пропорции 9:16
+        const targetAspectRatio = 9 / 16;
+        let gameWidth, gameHeight;
+
+        function resizeCanvas() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Рассчитываем размеры canvas с учетом пропорций 9:16
+            if (windowWidth / windowHeight > targetAspectRatio) {
+                // Если ширина экрана слишком большая, ограничиваем по высоте
+                gameHeight = windowHeight;
+                gameWidth = gameHeight * targetAspectRatio;
+            } else {
+                // Если высота экрана слишком большая, ограничиваем по ширине
+                gameWidth = windowWidth;
+                gameHeight = gameWidth / targetAspectRatio;
+            }
+
+            // Устанавливаем размеры canvas
+            canvas.width = gameWidth;
+            canvas.height = gameHeight;
+
+            // Центрируем canvas на экране
+            canvas.style.position = 'absolute';
+            canvas.style.left = `${(windowWidth - gameWidth) / 2}px`;
+            canvas.style.top = `${(windowHeight - gameHeight) / 2}px`;
+        }
+
+        // Инициализация размеров canvas
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
         // Загружаем изображения
         const backgroundImage = new Image();
@@ -799,7 +832,7 @@
             const isLandscape = window.innerWidth > window.innerHeight;
 
             if (isLandscape) {
-                orientationWarning.style.display = 'block';
+                orientationWarning.style.display = 'flex';
                 isPaused = true;
             } else {
                 orientationWarning.style.display = 'none';
