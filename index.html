@@ -248,7 +248,6 @@
 
         const enemies = [];
         const enemyMissiles = [];
-        const explosions = [];
         const baseMissileSpeed = 7;
         const missileCount = 5;
         const missileSpreadAngle = 2;
@@ -305,47 +304,6 @@
         ];
 
         let defeatHandled = false;
-        let explosionInterval;
-
-        function createRandomExplosionsAroundPlayer() {
-            const explosionCount = 5; // Количество взрывов за один вызов
-            for (let i = 0; i < explosionCount; i++) {
-                const angle = Math.random() * Math.PI * 2; // Случайный угол
-                const distance = Math.random() * 100 + 50; // Случайное расстояние от игрока (50-150 пикселей)
-                const x = player.x + player.width / 2 + Math.cos(angle) * distance;
-                const y = player.y + player.height / 2 + Math.sin(angle) * distance;
-
-                // Используем ту же функцию createExplosion, что и для снарядов игрока
-                createExplosion(x, y);
-            }
-        }
-
-        function createExplosion(x, y) {
-            explosions.push({
-                x,
-                y,
-                radius: 10, // Начальный радиус взрыва увеличен
-                maxRadius: 40, // Максимальный радиус взрыва увеличен
-                alpha: 1,
-                duration: 20
-            });
-        }
-
-        function drawExplosions() {
-            explosions.forEach((explosion, index) => {
-                ctx.beginPath();
-                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
-                ctx.fill();
-
-                explosion.radius += 1; // Увеличиваем радиус взрыва
-                explosion.alpha -= 0.05; // Уменьшаем прозрачность
-
-                if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
-                    explosions.splice(index, 1); // Удаляем взрыв, если он завершился
-                }
-            });
-        }
 
         function handleDefeat() {
             defeatHandled = true;
@@ -357,11 +315,6 @@
             isTouching = false;
             isTap = false;
 
-            // Запускаем интервал для создания взрывов
-            explosionInterval = setInterval(() => {
-                createRandomExplosionsAroundPlayer();
-            }, 300); // Взрывы каждые 0.3 секунды
-
             // Проигрываем звук поражения
             const defeatSound = document.getElementById('defeatSound');
             defeatSound.currentTime = 0;
@@ -369,7 +322,6 @@
 
             // Ждем завершения звука и переходим в меню
             defeatSound.onended = () => {
-                clearInterval(explosionInterval); // Останавливаем создание взрывов
                 updateHighScore();
                 stopBackgroundMusic();
                 updateScoreboard();
@@ -485,12 +437,10 @@
                 missile.y -= Math.cos(angleInRadians) * missile.speed;
 
                 if (!missile.willReachEnd && missile.y <= missile.explosionY) {
-                    createExplosion(missile.x, missile.y);
                     player.missiles.splice(index, 1);
                 }
 
                 if (missile.willReachEnd && missile.y <= 0) {
-                    createExplosion(missile.x, missile.y);
                     player.missiles.splice(index, 1);
                 }
 
@@ -737,7 +687,6 @@
             player.missiles.forEach((missile, mIndex) => {
                 enemies.forEach((enemy, eIndex) => {
                     if (checkCollision(missile, enemy)) {
-                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
                         playExplosionSound();
 
                         if (enemy.type === 'пехота') {
@@ -792,7 +741,6 @@
         function restartGame() {
             gameOver = false;
             defeatHandled = false;
-            clearInterval(explosionInterval);
             document.getElementById('scoreModal').style.display = 'none';
             score = 0;
             infantryCount = 0;
@@ -808,7 +756,6 @@
             player.missiles = [];
             enemies.length = 0;
             enemyMissiles.length = 0;
-            explosions.length = 0;
             startBackgroundMusic();
 
             clearInterval(enemySpawnInterval);
@@ -922,7 +869,6 @@
             drawMissiles();
             drawEnemies();
             drawEnemyMissiles();
-            drawExplosions();
             drawHealthBar();
             avoidCollisions();
             checkPlayerCollision();
@@ -967,7 +913,7 @@
                 isPaused = true; // Ставим игру на паузу
                 showOrientationWarning(); // Показываем предупреждение
             } else {
-                isPaused = false; // Снимаем с паузы, если ориентация правильная
+                isPaused = false; // Снимаем с паузу, если ориентация правильная
                 hideOrientationWarning(); // Скрываем предупреждение
                 resizeCanvas(); // Обновляем размеры холста
             }
