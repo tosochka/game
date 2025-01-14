@@ -584,6 +584,7 @@
                 alpha: 1,
                 duration: 20
             });
+            playExplosionSound();
         }
 
         function drawExplosions() {
@@ -781,14 +782,6 @@
             ctx.strokeRect(x, y, barWidth, barHeight);
         }
 
-        function updateHighScore() {
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('highScore', highScore);
-                updateScoreboard();
-            }
-        }
-
         function togglePause() {
             isPaused = !isPaused;
             if (isPaused) {
@@ -797,16 +790,6 @@
             } else {
                 enemySpawnInterval = setInterval(spawnEnemy, 1000);
                 startBackgroundMusic();
-            }
-        }
-
-        function drawPauseMenu() {
-            if (isPaused) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'white';
-                ctx.font = '30px Arial';
-                ctx.fillText('Пауза', canvas.width / 2 - 50, canvas.height / 2);
             }
         }
 
