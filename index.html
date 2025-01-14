@@ -795,11 +795,10 @@
         // Функция для обновления размеров холста
         function resizeCanvas() {
             const maxWidth = 400; // Максимальная ширина игрового поля
-            const maxHeight = 900; // Максимальная высота игрового поля
 
             // Рассчитываем ширину и высоту холста
             gameWidth = Math.min(window.innerWidth - 40, maxWidth);
-            gameHeight = Math.min(window.innerHeight - 200, maxHeight);
+            gameHeight = window.innerHeight - (0.15 * window.innerHeight); // Высота минус сенсорная зона (15vh)
 
             // Устанавливаем размеры холста
             canvas.width = gameWidth;
