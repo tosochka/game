@@ -307,7 +307,7 @@
         let isGameOver = false;
 
         function handleDefeat() {
-            isGameOver = true; // Блокируем управление
+            isGameOver = true; // Блокируем управление игроком
 
             // Воспроизведение звука поражения
             const defeatSound = document.getElementById('defeatSound');
@@ -859,7 +859,27 @@
             if (gameOver || player.health <= 0) {
                 if (!defeatHandled) {
                     handleDefeat(); // Запускаем процесс завершения игры
+                    defeatHandled = true;
                 }
+
+                // Продолжаем обновлять игру, чтобы отобразить заключительный залп и движение врагов
+                if (isGameOver) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawBackground();
+                    drawPlayer();
+                    drawMissiles();
+                    drawEnemies();
+                    drawEnemyMissiles();
+                    drawHealthBar();
+                    avoidCollisions();
+                    checkPlayerCollision();
+                    checkCollisionsWithMissiles();
+                    checkEnemyMissileCollisions();
+                    enemyShoot();
+                    updateLevel();
+                }
+
+                requestAnimationFrame(gameLoop);
                 return;
             }
 
