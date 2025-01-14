@@ -353,6 +353,17 @@
             isTap = false;
         });
 
+        // Обработчик для паузы
+        canvas.addEventListener('touchstart', (e) => {
+            const touchY = e.touches[0].clientY; // Получаем координату Y касания
+
+            // Проверяем, что касание было выше сенсорной зоны управления
+            const touchpadRect = touchpad.getBoundingClientRect();
+            if (touchY < touchpadRect.top) {
+                togglePause(); // Ставим игру на паузу или снимаем с паузы
+            }
+        });
+
         function getRandomEnemyType() {
             const random = Math.random();
             let cumulativeProbability = 0;
@@ -806,7 +817,8 @@
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = 'white';
                 ctx.font = '30px Arial';
-                ctx.fillText('Пауза', canvas.width / 2 - 50, canvas.height / 2);
+                ctx.textAlign = 'center';
+                ctx.fillText('Пауза', canvas.width / 2, canvas.height / 2);
             }
         }
 
