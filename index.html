@@ -576,6 +576,7 @@
         }
 
         function createExplosion(x, y) {
+            console.log("Взрыв создан:", x, y); // Отладочное сообщение
             explosions.push({
                 x,
                 y,
@@ -587,6 +588,7 @@
         }
 
         function drawExplosions() {
+            console.log("Отрисовка взрывов:", explosions.length); // Отладочное сообщение
             explosions.forEach((explosion, index) => {
                 ctx.beginPath();
                 ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
@@ -886,7 +888,7 @@
             drawMissiles();
             drawEnemies();
             drawEnemyMissiles();
-            drawExplosions();
+            drawExplosions(); // Отрисовываем взрывы
             drawHealthBar();
             avoidCollisions();
             checkPlayerCollision();
