@@ -29,10 +29,12 @@
         #touchpad {
             position: fixed;
             bottom: 0;
-            left: 0;
-            width: 100%;
+            left: 50%; /* Центрируем по горизонтали */
+            transform: translateX(-50%); /* Смещаем на половину ширины */
+            width: var(--game-width); /* Ширина сенсорной зоны равна ширине игрового поля */
             height: 15vh; /* Высота сенсорной зоны */
             background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px; /* Закругленные углы */
             z-index: 1000;
             touch-action: none;
         }
@@ -243,7 +245,8 @@
 
         touchpad.addEventListener('touchstart', (e) => {
             isTouching = true;
-            touchStartX = e.touches[0].clientX;
+            const touchpadRect = touchpad.getBoundingClientRect();
+            touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
             playerStartX = player.x;
             isTap = true;
         });
@@ -251,7 +254,8 @@
         touchpad.addEventListener('touchmove', (e) => {
             if (!isTouching) return;
 
-            const touchCurrentX = e.touches[0].clientX;
+            const touchpadRect = touchpad.getBoundingClientRect();
+            const touchCurrentX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
             const deltaX = touchCurrentX - touchStartX;
 
             if (Math.abs(deltaX) > 5) {
@@ -448,7 +452,7 @@
                         angle: angle,
                         speed: 4,
                         type: 'burst',
-                        source: 'РСЗО' // Добавляем источник
+                        source: 'РСЗО'
                     });
                 }
             }
@@ -461,7 +465,6 @@
                     hitSound.currentTime = 0;
                     hitSound.play();
 
-                    // Проверяем наличие свойства source
                     if (missile.source) {
                         switch (missile.source) {
                             case 'пехота':
@@ -471,12 +474,11 @@
                                 player.health -= 50;
                                 break;
                             case 'РСЗО':
-                                player.health = 0; // Снаряды РСЗО мгновенно уничтожают игрока
+                                player.health = 0;
                                 break;
                         }
                     } else if (missile.type === 'burst') {
-                        // Если source отсутствует, но тип снаряда - 'burst' (РСЗО), наносим урон
-                        player.health = 0; // Снаряды РСЗО мгновенно уничтожают игрока
+                        player.health = 0;
                     }
 
                     if (player.health < 0) {
@@ -672,7 +674,7 @@
             clearInterval(enemySpawnInterval);
             enemySpawnInterval = setInterval(spawnEnemy, 1000);
 
-            resizeCanvas(); // Обновляем размеры холста при перезапуске игры
+            resizeCanvas();
             gameLoop();
         }
 
@@ -792,7 +794,6 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Функция для обновления размеров холста
         function resizeCanvas() {
             const maxWidth = 400; // Максимальная ширина игрового поля
             const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
@@ -811,12 +812,14 @@
             canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
             canvas.style.top = '0';
 
+            // Устанавливаем ширину сенсорной зоны равной ширине холста
+            document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+
             // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
             player.x = canvas.width / 2 - player.width / 2;
             player.y = canvas.height - 40;
         }
 
-        // Функция для проверки ориентации экрана
         function checkOrientation() {
             const isPortrait = window.innerHeight > window.innerWidth;
 
@@ -830,7 +833,6 @@
             }
         }
 
-        // Функция для показа предупреждения
         function showOrientationWarning() {
             const warning = document.createElement('div');
             warning.id = 'orientationWarning';
@@ -853,7 +855,6 @@
             document.body.appendChild(warning);
         }
 
-        // Функция для скрытия предупреждения
         function hideOrientationWarning() {
             const warning = document.getElementById('orientationWarning');
             if (warning) {
