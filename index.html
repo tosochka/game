@@ -97,9 +97,8 @@
             padding: 20px;
             box-sizing: border-box;
         }
-        /* Стили для модального окна с инструкцией */
         #instructionModal {
-            display: none; /* Скрыто по умолчанию */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -118,8 +117,8 @@
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
-            overflow-y: auto; /* Включаем вертикальную прокрутку */
-            touch-action: pan-y; /* Разрешаем прокрутку на touch-устройствах */
+            overflow-y: auto;
+            touch-action: pan-y;
         }
         #instructionModalContent h2 {
             margin-top: 0;
@@ -146,10 +145,8 @@
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <!-- Сенсорный ползунок -->
     <div id="touchpad"></div>
 
-    <!-- Модальное окно для боевой сводки -->
     <div id="scoreModal">
         <div id="scoreModalContent">
             <h3>Боевая сводка</h3>
@@ -161,13 +158,11 @@
             <div>Уровень: <span id="modalLevel">1</span></div>
             <div>Сложность: <span id="modalDifficultyLevel">0</span></div>
             <div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
-            <!-- Новая кнопка "Инструкция по выживанию" -->
             <button id="instructionButton">Инструкция по выживанию</button>
             <button id="restartButton">Начать игру</button>
         </div>
     </div>
 
-    <!-- Модальное окно для инструкции -->
     <div id="instructionModal">
         <div id="instructionModalContent">
             <h2>Инструкция по выживанию</h2>
@@ -202,7 +197,6 @@
         </div>
     </div>
 
-    <!-- Звуковые эффекты (только OGG) -->
     <audio id="shootSound" src="shoot.ogg"></audio>
     <audio id="explosionSound" src="explosion.ogg"></audio>
     <audio id="backgroundMusic" src="background.ogg" loop></audio>
@@ -215,10 +209,8 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Инициализация размеров холста
         let gameWidth, gameHeight;
 
-        // Загружаем изображения
         const backgroundImage = new Image();
         backgroundImage.src = 'topographic-map.jpg';
 
@@ -268,6 +260,7 @@
         let infantryHitCounter = 0;
 
         let enemySpawnInterval;
+        let finalExplosionsTriggered = false;
 
         const enemyTypes = [
             { type: 'пехота', width: 10, height: 11, baseSpeed: 0.11, color: 'blue', score: 10, probability: 0.6 },
@@ -315,7 +308,6 @@
             sound.play();
         }
 
-        // Логика для сенсорного ползунка
         const touchpad = document.getElementById('touchpad');
         let isTouching = false;
         let touchStartX = 0;
@@ -325,7 +317,7 @@
         touchpad.addEventListener('touchstart', (e) => {
             isTouching = true;
             const touchpadRect = touchpad.getBoundingClientRect();
-            touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
+            touchStartX = e.touches[0].clientX - touchpadRect.left;
             playerStartX = player.x;
             isTap = true;
         });
@@ -334,7 +326,7 @@
             if (!isTouching) return;
 
             const touchpadRect = touchpad.getBoundingClientRect();
-            const touchCurrentX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
+            const touchCurrentX = e.touches[0].clientX - touchpadRect.left;
             const deltaX = touchCurrentX - touchStartX;
 
             if (Math.abs(deltaX) > 5) {
@@ -353,63 +345,13 @@
             isTap = false;
         });
 
-        // Обработчик для паузы
         canvas.addEventListener('touchstart', (e) => {
-            const touchY = e.touches[0].clientY; // Получаем координату Y касания
-
-            // Проверяем, что касание было выше сенсорной зоны управления
+            const touchY = e.touches[0].clientY;
             const touchpadRect = touchpad.getBoundingClientRect();
             if (touchY < touchpadRect.top) {
-                togglePause(); // Ставим игру на паузу или снимаем с паузы
+                togglePause();
             }
         });
-
-        // Функция для создания черного взрыва
-        function createBlackExplosion(x, y) {
-            explosions.push({
-                x,
-                y,
-                radius: 5,
-                maxRadius: 40, // Увеличиваем радиус для большего эффекта
-                alpha: 1,
-                duration: 60, // Продолжительность 3 секунды (60 кадров при 20 FPS)
-                color: 'rgba(0, 0, 0, 1)' // Черный цвет
-            });
-        }
-
-        // Функция для отключения управления
-        function disableControls() {
-            canvas.removeEventListener('touchstart', handleCanvasTouch);
-            touchpad.removeEventListener('touchstart', handleTouchStart);
-            touchpad.removeEventListener('touchmove', handleTouchMove);
-            touchpad.removeEventListener('touchend', handleTouchEnd);
-        }
-
-        // Функция для завершения игры
-        function endGame() {
-            if (isGameEnding) return; // Если игра уже завершается, выходим
-            isGameEnding = true;
-
-            // Создаем черный взрыв по периметру зоны игрока
-            createBlackExplosion(player.x + player.width / 2, player.y + player.height / 2);
-
-            // Отключаем управление
-            disableControls();
-
-            // Воспроизводим звук взрыва
-            const explosionSound = document.getElementById('explosionSound');
-            explosionSound.currentTime = 0;
-            explosionSound.play();
-
-            // Ждем 3 секунды, затем переходим в меню
-            setTimeout(() => {
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard();
-                document.getElementById('scoreModal').style.display = 'flex';
-                isGameEnding = false; // Сбрасываем флаг завершения игры
-            }, 3000);
-        }
 
         function getRandomEnemyType() {
             const random = Math.random();
@@ -637,10 +579,10 @@
             explosions.push({
                 x,
                 y,
-                radius: 5,
-                maxRadius: 20,
+                radius: 10,
+                maxRadius: 50,
                 alpha: 1,
-                duration: 20
+                duration: 30
             });
         }
 
@@ -648,16 +590,33 @@
             explosions.forEach((explosion, index) => {
                 ctx.beginPath();
                 ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-                ctx.fillStyle = explosion.color || `rgba(255, 100, 0, ${explosion.alpha})`; // Используем черный цвет, если он задан
+                ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
                 ctx.fill();
 
-                explosion.radius += 1;
-                explosion.alpha -= 0.05;
+                explosion.radius += 2;
+                explosion.alpha -= 0.03;
 
                 if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
                     explosions.splice(index, 1);
                 }
             });
+        }
+
+        function createFinalExplosions() {
+            const explosionCount = 10;
+            const explosionRadius = 50;
+
+            for (let i = 0; i < explosionCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * explosionRadius;
+
+                const explosionX = player.x + player.width / 2 + Math.cos(angle) * distance;
+                const explosionY = player.y + player.height / 2 + Math.sin(angle) * distance;
+
+                createExplosion(explosionX, explosionY);
+            }
+
+            playExplosionSound();
         }
 
         function checkCollision(obj1, obj2) {
@@ -790,6 +749,7 @@
 
         function restartGame() {
             gameOver = false;
+            finalExplosionsTriggered = false;
             document.getElementById('scoreModal').style.display = 'none';
             score = 0;
             infantryCount = 0;
@@ -870,8 +830,6 @@
         }
 
         function shoot() {
-            if (isGameEnding) return; // Если игра завершается, выходим
-
             const currentTime = Date.now();
             if (currentTime - lastShotTime < 1000 / maxShotsPerSecond) return;
             lastShotTime = currentTime;
@@ -903,11 +861,16 @@
 
         function gameLoop() {
             if (gameOver || player.health <= 0) {
-                if (!isGameEnding) {
-                    endGame(); // Запускаем завершение игры
+                if (!finalExplosionsTriggered) {
+                    finalExplosionsTriggered = true;
+                    createFinalExplosions();
+                    setTimeout(() => {
+                        updateHighScore();
+                        stopBackgroundMusic();
+                        updateScoreboard();
+                        document.getElementById('scoreModal').style.display = 'flex';
+                    }, 3000);
                 }
-                drawExplosions(); // Отрисовываем взрывы
-                requestAnimationFrame(gameLoop);
                 return;
             }
 
@@ -917,7 +880,6 @@
                 return;
             }
 
-            // Остальная логика игры
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawBackground();
             drawPlayer();
@@ -937,27 +899,22 @@
         }
 
         function resizeCanvas() {
-            const maxWidth = 400; // Максимальная ширина игрового поля
-            const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
+            const maxWidth = 400;
+            const touchpadHeight = 0.15 * window.innerHeight;
 
-            // Рассчитываем ширину и высоту холста
             gameWidth = Math.min(window.innerWidth - 40, maxWidth);
-            gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
+            gameHeight = window.innerHeight - touchpadHeight;
 
-            // Устанавливаем размеры холста
             canvas.width = gameWidth;
             canvas.height = gameHeight;
 
-            // Позиционируем холст по центру горизонтально и вверху вертикально
             canvas.style.position = 'absolute';
-            canvas.style.left = '50%'; // Центрируем по горизонтали
-            canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+            canvas.style.left = '50%';
+            canvas.style.transform = 'translateX(-50%)';
             canvas.style.top = '0';
 
-            // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
             document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
 
-            // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
             player.x = canvas.width / 2 - player.width / 2;
             player.y = canvas.height - 40;
         }
@@ -966,12 +923,12 @@
             const isPortrait = window.innerHeight > window.innerWidth;
 
             if (!isPortrait) {
-                isPaused = true; // Ставим игру на паузу
-                showOrientationWarning(); // Показываем предупреждение
+                isPaused = true;
+                showOrientationWarning();
             } else {
-                isPaused = false; // Снимаем с паузы, если ориентация правильная
-                hideOrientationWarning(); // Скрываем предупреждение
-                resizeCanvas(); // Обновляем размеры холста
+                isPaused = false;
+                hideOrientationWarning();
+                resizeCanvas();
             }
         }
 
@@ -1004,21 +961,18 @@
             }
         }
 
-        // Проверка ориентации при загрузке страницы и изменении размера окна
         checkOrientation();
         window.addEventListener('resize', () => {
-            checkOrientation(); // Проверяем ориентацию
-            resizeCanvas(); // Обновляем размеры холста
+            checkOrientation();
+            resizeCanvas();
         });
 
-        // Запрет масштабирования на touch-устройствах
         document.addEventListener('touchmove', function (event) {
             if (event.scale !== 1) {
-                event.preventDefault(); // Запрещаем масштабирование
+                event.preventDefault();
             }
         }, { passive: false });
 
-        // Ожидание загрузки всех изображений
         Promise.all([
             new Promise((resolve) => { playerImage.onload = resolve; }),
             new Promise((resolve) => { infantryImage.onload = resolve; }),
@@ -1026,40 +980,35 @@
             new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
             new Promise((resolve) => { backgroundImage.onload = resolve; })
         ]).then(() => {
-            resizeCanvas(); // Устанавливаем начальные размеры холста
+            resizeCanvas();
             document.getElementById('scoreModal').style.display = 'flex';
         });
 
-        // Логика для модального окна с инструкцией
         const instructionModal = document.getElementById('instructionModal');
         const instructionButton = document.getElementById('instructionButton');
         const instructionModalContent = document.getElementById('instructionModalContent');
 
-        // Открываем модальное окно с инструкцией
         instructionButton.addEventListener('click', () => {
             instructionModal.style.display = 'flex';
         });
 
-        // Закрываем модальное окно при клике в любом месте
         instructionModal.addEventListener('click', () => {
             instructionModal.style.display = 'none';
         });
 
-        // Обработка прокрутки текста внутри модального окна
         let startY = 0;
 
         instructionModalContent.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY; // Запоминаем начальную позицию касания
+            startY = e.touches[0].clientY;
         });
 
         instructionModalContent.addEventListener('touchmove', (e) => {
             const currentY = e.touches[0].clientY;
-            const deltaY = startY - currentY; // Вычисляем разницу по Y
+            const deltaY = startY - currentY;
 
-            // Прокручиваем содержимое
             instructionModalContent.scrollBy(0, deltaY);
 
-            startY = currentY; // Обновляем начальную позицию
+            startY = currentY;
         });
     </script>
 </body>
