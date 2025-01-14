@@ -315,6 +315,7 @@
                 const x = player.x + player.width / 2 + Math.cos(angle) * distance;
                 const y = player.y + player.height / 2 + Math.sin(angle) * distance;
 
+                // Используем ту же функцию createExplosion, что и для снарядов игрока
                 createExplosion(x, y);
             }
         }
