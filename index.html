@@ -118,7 +118,8 @@
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
-            overflow-y: auto;
+            overflow-y: auto; /* Включаем вертикальную прокрутку */
+            touch-action: pan-y; /* Разрешаем прокрутку на touch-устройствах */
         }
         #instructionModalContent h2 {
             margin-top: 0;
@@ -137,19 +138,6 @@
         }
         #instructionModalContent li {
             margin-bottom: 5px;
-        }
-        #closeInstructionButton {
-            width: 100%;
-            padding: 10px;
-            background-color: #444;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        #closeInstructionButton:hover {
-            background-color: #666;
         }
     </style>
 </head>
@@ -211,7 +199,6 @@
                 <li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
                 <li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
             </ul>
-            <button id="closeInstructionButton">Закрыть</button>
         </div>
     </div>
 
@@ -983,20 +970,33 @@
         // Логика для модального окна с инструкцией
         const instructionModal = document.getElementById('instructionModal');
         const instructionButton = document.getElementById('instructionButton');
-        const closeInstructionButton = document.getElementById('closeInstructionButton');
+        const instructionModalContent = document.getElementById('instructionModalContent');
 
+        // Открываем модальное окно с инструкцией
         instructionButton.addEventListener('click', () => {
             instructionModal.style.display = 'flex';
         });
 
-        closeInstructionButton.addEventListener('click', () => {
+        // Закрываем модальное окно при клике в любом месте
+        instructionModal.addEventListener('click', () => {
             instructionModal.style.display = 'none';
         });
 
-        window.addEventListener('click', (event) => {
-            if (event.target === instructionModal) {
-                instructionModal.style.display = 'none';
-            }
+        // Обработка прокрутки текста внутри модального окна
+        let startY = 0;
+
+        instructionModalContent.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY; // Запоминаем начальную позицию касания
+        });
+
+        instructionModalContent.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            const deltaY = startY - currentY; // Вычисляем разницу по Y
+
+            // Прокручиваем содержимое
+            instructionModalContent.scrollBy(0, deltaY);
+
+            startY = currentY; // Обновляем начальную позицию
         });
     </script>
 </body>
