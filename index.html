@@ -151,11 +151,11 @@
 
             // Рассчитываем размеры canvas с учетом пропорций 9:16
             if (windowWidth / windowHeight > targetAspectRatio) {
-                // Если ширина экрана слишком большая, ограничиваем по высоте
+                // Если устройство в альбомной ориентации, игровое поле остается в портретной ориентации
                 gameHeight = windowHeight;
                 gameWidth = gameHeight * targetAspectRatio;
             } else {
-                // Если высота экрана слишком большая, ограничиваем по ширине
+                // Если устройство в портретной ориентации, игровое поле занимает всю высоту
                 gameWidth = windowWidth;
                 gameHeight = gameWidth / targetAspectRatio;
             }
@@ -166,8 +166,8 @@
 
             // Центрируем canvas на экране
             canvas.style.position = 'absolute';
-            canvas.style.left = `${(windowWidth - gameWidth) / 2}px`;
-            canvas.style.top = `${(windowHeight - gameHeight) / 2}px`;
+            canvas.style.left = `${(window.innerWidth - gameWidth) / 2}px`;
+            canvas.style.top = `${(window.innerHeight - gameHeight) / 2}px`;
         }
 
         // Инициализация размеров canvas
