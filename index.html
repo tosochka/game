@@ -807,7 +807,8 @@
 
             // Позиционируем холст по центру горизонтально и вверху вертикально
             canvas.style.position = 'absolute';
-            canvas.style.left = `${(window.innerWidth - gameWidth) / 2}px`;
+            canvas.style.left = '50%'; // Центрируем по горизонтали
+            canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
             canvas.style.top = '0';
 
             // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
