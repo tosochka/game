@@ -794,12 +794,23 @@
 
         // Функция для обновления размеров холста
         function resizeCanvas() {
-            gameWidth = Math.min(window.innerWidth - 40, 400); // Адаптивная ширина
-            gameHeight = Math.min(window.innerHeight - 200, 900); // Адаптивная высота
+            const maxWidth = 400; // Максимальная ширина игрового поля
+            const maxHeight = 900; // Максимальная высота игрового поля
+
+            // Рассчитываем ширину и высоту холста
+            gameWidth = Math.min(window.innerWidth - 40, maxWidth);
+            gameHeight = Math.min(window.innerHeight - 200, maxHeight);
+
+            // Устанавливаем размеры холста
             canvas.width = gameWidth;
             canvas.height = gameHeight;
 
-            // Пересчитываем позицию игрока, чтобы он оставался по центру
+            // Позиционируем холст по центру горизонтально и вверху вертикально
+            canvas.style.position = 'absolute';
+            canvas.style.left = `${(window.innerWidth - gameWidth) / 2}px`;
+            canvas.style.top = '0';
+
+            // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
             player.x = canvas.width / 2 - player.width / 2;
             player.y = canvas.height - 40;
         }
