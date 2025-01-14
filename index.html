@@ -78,6 +78,23 @@
         #restartButton:hover {
             background-color: #666;
         }
+        #orientationWarning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
@@ -775,6 +792,54 @@
 
             requestAnimationFrame(gameLoop);
         }
+
+        // Функция для проверки ориентации экрана
+        function checkOrientation() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+
+            if (!isPortrait) {
+                isPaused = true; // Ставим игру на паузу
+                showOrientationWarning(); // Показываем предупреждение
+            } else {
+                isPaused = false; // Снимаем с паузы, если ориентация правильная
+                hideOrientationWarning(); // Скрываем предупреждение
+            }
+        }
+
+        // Функция для показа предупреждения
+        function showOrientationWarning() {
+            const warning = document.createElement('div');
+            warning.id = 'orientationWarning';
+            warning.style.position = 'fixed';
+            warning.style.top = '0';
+            warning.style.left = '0';
+            warning.style.width = '100%';
+            warning.style.height = '100%';
+            warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            warning.style.color = 'white';
+            warning.style.display = 'flex';
+            warning.style.justifyContent = 'center';
+            warning.style.alignItems = 'center';
+            warning.style.zIndex = '2000';
+            warning.style.fontSize = '24px';
+            warning.style.textAlign = 'center';
+            warning.style.padding = '20px';
+            warning.style.boxSizing = 'border-box';
+            warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
+            document.body.appendChild(warning);
+        }
+
+        // Функция для скрытия предупреждения
+        function hideOrientationWarning() {
+            const warning = document.getElementById('orientationWarning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+
+        // Проверка ориентации при загрузке страницы и изменении размера окна
+        checkOrientation();
+        window.addEventListener('resize', checkOrientation);
 
         // Ожидание загрузки всех изображений
         Promise.all([
