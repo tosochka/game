@@ -17,24 +17,21 @@
             color: white;
         }
         #gameContainer {
-            position: relative;
-            width: 100%;
-            height: 100%;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 15vh; /* Отступ снизу для сенсорной зоны */
         }
         canvas {
             border: 2px solid white;
             cursor: none;
-            background-color: #000;
         }
         #touchpad {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 15vh;
+            height: 15vh; /* Высота сенсорной зоны */
             background-color: rgba(255, 255, 255, 0.1);
             z-index: 1000;
             touch-action: none;
@@ -81,22 +78,6 @@
         #restartButton:hover {
             background-color: #666;
         }
-        #orientationWarning {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
-            font-size: 24px;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
     </style>
 </head>
 <body>
@@ -123,11 +104,6 @@
         </div>
     </div>
 
-    <!-- Сообщение о необходимости повернуть устройство -->
-    <div id="orientationWarning">
-        Пожалуйста, поверните устройство в портретную ориентацию для игры.
-    </div>
-
     <!-- Звуковые эффекты (только OGG) -->
     <audio id="shootSound" src="shoot.ogg"></audio>
     <audio id="explosionSound" src="explosion.ogg"></audio>
@@ -141,38 +117,36 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Пропорции 9:16
-        const targetAspectRatio = 9 / 16;
-        let gameWidth, gameHeight;
-
-        function resizeCanvas() {
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-
-            // Рассчитываем размеры canvas с учетом пропорций 9:16
-            if (windowWidth / windowHeight > targetAspectRatio) {
-                // Если устройство в альбомной ориентации, игровое поле остается в портретной ориентации
-                gameHeight = windowHeight;
-                gameWidth = gameHeight * targetAspectRatio;
-            } else {
-                // Если устройство в портретной ориентации, игровое поле занимает всю высоту
-                gameWidth = windowWidth;
-                gameHeight = gameWidth / targetAspectRatio;
-            }
-
-            // Устанавливаем размеры canvas
-            canvas.width = gameWidth;
-            canvas.height = gameHeight;
-
-            // Центрируем canvas на экране
-            canvas.style.position = 'absolute';
-            canvas.style.left = `${(window.innerWidth - gameWidth) / 2}px`;
-            canvas.style.top = `${(window.innerHeight - gameHeight) / 2}px`;
+        // Функция для определения ориентации устройства
+        function isPortrait() {
+            return window.innerHeight > window.innerWidth;
         }
 
-        // Инициализация размеров canvas
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        // Функция для установки размеров холста
+        function setCanvasSize() {
+            const maxWidth = 400; // Максимальная ширина холста
+            const maxHeight = 900; // Максимальная высота холста
+
+            if (isPortrait()) {
+                // Портретная ориентация: адаптируем размеры под экран
+                canvas.width = Math.min(window.innerWidth - 40, maxWidth);
+                canvas.height = Math.min(window.innerHeight - 200, maxHeight);
+            } else {
+                // Альбомная ориентация: фиксируем размеры как при портретной ориентации
+                canvas.width = Math.min(window.innerHeight - 200, maxWidth);
+                canvas.height = Math.min(window.innerWidth - 40, maxHeight);
+            }
+
+            // Обновляем позицию игрока после изменения размеров холста
+            player.x = canvas.width / 2 - 15;
+            player.y = canvas.height - 40;
+        }
+
+        // Устанавливаем размеры холста при загрузке страницы
+        setCanvasSize();
+
+        // Обновляем размеры холста при изменении ориентации устройства
+        window.addEventListener('resize', setCanvasSize);
 
         // Загружаем изображения
         const backgroundImage = new Image();
@@ -825,23 +799,6 @@
 
             requestAnimationFrame(gameLoop);
         }
-
-        // Проверка ориентации устройства
-        function checkOrientation() {
-            const orientationWarning = document.getElementById('orientationWarning');
-            const isLandscape = window.innerWidth > window.innerHeight;
-
-            if (isLandscape) {
-                orientationWarning.style.display = 'flex';
-                isPaused = true;
-            } else {
-                orientationWarning.style.display = 'none';
-                isPaused = false;
-            }
-        }
-
-        window.addEventListener('load', checkOrientation);
-        window.addEventListener('resize', checkOrientation);
 
         // Ожидание загрузки всех изображений
         Promise.all([
