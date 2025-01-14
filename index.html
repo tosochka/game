@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Тосочка: Залповый огонь</title>
     <style>
         body {
@@ -795,10 +795,11 @@
         // Функция для обновления размеров холста
         function resizeCanvas() {
             const maxWidth = 400; // Максимальная ширина игрового поля
+            const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
 
             // Рассчитываем ширину и высоту холста
             gameWidth = Math.min(window.innerWidth - 40, maxWidth);
-            gameHeight = window.innerHeight - (0.15 * window.innerHeight); // Высота минус сенсорная зона (15vh)
+            gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
 
             // Устанавливаем размеры холста
             canvas.width = gameWidth;
@@ -865,6 +866,13 @@
             checkOrientation(); // Проверяем ориентацию
             resizeCanvas(); // Обновляем размеры холста
         });
+
+        // Запрет масштабирования на touch-устройствах
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== 1) {
+                event.preventDefault(); // Запрещаем масштабирование
+            }
+        }, { passive: false });
 
         // Ожидание загрузки всех изображений
         Promise.all([
