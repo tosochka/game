@@ -597,23 +597,6 @@
             });
         }
 
-        function createExplosionsAroundPlayer() {
-            const explosionCount = 10; // Количество взрывов
-            const explosionRadius = 50; // Радиус вокруг игрока, где будут появляться взрывы
-
-            for (let i = 0; i < explosionCount; i++) {
-                const angle = Math.random() * Math.PI * 2; // Случайный угол
-                const distance = Math.random() * explosionRadius; // Случайное расстояние от игрока
-
-                // Вычисляем координаты взрыва
-                const explosionX = player.x + player.width / 2 + Math.cos(angle) * distance;
-                const explosionY = player.y + player.height / 2 + Math.sin(angle) * distance;
-
-                // Создаем взрыв
-                createExplosion(explosionX, explosionY);
-            }
-        }
-
         function drawExplosions() {
             explosions.forEach((explosion, index) => {
                 ctx.beginPath();
@@ -758,14 +741,7 @@
             backgroundMusic.currentTime = 0;
         }
 
-        let gameEndTimeout = null; // Переменная для хранения таймера завершения игры
-
         function restartGame() {
-            if (gameEndTimeout) {
-                clearTimeout(gameEndTimeout); // Очищаем таймер
-                gameEndTimeout = null;
-            }
-
             gameOver = false;
             document.getElementById('scoreModal').style.display = 'none';
             score = 0;
@@ -878,28 +854,10 @@
 
         function gameLoop() {
             if (gameOver || player.health <= 0) {
-                if (!gameEndTimeout) { // Проверяем, что таймер еще не запущен
-                    createExplosionsAroundPlayer(); // Создаем взрывы вокруг игрока
-                    gameEndTimeout = setTimeout(() => {
-                        updateHighScore();
-                        stopBackgroundMusic();
-                        updateScoreboard();
-                        document.getElementById('scoreModal').style.display = 'flex';
-                        gameEndTimeout = null; // Сбрасываем таймер
-                    }, 5000); // Задержка 5 секунд перед завершением игры
-                }
-
-                // Продолжаем отрисовывать взрывы
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawBackground();
-                drawPlayer();
-                drawMissiles();
-                drawEnemies();
-                drawEnemyMissiles();
-                drawExplosions();
-                drawHealthBar();
-
-                requestAnimationFrame(gameLoop);
+                updateHighScore();
+                stopBackgroundMusic();
+                updateScoreboard();
+                document.getElementById('scoreModal').style.display = 'flex';
                 return;
             }
 
@@ -909,7 +867,6 @@
                 return;
             }
 
-            // Остальная логика игры
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawBackground();
             drawPlayer();
