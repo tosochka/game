@@ -134,10 +134,8 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const gameWidth = Math.min(window.innerWidth - 40, 400); // Адаптивная ширина
-        const gameHeight = Math.min(window.innerHeight - 200, 900); // Адаптивная высота
-        canvas.width = gameWidth;
-        canvas.height = gameHeight;
+        // Инициализация размеров холста
+        let gameWidth, gameHeight;
 
         // Загружаем изображения
         const backgroundImage = new Image();
@@ -156,8 +154,8 @@
         rocketLauncherImage.src = 'rocket_launcher.png';
 
         const player = {
-            x: canvas.width / 2 - 15,
-            y: canvas.height - 40,
+            x: 0,
+            y: 0,
             width: 25,
             height: 30,
             speed: 20,
@@ -674,6 +672,7 @@
             clearInterval(enemySpawnInterval);
             enemySpawnInterval = setInterval(spawnEnemy, 1000);
 
+            resizeCanvas(); // Обновляем размеры холста при перезапуске игры
             gameLoop();
         }
 
@@ -793,6 +792,18 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // Функция для обновления размеров холста
+        function resizeCanvas() {
+            gameWidth = Math.min(window.innerWidth - 40, 400); // Адаптивная ширина
+            gameHeight = Math.min(window.innerHeight - 200, 900); // Адаптивная высота
+            canvas.width = gameWidth;
+            canvas.height = gameHeight;
+
+            // Пересчитываем позицию игрока, чтобы он оставался по центру
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 40;
+        }
+
         // Функция для проверки ориентации экрана
         function checkOrientation() {
             const isPortrait = window.innerHeight > window.innerWidth;
@@ -803,6 +814,7 @@
             } else {
                 isPaused = false; // Снимаем с паузы, если ориентация правильная
                 hideOrientationWarning(); // Скрываем предупреждение
+                resizeCanvas(); // Обновляем размеры холста
             }
         }
 
@@ -839,7 +851,10 @@
 
         // Проверка ориентации при загрузке страницы и изменении размера окна
         checkOrientation();
-        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('resize', () => {
+            checkOrientation(); // Проверяем ориентацию
+            resizeCanvas(); // Обновляем размеры холста
+        });
 
         // Ожидание загрузки всех изображений
         Promise.all([
@@ -849,6 +864,7 @@
             new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
             new Promise((resolve) => { backgroundImage.onload = resolve; })
         ]).then(() => {
+            resizeCanvas(); // Устанавливаем начальные размеры холста
             document.getElementById('scoreModal').style.display = 'flex';
         });
     </script>
