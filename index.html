@@ -67,7 +67,7 @@
             margin-bottom: 10px;
             font-size: 16px;
         }
-        #restartButton {
+        #restartButton, #instructionButton {
             width: 100%;
             padding: 10px;
             background-color: #444;
@@ -77,7 +77,7 @@
             font-size: 16px;
             margin-top: 10px;
         }
-        #restartButton:hover {
+        #restartButton:hover, #instructionButton:hover {
             background-color: #666;
         }
         #orientationWarning {
@@ -96,6 +96,60 @@
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
+        }
+        /* Стили для модального окна с инструкцией */
+        #instructionModal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #instructionModalContent {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #instructionModalContent h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        #instructionModalContent h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        #instructionModalContent p {
+            margin: 10px 0;
+        }
+        #instructionModalContent ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        #instructionModalContent li {
+            margin-bottom: 5px;
+        }
+        #closeInstructionButton {
+            width: 100%;
+            padding: 10px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        #closeInstructionButton:hover {
+            background-color: #666;
         }
     </style>
 </head>
@@ -119,7 +173,45 @@
             <div>Уровень: <span id="modalLevel">1</span></div>
             <div>Сложность: <span id="modalDifficultyLevel">0</span></div>
             <div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
+            <!-- Новая кнопка "Инструкция по выживанию" -->
+            <button id="instructionButton">Инструкция по выживанию</button>
             <button id="restartButton">Начать игру</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для инструкции -->
+    <div id="instructionModal">
+        <div id="instructionModalContent">
+            <h2>Инструкция по выживанию</h2>
+            <h3>Игра: Тосочка, Z.O.V.</h3>
+            <p><strong>Описание:</strong></p>
+            <p>
+                Вы — командир артиллерийского расчета, задача которого — защитить свои позиции от наступающих вражеских сил. 
+                Враги атакуют волнами: пехота, танки, реактивные системы залпового огня (РСЗО) стремятся прорвать вашу оборону. 
+                Ваша задача — уничтожать врагов, набирать очки и не допустить их прорыва. 
+                С каждым уровнем сложность игры увеличивается: враги становятся быстрее и опаснее.
+                Используйте свою артиллерию, чтобы остановить их и установить новый рекорд!
+            </p>
+            <p><strong>Особенности:</strong></p>
+            <ul>
+                <li>Вражеская пехота, танки и РСЗО — каждый, имеет свои характеристики и поведение.</li>
+                <li>Вы стреляете залпами снарядов, которые взрываются на различных дистанциях, в зависимости от погодных условий и рельефа местности.</li>
+                <li>У вас есть показатель живучести батареи, который снижается при попадании вражеских снарядов. Но за каждые полученные 100 очков, уровень живучести увеличивается на 1%.</li>
+                <li>Результаты лучших игр сохраняются, так что вы можете соревноваться не только с самим собой.</li>
+            </ul>
+            <p><strong>Управление:</strong></p>
+            <ul>
+                <li>Перемещайте позицию своей артиллерии, касаясь и двигая пальцем по сенсорной зоне внизу экрана.</li>
+                <li>Чтобы стрелять, просто коснитесь (тапните) в любом месте сенсорной зоны.</li>
+                <li>Нажмите на экран в любой области игрового поля, чтобы поставить или снять паузу.</li>
+            </ul>
+            <p><strong>Советы для игроков:</strong></p>
+            <ul>
+                <li>Следите за уровнем живучести: не допускайте, чтобы вражеские снаряды попадали в вас. Помните, танки и РСЗО наносят больше урона, чем пехота противника.</li>
+                <li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
+                <li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
+            </ul>
+            <button id="closeInstructionButton">Закрыть</button>
         </div>
     </div>
 
@@ -886,6 +978,25 @@
         ]).then(() => {
             resizeCanvas(); // Устанавливаем начальные размеры холста
             document.getElementById('scoreModal').style.display = 'flex';
+        });
+
+        // Логика для модального окна с инструкцией
+        const instructionModal = document.getElementById('instructionModal');
+        const instructionButton = document.getElementById('instructionButton');
+        const closeInstructionButton = document.getElementById('closeInstructionButton');
+
+        instructionButton.addEventListener('click', () => {
+            instructionModal.style.display = 'flex';
+        });
+
+        closeInstructionButton.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === instructionModal) {
+                instructionModal.style.display = 'none';
+            }
         });
     </script>
 </body>
