@@ -311,13 +311,40 @@
             const explosionCount = 5; // Количество взрывов за один вызов
             for (let i = 0; i < explosionCount; i++) {
                 const angle = Math.random() * Math.PI * 2; // Случайный угол
-                const distance = Math.random() * 50 + 30; // Случайное расстояние от игрока (30-80 пикселей)
+                const distance = Math.random() * 100 + 50; // Случайное расстояние от игрока (50-150 пикселей)
                 const x = player.x + player.width / 2 + Math.cos(angle) * distance;
                 const y = player.y + player.height / 2 + Math.sin(angle) * distance;
 
                 // Используем ту же функцию createExplosion, что и для снарядов игрока
                 createExplosion(x, y);
             }
+        }
+
+        function createExplosion(x, y) {
+            explosions.push({
+                x,
+                y,
+                radius: 10, // Начальный радиус взрыва увеличен
+                maxRadius: 40, // Максимальный радиус взрыва увеличен
+                alpha: 1,
+                duration: 20
+            });
+        }
+
+        function drawExplosions() {
+            explosions.forEach((explosion, index) => {
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
+                ctx.fill();
+
+                explosion.radius += 1; // Увеличиваем радиус взрыва
+                explosion.alpha -= 0.05; // Уменьшаем прозрачность
+
+                if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
+                    explosions.splice(index, 1); // Удаляем взрыв, если он завершился
+                }
+            });
         }
 
         function handleDefeat() {
@@ -630,33 +657,6 @@
                     }
 
                     updateScoreboard();
-                }
-            });
-        }
-
-        function createExplosion(x, y) {
-            explosions.push({
-                x,
-                y,
-                radius: 5,
-                maxRadius: 20,
-                alpha: 1,
-                duration: 20
-            });
-        }
-
-        function drawExplosions() {
-            explosions.forEach((explosion, index) => {
-                ctx.beginPath();
-                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
-                ctx.fill();
-
-                explosion.radius += 1;
-                explosion.alpha -= 0.05;
-
-                if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
-                    explosions.splice(index, 1);
                 }
             });
         }
