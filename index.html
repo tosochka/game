@@ -307,6 +307,10 @@
         let defeatHandled = false;
         let explosionInterval;
 
+        // Переменные для моргания
+        let isPlayerBlinking = false;
+        let blinkAnimationFrame;
+
         function createRandomExplosionsAroundPlayer() {
             const explosionCount = 5; // Количество взрывов за один вызов
             for (let i = 0; i < explosionCount; i++) {
@@ -334,6 +338,9 @@
                 createRandomExplosionsAroundPlayer();
             }, 300); // Взрывы каждые 0.3 секунды
 
+            // Начинаем моргание
+            startBlinking();
+
             // Проигрываем звук поражения
             const defeatSound = document.getElementById('defeatSound');
             defeatSound.currentTime = 0;
@@ -342,12 +349,51 @@
             // Ждем завершения звука и переходим в меню
             defeatSound.onended = () => {
                 clearInterval(explosionInterval); // Останавливаем создание взрывов
+                stopBlinking(); // Останавливаем моргание
                 updateHighScore();
                 stopBackgroundMusic();
                 updateScoreboard();
                 document.getElementById('scoreModal').style.display = 'flex';
                 defeatHandled = false; // Сбрасываем флаг для следующей игры
             };
+        }
+
+        function startBlinking() {
+            isPlayerBlinking = true;
+            blinkAnimationFrame = requestAnimationFrame(blinkLoop); // Запускаем цикл моргания
+        }
+
+        function stopBlinking() {
+            isPlayerBlinking = false;
+            cancelAnimationFrame(blinkAnimationFrame); // Останавливаем цикл моргания
+        }
+
+        function blinkLoop() {
+            if (!isPlayerBlinking) return; // Останавливаем цикл, если моргание завершено
+
+            // Очищаем холст и рисуем игрока с эффектом моргания
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawEnemies();
+            drawEnemyMissiles();
+            drawExplosions();
+            drawHealthBar();
+
+            // Моргание игрока
+            if (isPlayerVisible()) {
+                const sway = Math.sin(Date.now() / 200) * 2;
+                if (playerImage.complete) {
+                    ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
+                }
+            }
+
+            // Продолжаем цикл моргания
+            blinkAnimationFrame = requestAnimationFrame(blinkLoop);
+        }
+
+        function isPlayerVisible() {
+            // Возвращает true, если игрок должен быть видимым в текущий момент моргания
+            return Math.floor(Date.now() / 100) % 2 === 0; // Видим каждые 100 мс
         }
 
         function playInfantryHitSound() {
@@ -441,6 +487,8 @@
         }
 
         function drawPlayer() {
+            if (isPlayerBlinking && !isPlayerVisible()) return; // Не отображаем игрока, если идет моргание и он невидим
+
             const sway = Math.sin(Date.now() / 200) * 2;
             if (playerImage.complete) {
                 ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
@@ -792,6 +840,7 @@
             gameOver = false;
             defeatHandled = false;
             clearInterval(explosionInterval);
+            stopBlinking(); // Останавливаем моргание
             document.getElementById('scoreModal').style.display = 'none';
             score = 0;
             infantryCount = 0;
