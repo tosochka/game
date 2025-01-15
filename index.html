@@ -1013,9 +1013,11 @@
 
             if (!isPortrait) {
                 isPaused = true; // Ставим игру на паузу
+                stopBackgroundMusic(); // Останавливаем фоновую музыку
                 showOrientationWarning(); // Показываем предупреждение
             } else {
                 isPaused = false; // Снимаем с паузы, если ориентация правильная
+                startBackgroundMusic(); // Возобновляем фоновую музыку
                 hideOrientationWarning(); // Скрываем предупреждение
                 resizeCanvas(); // Обновляем размеры холста
             }
