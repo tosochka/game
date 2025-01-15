@@ -306,7 +306,6 @@
 
         let defeatHandled = false;
         let explosionInterval;
-        let waitingForExplosions = false;
 
         function createRandomExplosionsAroundPlayer() {
             const explosionCount = 5; // Количество взрывов за один вызов
@@ -342,7 +341,12 @@
 
             // Ждем завершения звука и переходим в меню
             defeatSound.onended = () => {
-                waitingForExplosions = true; // Начинаем ждать завершения взрывов
+                clearInterval(explosionInterval); // Останавливаем создание взрывов
+                updateHighScore();
+                stopBackgroundMusic();
+                updateScoreboard();
+                document.getElementById('scoreModal').style.display = 'flex';
+                defeatHandled = false; // Сбрасываем флаг для следующей игры
             };
         }
 
@@ -898,25 +902,10 @@
         }
 
         function gameLoop() {
-            if (isGameOver) {
-                // Если игра завершена, продолжаем отрисовывать взрывы
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawBackground();
-                drawPlayer();
-                drawExplosions();
-
-                // Если ждем завершения взрывов и все взрывы закончились
-                if (waitingForExplosions && explosions.length === 0) {
-                    clearInterval(explosionInterval); // Останавливаем создание взрывов
-                    updateHighScore();
-                    stopBackgroundMusic();
-                    updateScoreboard();
-                    document.getElementById('scoreModal').style.display = 'flex';
-                    isGameOver = false; // Сбрасываем флаг для следующей игры
-                    waitingForExplosions = false; // Сбрасываем флаг ожидания
+            if (gameOver || player.health <= 0) {
+                if (!defeatHandled) {
+                    handleDefeat();
                 }
-
-                requestAnimationFrame(gameLoop);
                 return;
             }
 
@@ -926,7 +915,6 @@
                 return;
             }
 
-            // Обычная логика игры
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawBackground();
             drawPlayer();
