@@ -256,7 +256,7 @@
         let lastShotTime = 0;
         let lastRszShotTime = 0;
         let score = 0;
-        let isGameOver = false; // Флаг завершения игры
+        let gameOver = false;
         let speedMultiplier = 1;
         let level = 1;
         const levelThresholds = [100, 300, 600, 1000];
@@ -269,7 +269,6 @@
         let infantryHitCounter = 0;
 
         let enemySpawnInterval;
-        let explosionLoopActive = false; // Флаг активности цикла взрывов
 
         const enemyTypes = [
             { type: 'пехота', width: 10, height: 11, baseSpeed: 0.11, color: 'blue', score: 10, probability: 0.6 },
@@ -307,6 +306,7 @@
 
         let defeatHandled = false;
         let explosionInterval;
+        let waitingForExplosions = false;
 
         function createRandomExplosionsAroundPlayer() {
             const explosionCount = 5; // Количество взрывов за один вызов
@@ -321,13 +321,14 @@
         }
 
         function handleDefeat() {
-            if (defeatHandled) return;
             defeatHandled = true;
 
-            isGameOver = true; // Устанавливаем флаг завершения игры
-
-            // Останавливаем основной игровой цикл
+            // Останавливаем игровой цикл
             cancelAnimationFrame(gameLoop);
+
+            // Блокируем управление
+            isTouching = false;
+            isTap = false;
 
             // Запускаем интервал для создания взрывов
             explosionInterval = setInterval(() => {
@@ -339,30 +340,10 @@
             defeatSound.currentTime = 0;
             defeatSound.play();
 
-            // Запускаем отдельный цикл для отрисовки взрывов
-            explosionLoopActive = true;
-            explosionLoop();
-
             // Ждем завершения звука и переходим в меню
             defeatSound.onended = () => {
-                clearInterval(explosionInterval); // Останавливаем создание взрывов
-                explosionLoopActive = false; // Останавливаем цикл взрывов
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard();
-                document.getElementById('scoreModal').style.display = 'flex';
-                defeatHandled = false; // Сбрасываем флаг для следующей игры
+                waitingForExplosions = true; // Начинаем ждать завершения взрывов
             };
-        }
-
-        function explosionLoop() {
-            if (!explosionLoopActive) return; // Если цикл взрывов не активен, выходим
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBackground(); // Отрисовываем фон
-            drawExplosions(); // Отрисовываем взрывы
-
-            requestAnimationFrame(explosionLoop); // Продолжаем цикл
         }
 
         function playInfantryHitSound() {
@@ -918,7 +899,24 @@
 
         function gameLoop() {
             if (isGameOver) {
-                // Если игра завершена, не выполняем основную логику
+                // Если игра завершена, продолжаем отрисовывать взрывы
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBackground();
+                drawPlayer();
+                drawExplosions();
+
+                // Если ждем завершения взрывов и все взрывы закончились
+                if (waitingForExplosions && explosions.length === 0) {
+                    clearInterval(explosionInterval); // Останавливаем создание взрывов
+                    updateHighScore();
+                    stopBackgroundMusic();
+                    updateScoreboard();
+                    document.getElementById('scoreModal').style.display = 'flex';
+                    isGameOver = false; // Сбрасываем флаг для следующей игры
+                    waitingForExplosions = false; // Сбрасываем флаг ожидания
+                }
+
+                requestAnimationFrame(gameLoop);
                 return;
             }
 
@@ -928,6 +926,7 @@
                 return;
             }
 
+            // Обычная логика игры
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawBackground();
             drawPlayer();
