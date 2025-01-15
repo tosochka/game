@@ -210,6 +210,7 @@
     <audio id="infantryHitSound1" src="infantry_hit1.ogg"></audio>
     <audio id="infantryHitSound2" src="infantry_hit2.ogg"></audio>
     <audio id="infantryHitSound3" src="infantry_hit3.ogg"></audio>
+    <audio id="defeatSound" src="defeat.ogg"></audio>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -303,6 +304,52 @@
             document.getElementById('infantryHitSound3')
         ];
 
+        let defeatHandled = false;
+        let explosionInterval;
+
+        function createRandomExplosionsAroundPlayer() {
+            const explosionCount = 5; // Количество взрывов за один вызов
+            for (let i = 0; i < explosionCount; i++) {
+                const angle = Math.random() * Math.PI * 2; // Случайный угол
+                const distance = Math.random() * 50 + 30; // Случайное расстояние от игрока (30-80 пикселей)
+                const x = player.x + player.width / 2 + Math.cos(angle) * distance;
+                const y = player.y + player.height / 2 + Math.sin(angle) * distance;
+
+                createExplosion(x, y);
+            }
+        }
+
+        function handleDefeat() {
+            defeatHandled = true;
+
+            // Останавливаем игровой цикл
+            cancelAnimationFrame(gameLoop);
+
+            // Блокируем управление
+            isTouching = false;
+            isTap = false;
+
+            // Запускаем интервал для создания взрывов
+            explosionInterval = setInterval(() => {
+                createRandomExplosionsAroundPlayer();
+            }, 300); // Взрывы каждые 0.3 секунды
+
+            // Проигрываем звук поражения
+            const defeatSound = document.getElementById('defeatSound');
+            defeatSound.currentTime = 0;
+            defeatSound.play();
+
+            // Ждем завершения звука и переходим в меню
+            defeatSound.onended = () => {
+                clearInterval(explosionInterval); // Останавливаем создание взрывов
+                updateHighScore();
+                stopBackgroundMusic();
+                updateScoreboard();
+                document.getElementById('scoreModal').style.display = 'flex';
+                defeatHandled = false; // Сбрасываем флаг для следующей игры
+            };
+        }
+
         function playInfantryHitSound() {
             const randomIndex = Math.floor(Math.random() * infantryHitSounds.length);
             const sound = infantryHitSounds[randomIndex];
@@ -351,6 +398,17 @@
             }
             isTouching = false;
             isTap = false;
+        });
+
+        // Обработчик для паузы
+        canvas.addEventListener('touchstart', (e) => {
+            const touchY = e.touches[0].clientY; // Получаем координату Y касания
+
+            // Проверяем, что касание было выше сенсорной зоны управления
+            const touchpadRect = touchpad.getBoundingClientRect();
+            if (touchY < touchpadRect.top) {
+                togglePause(); // Ставим игру на паузу или снимаем с паузы
+            }
         });
 
         function getRandomEnemyType() {
@@ -584,7 +642,6 @@
                 alpha: 1,
                 duration: 20
             });
-            playExplosionSound();
         }
 
         function drawExplosions() {
@@ -733,6 +790,8 @@
 
         function restartGame() {
             gameOver = false;
+            defeatHandled = false;
+            clearInterval(explosionInterval);
             document.getElementById('scoreModal').style.display = 'none';
             score = 0;
             infantryCount = 0;
@@ -782,6 +841,14 @@
             ctx.strokeRect(x, y, barWidth, barHeight);
         }
 
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                updateScoreboard();
+            }
+        }
+
         function togglePause() {
             isPaused = !isPaused;
             if (isPaused) {
@@ -790,6 +857,17 @@
             } else {
                 enemySpawnInterval = setInterval(spawnEnemy, 1000);
                 startBackgroundMusic();
+            }
+        }
+
+        function drawPauseMenu() {
+            if (isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Пауза', canvas.width / 2, canvas.height / 2);
             }
         }
 
@@ -825,10 +903,9 @@
 
         function gameLoop() {
             if (gameOver || player.health <= 0) {
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard();
-                document.getElementById('scoreModal').style.display = 'flex';
+                if (!defeatHandled) {
+                    handleDefeat();
+                }
                 return;
             }
 
