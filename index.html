@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Тосочка: Залповый огонь</title>
     <style>
+        /* Стили для заставки */
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+
+        #splashScreen img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Сохраняет пропорции изображения */
+        }
+
+        /* Стили для предупреждения об ориентации */
+        #orientationWarning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 4000;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            display: none;
+        }
+
+        /* Основные стили игры */
         body {
             margin: 0;
             overflow: hidden;
@@ -16,16 +59,19 @@
             font-family: Arial, sans-serif;
             color: white;
         }
+
         #gameContainer {
             display: flex;
             align-items: flex-start;
             gap: 20px;
             margin-bottom: 15vh; /* Отступ снизу для сенсорной зоны */
         }
+
         canvas {
             border: 2px solid white;
             cursor: none;
         }
+
         #touchpad {
             position: fixed;
             bottom: -10px; /* Сенсорная зона на 10px ниже нижней границы холста */
@@ -38,6 +84,8 @@
             z-index: 1000;
             touch-action: none;
         }
+
+        /* Модальные окна */
         #scoreModal {
             display: flex;
             position: fixed;
@@ -50,6 +98,7 @@
             align-items: center;
             z-index: 1000;
         }
+
         #scoreModalContent {
             background-color: #222;
             padding: 20px;
@@ -59,14 +108,17 @@
             width: 80%;
             max-width: 300px;
         }
+
         #scoreModalContent h3 {
             margin: 0 0 10px 0;
             font-size: 20px;
         }
+
         #scoreModalContent div {
             margin-bottom: 10px;
             font-size: 16px;
         }
+
         #restartButton, #instructionButton {
             width: 100%;
             padding: 10px;
@@ -77,27 +129,12 @@
             font-size: 16px;
             margin-top: 10px;
         }
+
         #restartButton:hover, #instructionButton:hover {
             background-color: #666;
         }
-        #orientationWarning {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            font-size: 24px;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        /* Стили для модального окна с инструкцией */
+
+        /* Модальное окно с инструкцией */
         #instructionModal {
             display: none; /* Скрыто по умолчанию */
             position: fixed;
@@ -110,6 +147,7 @@
             align-items: center;
             z-index: 2000;
         }
+
         #instructionModalContent {
             background-color: #222;
             padding: 20px;
@@ -121,27 +159,43 @@
             overflow-y: auto; /* Включаем вертикальную прокрутку */
             touch-action: pan-y; /* Разрешаем прокрутку на touch-устройствах */
         }
+
         #instructionModalContent h2 {
             margin-top: 0;
             font-size: 24px;
         }
+
         #instructionModalContent h3 {
             font-size: 20px;
             margin-bottom: 10px;
         }
+
         #instructionModalContent p {
             margin: 10px 0;
         }
+
         #instructionModalContent ul {
             margin: 10px 0;
             padding-left: 20px;
         }
+
         #instructionModalContent li {
             margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
+    <!-- Заставка -->
+    <div id="splashScreen">
+        <img src="splash.jpg" alt="Заставка">
+    </div>
+
+    <!-- Предупреждение об ориентации -->
+    <div id="orientationWarning">
+        Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.
+    </div>
+
+    <!-- Остальные элементы игры -->
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
     </div>
@@ -161,7 +215,6 @@
             <div>Уровень: <span id="modalLevel">1</span></div>
             <div>Сложность: <span id="modalDifficultyLevel">0</span></div>
             <div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
-            <!-- Новая кнопка "Инструкция по выживанию" -->
             <button id="instructionButton">Инструкция по выживанию</button>
             <button id="restartButton">Начать игру</button>
         </div>
@@ -1036,7 +1089,7 @@
             warning.style.display = 'flex';
             warning.style.justifyContent = 'center';
             warning.style.alignItems = 'center';
-            warning.style.zIndex = '2000';
+            warning.style.zIndex = '4000';
             warning.style.fontSize = '24px';
             warning.style.textAlign = 'center';
             warning.style.padding = '20px';
@@ -1109,6 +1162,47 @@
 
             startY = currentY; // Обновляем начальную позицию
         });
+
+        // Функция для скрытия заставки
+        function hideSplashScreen() {
+            const splashScreen = document.getElementById('splashScreen');
+            splashScreen.style.opacity = '0'; // Плавное затемнение
+
+            // Удаляем заставку через 1 секунду (после завершения анимации)
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+                document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
+            }, 1000); // 1 секунда на анимацию исчезновения
+        }
+
+        // Функция для проверки ориентации
+        function checkOrientation() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            const orientationWarning = document.getElementById('orientationWarning');
+
+            if (!isPortrait) {
+                orientationWarning.style.display = 'flex'; // Показываем предупреждение
+                isPaused = true; // Ставим игру на паузу
+                stopBackgroundMusic(); // Останавливаем фоновую музыку
+            } else {
+                orientationWarning.style.display = 'none'; // Скрываем предупреждение
+                isPaused = false; // Снимаем с паузы
+                startBackgroundMusic(); // Возобновляем фоновую музыку
+            }
+        }
+
+        // Проверка ориентации при загрузке страницы
+        window.addEventListener('load', () => {
+            checkOrientation(); // Проверяем ориентацию сразу
+            const splashScreen = document.getElementById('splashScreen');
+            splashScreen.style.display = 'flex'; // Показываем заставку
+
+            // Запускаем таймер на 3 секунды, после чего скрываем заставку
+            setTimeout(hideSplashScreen, 3000);
+        });
+
+        // Проверка ориентации при изменении размера окна
+        window.addEventListener('resize', checkOrientation);
     </script>
 </body>
 </html>
