@@ -17,8 +17,8 @@
             justify-content: center;
             align-items: center;
             z-index: 3000;
-            opacity: 1;
-            transition: opacity 1s ease-in-out;
+            opacity: 0; /* Начальная прозрачность */
+            transition: opacity 1s ease-in-out; /* Анимация изменения прозрачности */
         }
 
         #splashScreen img {
@@ -27,7 +27,17 @@
             object-fit: contain; /* Сохраняет пропорции изображения */
         }
 
-        /* Стили для предупреждения об ориентации */
+        /* Класс для плавного появления */
+        .fadeIn {
+            opacity: 1; /* Полная видимость */
+        }
+
+        /* Класс для плавного исчезновения */
+        .fadeOut {
+            opacity: 0; /* Полная прозрачность */
+        }
+
+        /* Предупреждение об ориентации */
         #orientationWarning {
             position: fixed;
             top: 0;
@@ -187,7 +197,7 @@
 <body>
     <!-- Заставка -->
     <div id="splashScreen">
-        <img src="splash.jpg" alt="Заставка">
+        <img src="splash.jpg" alt="Заставка" id="splashImage">
     </div>
 
     <!-- Предупреждение об ориентации -->
@@ -364,101 +374,41 @@
         let isPlayerBlinking = false;
         let blinkAnimationFrame;
 
-        function createRandomExplosionsAroundPlayer() {
-            const explosionCount = 5; // Количество взрывов за один вызов
-            for (let i = 0; i < explosionCount; i++) {
-                const angle = Math.random() * Math.PI * 2; // Случайный угол
-                const distance = Math.random() * 50 + 30; // Случайное расстояние от игрока (30-80 пикселей)
-                const x = player.x + player.width / 2 + Math.cos(angle) * distance;
-                const y = player.y + player.height / 2 + Math.sin(angle) * distance;
+        // Ждем загрузки изображения заставки
+        const splashScreen = document.getElementById('splashScreen');
+        const splashImage = document.getElementById('splashImage');
 
-                createExplosion(x, y);
-            }
-        }
+        splashImage.onload = () => {
+            // Показываем заставку с плавным появлением
+            splashScreen.style.display = 'flex'; // Показываем элемент
+            setTimeout(() => {
+                splashScreen.classList.add('fadeIn'); // Добавляем анимацию появления
+            }, 10); // Небольшая задержка для начала анимации
 
-        function handleDefeat() {
-            defeatHandled = true;
+            // Запускаем таймер на 5 секунд, после чего скрываем заставку
+            setTimeout(hideSplashScreen, 5000);
+        };
 
-            // Останавливаем игровой цикл
-            cancelAnimationFrame(gameLoop);
+        // Если изображение не загрузилось (например, ошибка 404), показываем заставку без изображения
+        splashImage.onerror = () => {
+            splashScreen.style.display = 'flex'; // Показываем заставку без изображения
+            setTimeout(() => {
+                splashScreen.classList.add('fadeIn'); // Добавляем анимацию появления
+            }, 10); // Небольшая задержка для начала анимации
 
-            // Блокируем управление
-            isTouching = false;
-            isTap = false;
+            setTimeout(hideSplashScreen, 5000); // Скрываем через 5 секунд
+        };
 
-            // Запускаем интервал для создания взрывов
-            explosionInterval = setInterval(() => {
-                createRandomExplosionsAroundPlayer();
-            }, 300); // Взрывы каждые 0.3 секунды
+        // Функция для скрытия заставки
+        function hideSplashScreen() {
+            splashScreen.classList.remove('fadeIn'); // Убираем анимацию появления
+            splashScreen.classList.add('fadeOut'); // Добавляем анимацию исчезновения
 
-            // Начинаем моргание
-            startBlinking();
-
-            // Проигрываем звук поражения
-            const defeatSound = document.getElementById('defeatSound');
-            defeatSound.currentTime = 0;
-            defeatSound.play();
-
-            // Ждем завершения звука и переходим в меню
-            defeatSound.onended = () => {
-                clearInterval(explosionInterval); // Останавливаем создание взрывов
-                stopBlinking(); // Останавливаем моргание
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard();
-                document.getElementById('scoreModal').style.display = 'flex';
-                defeatHandled = false; // Сбрасываем флаг для следующей игры
-            };
-        }
-
-        function startBlinking() {
-            isPlayerBlinking = true;
-            blinkAnimationFrame = requestAnimationFrame(blinkLoop); // Запускаем цикл моргания
-        }
-
-        function stopBlinking() {
-            isPlayerBlinking = false;
-            cancelAnimationFrame(blinkAnimationFrame); // Останавливаем цикл моргания
-        }
-
-        function blinkLoop() {
-            if (!isPlayerBlinking) return; // Останавливаем цикл, если моргание завершено
-
-            // Очищаем холст и рисуем игрока с эффектом моргания
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBackground();
-            drawEnemies();
-            drawEnemyMissiles();
-            drawExplosions();
-            drawHealthBar();
-
-            // Моргание игрока
-            if (isPlayerVisible()) {
-                const sway = Math.sin(Date.now() / 200) * 2;
-                if (playerImage.complete) {
-                    ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
-                }
-            }
-
-            // Продолжаем цикл моргания
-            blinkAnimationFrame = requestAnimationFrame(blinkLoop);
-        }
-
-        function isPlayerVisible() {
-            // Возвращает true, если игрок должен быть видимым в текущий момент моргания
-            return Math.floor(Date.now() / 100) % 2 === 0; // Видим каждые 100 мс
-        }
-
-        function playInfantryHitSound() {
-            const randomIndex = Math.floor(Math.random() * infantryHitSounds.length);
-            const sound = infantryHitSounds[randomIndex];
-
-            if (!sound.paused) {
-                sound.currentTime = 0;
-                sound.pause();
-            }
-
-            sound.play();
+            // Удаляем заставку через 1 секунду (после завершения анимации)
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+                document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
+            }, 1000); // 1 секунда на анимацию исчезновения
         }
 
         // Логика для сенсорного ползунка
@@ -1198,7 +1148,7 @@
             splashScreen.style.display = 'flex'; // Показываем заставку
 
             // Запускаем таймер на 3 секунды, после чего скрываем заставку
-            setTimeout(hideSplashScreen, 3000);
+            setTimeout(hideSplashScreen, 5000);
         });
 
         // Проверка ориентации при изменении размера окна
