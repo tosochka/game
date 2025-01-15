@@ -17,8 +17,8 @@
             justify-content: center;
             align-items: center;
             z-index: 3000;
-            opacity: 0; /* Начальная прозрачность */
-            transition: opacity 1s ease-in-out; /* Анимация изменения прозрачности */
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
         }
 
         #splashScreen img {
@@ -27,17 +27,7 @@
             object-fit: contain; /* Сохраняет пропорции изображения */
         }
 
-        /* Класс для плавного появления */
-        .fadeIn {
-            opacity: 1; /* Полная видимость */
-        }
-
-        /* Класс для плавного исчезновения */
-        .fadeOut {
-            opacity: 0; /* Полная прозрачность */
-        }
-
-        /* Предупреждение об ориентации */
+        /* Стили для предупреждения об ориентации */
         #orientationWarning {
             position: fixed;
             top: 0;
@@ -197,7 +187,7 @@
 <body>
     <!-- Заставка -->
     <div id="splashScreen">
-        <img src="splash.jpg" alt="Заставка" id="splashImage">
+        <img src="splash.jpg" alt="Заставка">
     </div>
 
     <!-- Предупреждение об ориентации -->
@@ -374,41 +364,101 @@
         let isPlayerBlinking = false;
         let blinkAnimationFrame;
 
-        // Ждем загрузки изображения заставки
-        const splashScreen = document.getElementById('splashScreen');
-        const splashImage = document.getElementById('splashImage');
+        function createRandomExplosionsAroundPlayer() {
+            const explosionCount = 5; // Количество взрывов за один вызов
+            for (let i = 0; i < explosionCount; i++) {
+                const angle = Math.random() * Math.PI * 2; // Случайный угол
+                const distance = Math.random() * 50 + 30; // Случайное расстояние от игрока (30-80 пикселей)
+                const x = player.x + player.width / 2 + Math.cos(angle) * distance;
+                const y = player.y + player.height / 2 + Math.sin(angle) * distance;
 
-        splashImage.onload = () => {
-            // Показываем заставку с плавным появлением
-            splashScreen.style.display = 'flex'; // Показываем элемент
-            setTimeout(() => {
-                splashScreen.classList.add('fadeIn'); // Добавляем анимацию появления
-            }, 10); // Небольшая задержка для начала анимации
+                createExplosion(x, y);
+            }
+        }
 
-            // Запускаем таймер на 5 секунд, после чего скрываем заставку
-            setTimeout(hideSplashScreen, 5000);
-        };
+        function handleDefeat() {
+            defeatHandled = true;
 
-        // Если изображение не загрузилось (например, ошибка 404), показываем заставку без изображения
-        splashImage.onerror = () => {
-            splashScreen.style.display = 'flex'; // Показываем заставку без изображения
-            setTimeout(() => {
-                splashScreen.classList.add('fadeIn'); // Добавляем анимацию появления
-            }, 10); // Небольшая задержка для начала анимации
+            // Останавливаем игровой цикл
+            cancelAnimationFrame(gameLoop);
 
-            setTimeout(hideSplashScreen, 5000); // Скрываем через 5 секунд
-        };
+            // Блокируем управление
+            isTouching = false;
+            isTap = false;
 
-        // Функция для скрытия заставки
-        function hideSplashScreen() {
-            splashScreen.classList.remove('fadeIn'); // Убираем анимацию появления
-            splashScreen.classList.add('fadeOut'); // Добавляем анимацию исчезновения
+            // Запускаем интервал для создания взрывов
+            explosionInterval = setInterval(() => {
+                createRandomExplosionsAroundPlayer();
+            }, 300); // Взрывы каждые 0.3 секунды
 
-            // Удаляем заставку через 1 секунду (после завершения анимации)
-            setTimeout(() => {
-                splashScreen.style.display = 'none';
-                document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
-            }, 1000); // 1 секунда на анимацию исчезновения
+            // Начинаем моргание
+            startBlinking();
+
+            // Проигрываем звук поражения
+            const defeatSound = document.getElementById('defeatSound');
+            defeatSound.currentTime = 0;
+            defeatSound.play();
+
+            // Ждем завершения звука и переходим в меню
+            defeatSound.onended = () => {
+                clearInterval(explosionInterval); // Останавливаем создание взрывов
+                stopBlinking(); // Останавливаем моргание
+                updateHighScore();
+                stopBackgroundMusic();
+                updateScoreboard();
+                document.getElementById('scoreModal').style.display = 'flex';
+                defeatHandled = false; // Сбрасываем флаг для следующей игры
+            };
+        }
+
+        function startBlinking() {
+            isPlayerBlinking = true;
+            blinkAnimationFrame = requestAnimationFrame(blinkLoop); // Запускаем цикл моргания
+        }
+
+        function stopBlinking() {
+            isPlayerBlinking = false;
+            cancelAnimationFrame(blinkAnimationFrame); // Останавливаем цикл моргания
+        }
+
+        function blinkLoop() {
+            if (!isPlayerBlinking) return; // Останавливаем цикл, если моргание завершено
+
+            // Очищаем холст и рисуем игрока с эффектом моргания
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawEnemies();
+            drawEnemyMissiles();
+            drawExplosions();
+            drawHealthBar();
+
+            // Моргание игрока
+            if (isPlayerVisible()) {
+                const sway = Math.sin(Date.now() / 200) * 2;
+                if (playerImage.complete) {
+                    ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
+                }
+            }
+
+            // Продолжаем цикл моргания
+            blinkAnimationFrame = requestAnimationFrame(blinkLoop);
+        }
+
+        function isPlayerVisible() {
+            // Возвращает true, если игрок должен быть видимым в текущий момент моргания
+            return Math.floor(Date.now() / 100) % 2 === 0; // Видим каждые 100 мс
+        }
+
+        function playInfantryHitSound() {
+            const randomIndex = Math.floor(Math.random() * infantryHitSounds.length);
+            const sound = infantryHitSounds[randomIndex];
+
+            if (!sound.paused) {
+                sound.currentTime = 0;
+                sound.pause();
+            }
+
+            sound.play();
         }
 
         // Логика для сенсорного ползунка
@@ -419,7 +469,6 @@
         let isTap = false;
 
         touchpad.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) return; // Игнорируем мультитач
             isTouching = true;
             const touchpadRect = touchpad.getBoundingClientRect();
             touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
@@ -819,39 +868,30 @@
 
         function playShootSound() {
             const shootSound = document.getElementById('shootSound');
-            if (shootSound && typeof shootSound.play === 'function') {
-                shootSound.currentTime = 0;
-                shootSound.play();
-            }
+            shootSound.currentTime = 0;
+            shootSound.play();
         }
 
         function playExplosionSound() {
             const explosionSound = document.getElementById('explosionSound');
-            if (explosionSound && typeof explosionSound.play === 'function') {
-                explosionSound.currentTime = 0;
-                explosionSound.play();
-            }
+            explosionSound.currentTime = 0;
+            explosionSound.play();
         }
 
         function startBackgroundMusic() {
             const backgroundMusic = document.getElementById('backgroundMusic');
-            if (backgroundMusic && typeof backgroundMusic.play === 'function') {
-                backgroundMusic.play();
-            }
+            backgroundMusic.play();
         }
 
         function stopBackgroundMusic() {
             const backgroundMusic = document.getElementById('backgroundMusic');
-            if (backgroundMusic && typeof backgroundMusic.pause === 'function') {
-                backgroundMusic.pause();
-                backgroundMusic.currentTime = 0;
-            }
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
         }
 
         function restartGame() {
             gameOver = false;
             defeatHandled = false;
-            isPaused = false; // Сбрасываем паузу
             clearInterval(explosionInterval);
             stopBlinking(); // Останавливаем моргание
             document.getElementById('scoreModal').style.display = 'none';
@@ -1022,18 +1062,46 @@
         }
 
         function checkOrientation() {
-            const orientation = screen.orientation.type;
-            const isPortrait = orientation.includes('portrait');
-            const orientationWarning = document.getElementById('orientationWarning');
+            const isPortrait = window.innerHeight > window.innerWidth;
 
             if (!isPortrait) {
-                orientationWarning.style.display = 'flex';
-                isPaused = true;
-                stopBackgroundMusic();
+                isPaused = true; // Ставим игру на паузу
+                stopBackgroundMusic(); // Останавливаем фоновую музыку
+                showOrientationWarning(); // Показываем предупреждение
             } else {
-                orientationWarning.style.display = 'none';
-                isPaused = false;
-                startBackgroundMusic();
+                isPaused = false; // Снимаем с паузы, если ориентация правильная
+                startBackgroundMusic(); // Возобновляем фоновую музыку
+                hideOrientationWarning(); // Скрываем предупреждение
+                resizeCanvas(); // Обновляем размеры холста
+            }
+        }
+
+        function showOrientationWarning() {
+            const warning = document.createElement('div');
+            warning.id = 'orientationWarning';
+            warning.style.position = 'fixed';
+            warning.style.top = '0';
+            warning.style.left = '0';
+            warning.style.width = '100%';
+            warning.style.height = '100%';
+            warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            warning.style.color = 'white';
+            warning.style.display = 'flex';
+            warning.style.justifyContent = 'center';
+            warning.style.alignItems = 'center';
+            warning.style.zIndex = '4000';
+            warning.style.fontSize = '24px';
+            warning.style.textAlign = 'center';
+            warning.style.padding = '20px';
+            warning.style.boxSizing = 'border-box';
+            warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
+            document.body.appendChild(warning);
+        }
+
+        function hideOrientationWarning() {
+            const warning = document.getElementById('orientationWarning');
+            if (warning) {
+                warning.remove();
             }
         }
 
@@ -1053,17 +1121,14 @@
 
         // Ожидание загрузки всех изображений
         Promise.all([
-            new Promise((resolve, reject) => { playerImage.onload = resolve; playerImage.onerror = reject; }),
-            new Promise((resolve, reject) => { infantryImage.onload = resolve; infantryImage.onerror = reject; }),
-            new Promise((resolve, reject) => { tankImage.onload = resolve; tankImage.onerror = reject; }),
-            new Promise((resolve, reject) => { rocketLauncherImage.onload = resolve; rocketLauncherImage.onerror = reject; }),
-            new Promise((resolve, reject) => { backgroundImage.onload = resolve; backgroundImage.onerror = reject; })
+            new Promise((resolve) => { playerImage.onload = resolve; }),
+            new Promise((resolve) => { infantryImage.onload = resolve; }),
+            new Promise((resolve) => { tankImage.onload = resolve; }),
+            new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
+            new Promise((resolve) => { backgroundImage.onload = resolve; })
         ]).then(() => {
             resizeCanvas(); // Устанавливаем начальные размеры холста
             document.getElementById('scoreModal').style.display = 'flex';
-        }).catch((error) => {
-            console.error('Ошибка загрузки изображений:', error);
-            alert('Не удалось загрузить изображения. Пожалуйста, проверьте подключение к интернету.');
         });
 
         // Логика для модального окна с инструкцией
@@ -1112,8 +1177,7 @@
 
         // Функция для проверки ориентации
         function checkOrientation() {
-            const orientation = screen.orientation.type;
-            const isPortrait = orientation.includes('portrait');
+            const isPortrait = window.innerHeight > window.innerWidth;
             const orientationWarning = document.getElementById('orientationWarning');
 
             if (!isPortrait) {
@@ -1133,7 +1197,7 @@
             const splashScreen = document.getElementById('splashScreen');
             splashScreen.style.display = 'flex'; // Показываем заставку
 
-            // Запускаем таймер на 3 секунды, после чего скрываем заставку
+            // Запускаем таймер на 5 секунд, после чего скрываем заставку
             setTimeout(hideSplashScreen, 5000);
         });
 
