@@ -419,6 +419,7 @@
         let isTap = false;
 
         touchpad.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) return; // Игнорируем мультитач
             isTouching = true;
             const touchpadRect = touchpad.getBoundingClientRect();
             touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
@@ -818,30 +819,39 @@
 
         function playShootSound() {
             const shootSound = document.getElementById('shootSound');
-            shootSound.currentTime = 0;
-            shootSound.play();
+            if (shootSound && typeof shootSound.play === 'function') {
+                shootSound.currentTime = 0;
+                shootSound.play();
+            }
         }
 
         function playExplosionSound() {
             const explosionSound = document.getElementById('explosionSound');
-            explosionSound.currentTime = 0;
-            explosionSound.play();
+            if (explosionSound && typeof explosionSound.play === 'function') {
+                explosionSound.currentTime = 0;
+                explosionSound.play();
+            }
         }
 
         function startBackgroundMusic() {
             const backgroundMusic = document.getElementById('backgroundMusic');
-            backgroundMusic.play();
+            if (backgroundMusic && typeof backgroundMusic.play === 'function') {
+                backgroundMusic.play();
+            }
         }
 
         function stopBackgroundMusic() {
             const backgroundMusic = document.getElementById('backgroundMusic');
-            backgroundMusic.pause();
-            backgroundMusic.currentTime = 0;
+            if (backgroundMusic && typeof backgroundMusic.pause === 'function') {
+                backgroundMusic.pause();
+                backgroundMusic.currentTime = 0;
+            }
         }
 
         function restartGame() {
             gameOver = false;
             defeatHandled = false;
+            isPaused = false; // Сбрасываем паузу
             clearInterval(explosionInterval);
             stopBlinking(); // Останавливаем моргание
             document.getElementById('scoreModal').style.display = 'none';
@@ -1012,46 +1022,18 @@
         }
 
         function checkOrientation() {
-            const isPortrait = window.innerHeight > window.innerWidth;
+            const orientation = screen.orientation.type;
+            const isPortrait = orientation.includes('portrait');
+            const orientationWarning = document.getElementById('orientationWarning');
 
             if (!isPortrait) {
-                isPaused = true; // Ставим игру на паузу
-                stopBackgroundMusic(); // Останавливаем фоновую музыку
-                showOrientationWarning(); // Показываем предупреждение
+                orientationWarning.style.display = 'flex';
+                isPaused = true;
+                stopBackgroundMusic();
             } else {
-                isPaused = false; // Снимаем с паузы, если ориентация правильная
-                startBackgroundMusic(); // Возобновляем фоновую музыку
-                hideOrientationWarning(); // Скрываем предупреждение
-                resizeCanvas(); // Обновляем размеры холста
-            }
-        }
-
-        function showOrientationWarning() {
-            const warning = document.createElement('div');
-            warning.id = 'orientationWarning';
-            warning.style.position = 'fixed';
-            warning.style.top = '0';
-            warning.style.left = '0';
-            warning.style.width = '100%';
-            warning.style.height = '100%';
-            warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            warning.style.color = 'white';
-            warning.style.display = 'flex';
-            warning.style.justifyContent = 'center';
-            warning.style.alignItems = 'center';
-            warning.style.zIndex = '4000';
-            warning.style.fontSize = '24px';
-            warning.style.textAlign = 'center';
-            warning.style.padding = '20px';
-            warning.style.boxSizing = 'border-box';
-            warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
-            document.body.appendChild(warning);
-        }
-
-        function hideOrientationWarning() {
-            const warning = document.getElementById('orientationWarning');
-            if (warning) {
-                warning.remove();
+                orientationWarning.style.display = 'none';
+                isPaused = false;
+                startBackgroundMusic();
             }
         }
 
@@ -1071,14 +1053,17 @@
 
         // Ожидание загрузки всех изображений
         Promise.all([
-            new Promise((resolve) => { playerImage.onload = resolve; }),
-            new Promise((resolve) => { infantryImage.onload = resolve; }),
-            new Promise((resolve) => { tankImage.onload = resolve; }),
-            new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
-            new Promise((resolve) => { backgroundImage.onload = resolve; })
+            new Promise((resolve, reject) => { playerImage.onload = resolve; playerImage.onerror = reject; }),
+            new Promise((resolve, reject) => { infantryImage.onload = resolve; infantryImage.onerror = reject; }),
+            new Promise((resolve, reject) => { tankImage.onload = resolve; tankImage.onerror = reject; }),
+            new Promise((resolve, reject) => { rocketLauncherImage.onload = resolve; rocketLauncherImage.onerror = reject; }),
+            new Promise((resolve, reject) => { backgroundImage.onload = resolve; backgroundImage.onerror = reject; })
         ]).then(() => {
             resizeCanvas(); // Устанавливаем начальные размеры холста
             document.getElementById('scoreModal').style.display = 'flex';
+        }).catch((error) => {
+            console.error('Ошибка загрузки изображений:', error);
+            alert('Не удалось загрузить изображения. Пожалуйста, проверьте подключение к интернету.');
         });
 
         // Логика для модального окна с инструкцией
@@ -1127,7 +1112,8 @@
 
         // Функция для проверки ориентации
         function checkOrientation() {
-            const isPortrait = window.innerHeight > window.innerWidth;
+            const orientation = screen.orientation.type;
+            const isPortrait = orientation.includes('portrait');
             const orientationWarning = document.getElementById('orientationWarning');
 
             if (!isPortrait) {
