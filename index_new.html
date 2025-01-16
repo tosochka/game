@@ -144,13 +144,14 @@
 <body>  <!-- Заставка в iframe -->
 		<iframe id="splashFrame" src="splash.html" style="width: 100%; height: 100%; border: none; position: fixed; top: 0; left: 0; z-index: 5000;"></iframe>
 		<script>
-		// Удаляем iframe с заставкой через 5 секунд
-		setTimeout(() => {
-		const splashFrame = document.getElementById('splashFrame');
-        if (splashFrame) {
-		splashFrame.remove(); // Удаляем iframe
-        }
-		}, 5000);
+			// Удаляем iframe с заставкой через 5 секунд и показываем меню
+			setTimeout(() => {
+				const splashFrame = document.getElementById('splashFrame');
+				if (splashFrame) {
+					splashFrame.remove(); // Удаляем iframe
+				}
+				document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
+			}, 5000);
 		</script>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
