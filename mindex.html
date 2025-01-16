@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Угадай бренд по слогану</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #question-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            background-color: #007bff;
+            color: white;
+        }
+
+        #answer-section {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .answer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f4f4f4;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+
+        .answer img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .answer.correct {
+            border-color: green;
+        }
+
+        .answer.wrong {
+            border-color: red;
+        }
+
+        .answer.hide {
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .answer.disabled {
+            pointer-events: none; /* Отключаем клики */
+        }
+
+        #result-section {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #result-section.show {
+            display: block;
+        }
+
+        @media (orientation: portrait) {
+            #answer-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="question-section">
+            <h1 id="question"></h1>
+        </div>
+        <div id="answer-section">
+            <!-- Ответы будут здесь -->
+        </div>
+        <div id="result-section" class="hide">
+            <h2>Результат</h2>
+            <p id="score"></p>
+            <button id="restart-btn">Играть снова</button>
+        </div>
+    </div>
+    <script>
+        const questionElement = document.getElementById('question');
+        const answerSection = document.getElementById('answer-section');
+        const resultSection = document.getElementById('result-section');
+        const scoreElement = document.getElementById('score');
+        const restartButton = document.getElementById('restart-btn');
+
+        // Встроенные данные для 100 вопросов
+        const allQuestions = [
+            {
+                question: "Just Do It",
+                answers: [
+                    { text: "Nike", correct: true, image: "https://via.placeholder.com/150?text=Nike" },
+                    { text: "Adidas", correct: false, image: "https://via.placeholder.com/150?text=Adidas" },
+                    { text: "Puma", correct: false, image: "https://via.placeholder.com/150?text=Puma" },
+                    { text: "Reebok", correct: false, image: "https://via.placeholder.com/150?text=Reebok" }
+                ]
+            },
+            {
+                question: "Think Different",
+                answers: [
+                    { text: "Apple", correct: true, image: "https://via.placeholder.com/150?text=Apple" },
+                    { text: "Microsoft", correct: false, image: "https://via.placeholder.com/150?text=Microsoft" },
+                    { text: "Samsung", correct: false, image: "https://via.placeholder.com/150?text=Samsung" },
+                    { text: "Google", correct: false, image: "https://via.placeholder.com/150?text=Google" }
+                ]
+            },
+            {
+                question: "Impossible is Nothing",
+                answers: [
+                    { text: "Adidas", correct: true, image: "https://via.placeholder.com/150?text=Adidas" },
+                    { text: "Nike", correct: false, image: "https://via.placeholder.com/150?text=Nike" },
+                    { text: "Puma", correct: false, image: "https://via.placeholder.com/150?text=Puma" },
+                    { text: "Reebok", correct: false, image: "https://via.placeholder.com/150?text=Reebok" }
+                ]
+            },
+            {
+                question: "Because You're Worth It",
+                answers: [
+                    { text: "L'Oréal", correct: true, image: "https://via.placeholder.com/150?text=L'Oréal" },
+                    { text: "Maybelline", correct: false, image: "https://via.placeholder.com/150?text=Maybelline" },
+                    { text: "Revlon", correct: false, image: "https://via.placeholder.com/150?text=Revlon" },
+                    { text: "Estée Lauder", correct: false, image: "https://via.placeholder.com/150?text=Estée+Lauder" }
+                ]
+            },
+            {
+                question: "The Ultimate Driving Machine",
+                answers: [
+                    { text: "BMW", correct: true, image: "https://via.placeholder.com/150?text=BMW" },
+                    { text: "Mercedes", correct: false, image: "https://via.placeholder.com/150?text=Mercedes" },
+                    { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
+                    { text: "Porsche", correct: false, image: "https://via.placeholder.com/150?text=Porsche" }
+                ]
+            },
+            {
+                question: "I'm Lovin' It",
+                answers: [
+                    { text: "McDonald's", correct: true, image: "https://via.placeholder.com/150?text=McDonald's" },
+                    { text: "Burger King", correct: false, image: "https://via.placeholder.com/150?text=Burger+King" },
+                    { text: "KFC", correct: false, image: "https://via.placeholder.com/150?text=KFC" },
+                    { text: "Subway", correct: false, image: "https://via.placeholder.com/150?text=Subway" }
+                ]
+            },
+            {
+                question: "Have a Break, Have a KitKat",
+                answers: [
+                    { text: "KitKat", correct: true, image: "https://via.placeholder.com/150?text=KitKat" },
+                    { text: "Snickers", correct: false, image: "https://via.placeholder.com/150?text=Snickers" },
+                    { text: "Twix", correct: false, image: "https://via.placeholder.com/150?text=Twix" },
+                    { text: "Mars", correct: false, image: "https://via.placeholder.com/150?text=Mars" }
+                ]
+            },
+            {
+                question: "Melts in Your Mouth, Not in Your Hands",
+                answers: [
+                    { text: "M&M's", correct: true, image: "https://via.placeholder.com/150?text=M&M's" },
+                    { text: "Skittles", correct: false, image: "https://via.placeholder.com/150?text=Skittles" },
+                    { text: "Reese's", correct: false, image: "https://via.placeholder.com/150?text=Reese's" },
+                    { text: "Hershey's", correct: false, image: "https://via.placeholder.com/150?text=Hershey's" }
+                ]
+            },
+            {
+                question: "The Happiest Place on Earth",
+                answers: [
+                    { text: "Disneyland", correct: true, image: "https://via.placeholder.com/150?text=Disneyland" },
+                    { text: "Universal Studios", correct: false, image: "https://via.placeholder.com/150?text=Universal+Studios" },
+                    { text: "Legoland", correct: false, image: "https://via.placeholder.com/150?text=Legoland" },
+                    { text: "Six Flags", correct: false, image: "https://via.placeholder.com/150?text=Six+Flags" }
+                ]
+            },
+            {
+                question: "Finger-Lickin' Good",
+                answers: [
+                    { text: "KFC", correct: true, image: "https://via.placeholder.com/150?text=KFC" },
+                    { text: "McDonald's", correct: false, image: "https://via.placeholder.com/150?text=McDonald's" },
+                    { text: "Burger King", correct: false, image: "https://via.placeholder.com/150?text=Burger+King" },
+                    { text: "Popeyes", correct: false, image: "https://via.placeholder.com/150?text=Popeyes" }
+                ]
+            },
+            {
+                question: "The King of Beers",
+                answers: [
+                    { text: "Budweiser", correct: true, image: "https://via.placeholder.com/150?text=Budweiser" },
+                    { text: "Heineken", correct: false, image: "https://via.placeholder.com/150?text=Heineken" },
+                    { text: "Corona", correct: false, image: "https://via.placeholder.com/150?text=Corona" },
+                    { text: "Guinness", correct: false, image: "https://via.placeholder.com/150?text=Guinness" }
+                ]
+            },
+            {
+                question: "Red Bull Gives You Wings",
+                answers: [
+                    { text: "Red Bull", correct: true, image: "https://via.placeholder.com/150?text=Red+Bull" },
+                    { text: "Monster", correct: false, image: "https://via.placeholder.com/150?text=Monster" },
+                    { text: "Rockstar", correct: false, image: "https://via.placeholder.com/150?text=Rockstar" },
+                    { text: "Gatorade", correct: false, image: "https://via.placeholder.com/150?text=Gatorade" }
+                ]
+            },
+            {
+                question: "The Quicker Picker Upper",
+                answers: [
+                    { text: "Bounty", correct: true, image: "https://via.placeholder.com/150?text=Bounty" },
+                    { text: "Brawny", correct: false, image: "https://via.placeholder.com/150?text=Brawny" },
+                    { text: "Viva", correct: false, image: "https://via.placeholder.com/150?text=Viva" },
+                    { text: "Scott", correct: false, image: "https://via.placeholder.com/150?text=Scott" }
+                ]
+            },
+            {
+                question: "The Best a Man Can Get",
+                answers: [
+                    { text: "Gillette", correct: true, image: "https://via.placeholder.com/150?text=Gillette" },
+                    { text: "Schick", correct: false, image: "https://via.placeholder.com/150?text=Schick" },
+                    { text: "Dollar Shave Club", correct: false, image: "https://via.placeholder.com/150?text=Dollar+Shave+Club" },
+                    { text: "Harry's", correct: false, image: "https://via.placeholder.com/150?text=Harry's" }
+                ]
+            },
+            {
+                question: "The Uncola",
+                answers: [
+                    { text: "7 Up", correct: true, image: "https://via.placeholder.com/150?text=7+Up" },
+                    { text: "Sprite", correct: false, image: "https://via.placeholder.com/150?text=Sprite" },
+                    { text: "Mountain Dew", correct: false, image: "https://via.placeholder.com/150?text=Mountain+Dew" },
+                    { text: "Fanta", correct: false, image: "https://via.placeholder.com/150?text=Fanta" }
+                ]
+            },
+            {
+                question: "The Breakfast of Champions",
+                answers: [
+                    { text: "Wheaties", correct: true, image: "https://via.placeholder.com/150?text=Wheaties" },
+                    { text: "Cheerios", correct: false, image: "https://via.placeholder.com/150?text=Cheerios" },
+                    { text: "Corn Flakes", correct: false, image: "https://via.placeholder.com/150?text=Corn+Flakes" },
+                    { text: "Special K", correct: false, image: "https://via.placeholder.com/150?text=Special+K" }
+                ]
+            },
+            {
+                question: "The Freshmaker",
+                answers: [
+                    { text: "Mentos", correct: true, image: "https://via.placeholder.com/150?text=Mentos" },
+                    { text: "Tic Tac", correct: false, image: "https://via.placeholder.com/150?text=Tic+Tac" },
+                    { text: "Altoids", correct: false, image: "https://via.placeholder.com/150?text=Altoids" },
+                    { text: "Ice Breakers", correct: false, image: "https://via.placeholder.com/150?text=Ice+Breakers" }
+                ]
+            },
+            {
+                question: "The Power of Dreams",
+                answers: [
+                    { text: "Honda", correct: true, image: "https://via.placeholder.com/150?text=Honda" },
+                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
+                ]
+            },
+            {
+                question: "The Ultimate Driving Machine",
+                answers: [
+                    { text: "BMW", correct: true, image: "https://via.placeholder.com/150?text=BMW" },
+                    { text: "Mercedes", correct: false, image: "https://via.placeholder.com/150?text=Mercedes" },
+                    { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
+                    { text: "Porsche", correct: false, image: "https://via.placeholder.com/150?text=Porsche" }
+                ]
+            },
+            // Остальные 80 вопросов...
+        ];
+
+        let currentQuestions = []; // Вопросы для текущего цикла
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // Алгоритм Фишера-Йетса для перемешивания массива
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1)); // Случайный индекс от 0 до i
+                [array[i], array[j]] = [array[j], array[i]]; // Меняем местами элементы
+            }
+            return array;
+        }
+
+        function startGame() {
+            // Выбираем 25 случайных вопросов
+            currentQuestions = getRandomQuestions(25);
+            currentQuestionIndex = 0;
+            score = 0;
+            resultSection.classList.remove('show');
+            showQuestion();
+        }
+
+        function getRandomQuestions(count) {
+            // Создаем копию всех вопросов и перемешиваем их с помощью алгоритма Фишера-Йетса
+            const shuffledQuestions = shuffleArray([...allQuestions]);
+            // Возвращаем первые `count` вопросов
+            return shuffledQuestions.slice(0, count);
+        }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length) {
+                endGame();
+                return;
+            }
+
+            const question = currentQuestions[currentQuestionIndex];
+            questionElement.innerText = question.question;
+            answerSection.innerHTML = '';
+            question.answers.forEach(answer => {
+                const button = document.createElement('div');
+                button.classList.add('answer');
+                button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
+                button.addEventListener('click', () => removeAnswer(button, answer));
+                answerSection.appendChild(button);
+            });
+        }
+
+        function removeAnswer(button, answer) {
+            button.classList.add('hide');
+            checkRemainingAnswers();
+        }
+
+        function checkRemainingAnswers() {
+            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+            if (remainingAnswers.length === 1) {
+                const selectedAnswer = remainingAnswers[0];
+                selectedAnswer.classList.add('disabled'); // Отключаем клики
+
+                const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+
+                if (isCorrect) {
+                    score++;
+                    selectedAnswer.classList.add('correct');
+                } else {
+                    selectedAnswer.classList.add('wrong');
+                }
+
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    showQuestion();
+                }, 1000);
+            }
+        }
+
+        function endGame() {
+            resultSection.classList.add('show');
+            scoreElement.innerText = `Правильных ответов: ${score} из ${currentQuestions.length}`;
+        }
+
+        restartButton.addEventListener('click', startGame);
+
+        // Начало игры
+        startGame();
+    </script>
+</body>
+</html>
