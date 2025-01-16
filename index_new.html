@@ -60,9 +60,36 @@
             border-radius: 10px;
             z-index: 1000;
             touch-action: none;
-            border: 2px solid white; /* Рамка, как у игрового поля */
-            box-sizing: border-box; /* Учитываем рамку в размерах */
+            border: 2px solid white;
+            box-sizing: border-box;
         }
+
+        /* Стили для индикатора */
+        #touchIndicator {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            pointer-events: none;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.4; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+        }
+
+        #touchIndicator.active {
+            animation: none;
+            background-color: rgba(255, 0, 0, 0.5);
+            border-color: rgba(255, 0, 0, 0.8);
+        }
+
         #scoreModal {
             display: none;
             position: fixed;
@@ -176,8 +203,10 @@
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <!-- Сенсорный ползунок -->
-    <div id="touchpad"></div>
+    <!-- Сенсорный ползунок с индикатором -->
+    <div id="touchpad">
+        <div id="touchIndicator"></div>
+    </div>
 
     <!-- Модальное окно для боевой сводки -->
     <div id="scoreModal">
@@ -242,31 +271,36 @@
     <audio id="defeatSound" src="defeat.ogg"></audio>
 
     <script>
-        // Функция для показа заставки
-        function showSplashScreen() {
-            const splashScreen = document.getElementById('splashScreen');
+        // Логика для индикатора
+        const touchpad = document.getElementById('touchpad');
+        const touchIndicator = document.getElementById('touchIndicator');
+        let isTouching = false;
 
-            // Плавное появление заставки
-            setTimeout(() => {
-                splashScreen.style.opacity = '1';
-            }, 100);
-
-            // Плавное исчезновение заставки через 5 секунд
-            setTimeout(() => {
-                splashScreen.style.opacity = '0';
-            }, 5000);
-
-            // Удаление заставки из DOM после завершения анимации
-            setTimeout(() => {
-                splashScreen.remove();
-                document.getElementById('scoreModal').style.display = 'flex'; // Показ меню
-            }, 7000);
-        }
-
-        // Запуск заставки при загрузке страницы
-        window.addEventListener('load', () => {
-            showSplashScreen();
+        touchpad.addEventListener('touchstart', (e) => {
+            isTouching = true;
+            updateTouchIndicator(e);
+            touchIndicator.classList.add('active');
         });
+
+        touchpad.addEventListener('touchmove', (e) => {
+            if (isTouching) {
+                updateTouchIndicator(e);
+            }
+        });
+
+        touchpad.addEventListener('touchend', () => {
+            isTouching = false;
+            touchIndicator.classList.remove('active');
+        });
+
+        function updateTouchIndicator(e) {
+            const touch = e.touches[0];
+            const touchpadRect = touchpad.getBoundingClientRect();
+            const x = touch.clientX - touchpadRect.left;
+            const y = touch.clientY - touchpadRect.top;
+            touchIndicator.style.left = `${x}px`;
+            touchIndicator.style.top = `${y}px`;
+        }
 
         // Игровая логика
         const canvas = document.getElementById('gameCanvas');
@@ -464,55 +498,6 @@
             sound.play();
         }
 
-        // Логика для сенсорного ползунка
-        const touchpad = document.getElementById('touchpad');
-        let isTouching = false;
-        let touchStartX = 0;
-        let playerStartX = 0;
-        let isTap = false;
-
-        touchpad.addEventListener('touchstart', (e) => {
-            isTouching = true;
-            const touchpadRect = touchpad.getBoundingClientRect();
-            touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
-            playerStartX = player.x;
-            isTap = true;
-        });
-
-        touchpad.addEventListener('touchmove', (e) => {
-            if (!isTouching) return;
-
-            const touchpadRect = touchpad.getBoundingClientRect();
-            const touchCurrentX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
-            const deltaX = touchCurrentX - touchStartX;
-
-            if (Math.abs(deltaX) > 5) {
-                isTap = false;
-            }
-
-            const newPlayerX = playerStartX + deltaX;
-            player.x = Math.max(0, Math.min(newPlayerX, canvas.width - player.width));
-        });
-
-        touchpad.addEventListener('touchend', () => {
-            if (isTap) {
-                shoot();
-            }
-            isTouching = false;
-            isTap = false;
-        });
-
-        // Обработчик для паузы
-        canvas.addEventListener('touchstart', (e) => {
-            const touchY = e.touches[0].clientY; // Получаем координату Y касания
-
-            // Проверяем, что касание было выше сенсорной зоны управления
-            const touchpadRect = touchpad.getBoundingClientRect();
-            if (touchY < touchpadRect.top) {
-                togglePause(); // Ставим игру на паузу или снимаем с паузы
-            }
-        });
-
         function getRandomEnemyType() {
             const random = Math.random();
             let cumulativeProbability = 0;
@@ -596,574 +581,574 @@
                             break;
                     }
                     if (image && image.complete) {
-                    ctx.drawImage(image, enemy.x, enemy.y, enemy.width, enemy.height);
-                }
-            }
-            enemy.y += enemy.speed;
-
-            if (enemy.y > canvas.height) {
-                gameOver = true;
-            }
-        });
-    }
-
-    function drawEnemyMissiles() {
-        enemyMissiles.forEach((missile, index) => {
-            if (missile.type === 'burst') {
-                ctx.fillStyle = 'yellow';
-                ctx.beginPath();
-                ctx.moveTo(missile.x + missile.width / 2, missile.y);
-                ctx.lineTo(missile.x, missile.y + missile.height);
-                ctx.lineTo(missile.x + missile.width, missile.y + missile.height);
-                ctx.closePath();
-                ctx.fill();
-            } else if (missile.type === 'single' && missile.source === 'пехота') {
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(missile.x + missile.width / 2, missile.y + missile.height / 2, missile.width / 2, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (missile.type === 'single' && missile.source === 'танк') {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
-            }
-
-            if (missile.angle !== undefined) {
-                const angleInRadians = (missile.angle * Math.PI) / 180;
-                missile.x += Math.sin(angleInRadians) * missile.speed;
-                missile.y += Math.cos(angleInRadians) * missile.speed;
-            } else {
-                missile.y += missile.speed;
-            }
-
-            if (missile.y > canvas.height || missile.x < 0 || missile.x > canvas.width) {
-                enemyMissiles.splice(index, 1);
-            }
-        });
-    }
-
-    function enemyShoot() {
-        const currentTime = Date.now();
-
-        const infantry = enemies.filter(enemy => enemy.type === 'пехота');
-        const infantryShootCount = Math.ceil(infantry.length / 4);
-        infantry.forEach((enemy, index) => {
-            if (index < infantryShootCount && currentTime - enemy.lastShotTime >= enemyShootingParams.пехота.cooldown) {
-                enemy.lastShotTime = currentTime;
-                enemyMissiles.push({
-                    x: enemy.x + enemy.width / 2 - enemyShootingParams.пехота.bulletSize.width / 2,
-                    y: enemy.y + enemy.height,
-                    width: enemyShootingParams.пехота.bulletSize.width,
-                    height: enemyShootingParams.пехота.bulletSize.height,
-                    speed: 4,
-                    type: 'single',
-                    source: 'пехота'
-                });
-            }
-        });
-
-        const tanks = enemies.filter(enemy => enemy.type === 'танк');
-        if (tanks.length > 0) {
-            const shootingTank = tanks[Math.floor(Math.random() * tanks.length)];
-            if (currentTime - shootingTank.lastShotTime >= enemyShootingParams.танк.cooldown) {
-                shootingTank.lastShotTime = currentTime;
-                enemyMissiles.push({
-                    x: shootingTank.x + shootingTank.width / 2 - enemyShootingParams.танк.bulletSize.width / 2,
-                    y: shootingTank.y + shootingTank.height,
-                    width: enemyShootingParams.танк.bulletSize.width,
-                    height: enemyShootingParams.танк.bulletSize.height,
-                    speed: 4,
-                    type: 'single',
-                    source: 'танк'
-                });
-            }
-        }
-
-        const rszos = enemies.filter(enemy => enemy.type === 'РСЗО');
-        if (rszos.length > 0 && currentTime - lastRszShotTime >= enemyShootingParams.РСЗО.cooldown) {
-            const shootingRsz = rszos[Math.floor(Math.random() * rszos.length)];
-            lastRszShotTime = currentTime;
-            for (let i = 0; i < enemyShootingParams.РСЗО.burstCount; i++) {
-                const angle = -missileSpreadAngle * (enemyShootingParams.РСЗО.burstCount - 1) / 2 + i * missileSpreadAngle;
-                const angleInRadians = (angle * Math.PI) / 180;
-                enemyMissiles.push({
-                    x: shootingRsz.x + shootingRsz.width / 2 - enemyShootingParams.РСЗО.bulletSize.width / 2,
-                    y: shootingRsz.y + shootingRsz.height,
-                    width: enemyShootingParams.РСЗО.bulletSize.width,
-                    height: enemyShootingParams.РСЗО.bulletSize.height,
-                    angle: angle,
-                    speed: 4,
-                    type: 'burst',
-                    source: 'РСЗО'
-                });
-            }
-        }
-    }
-
-    function checkEnemyMissileCollisions() {
-        enemyMissiles.forEach((missile, index) => {
-            if (checkCollision(player, missile)) {
-                const hitSound = document.getElementById('hitSound');
-                hitSound.currentTime = 0;
-                hitSound.play();
-
-                if (missile.source) {
-                    switch (missile.source) {
-                        case 'пехота':
-                            player.health -= 10;
-                            break;
-                        case 'танк':
-                            player.health -= 50;
-                            break;
-                        case 'РСЗО':
-                            player.health = 0;
-                            break;
+                        ctx.drawImage(image, enemy.x, enemy.y, enemy.width, enemy.height);
                     }
-                } else if (missile.type === 'burst') {
-                    player.health = 0;
                 }
+                enemy.y += enemy.speed;
 
-                if (player.health < 0) {
-                    player.health = 0;
-                }
-
-                enemyMissiles.splice(index, 1);
-
-                if (player.health <= 0) {
+                if (enemy.y > canvas.height) {
                     gameOver = true;
                 }
+            });
+        }
 
-                updateScoreboard();
+        function drawEnemyMissiles() {
+            enemyMissiles.forEach((missile, index) => {
+                if (missile.type === 'burst') {
+                    ctx.fillStyle = 'yellow';
+                    ctx.beginPath();
+                    ctx.moveTo(missile.x + missile.width / 2, missile.y);
+                    ctx.lineTo(missile.x, missile.y + missile.height);
+                    ctx.lineTo(missile.x + missile.width, missile.y + missile.height);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (missile.type === 'single' && missile.source === 'пехота') {
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(missile.x + missile.width / 2, missile.y + missile.height / 2, missile.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (missile.type === 'single' && missile.source === 'танк') {
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
+                }
+
+                if (missile.angle !== undefined) {
+                    const angleInRadians = (missile.angle * Math.PI) / 180;
+                    missile.x += Math.sin(angleInRadians) * missile.speed;
+                    missile.y += Math.cos(angleInRadians) * missile.speed;
+                } else {
+                    missile.y += missile.speed;
+                }
+
+                if (missile.y > canvas.height || missile.x < 0 || missile.x > canvas.width) {
+                    enemyMissiles.splice(index, 1);
+                }
+            });
+        }
+
+        function enemyShoot() {
+            const currentTime = Date.now();
+
+            const infantry = enemies.filter(enemy => enemy.type === 'пехота');
+            const infantryShootCount = Math.ceil(infantry.length / 4);
+            infantry.forEach((enemy, index) => {
+                if (index < infantryShootCount && currentTime - enemy.lastShotTime >= enemyShootingParams.пехота.cooldown) {
+                    enemy.lastShotTime = currentTime;
+                    enemyMissiles.push({
+                        x: enemy.x + enemy.width / 2 - enemyShootingParams.пехота.bulletSize.width / 2,
+                        y: enemy.y + enemy.height,
+                        width: enemyShootingParams.пехота.bulletSize.width,
+                        height: enemyShootingParams.пехота.bulletSize.height,
+                        speed: 4,
+                        type: 'single',
+                        source: 'пехота'
+                    });
+                }
+            });
+
+            const tanks = enemies.filter(enemy => enemy.type === 'танк');
+            if (tanks.length > 0) {
+                const shootingTank = tanks[Math.floor(Math.random() * tanks.length)];
+                if (currentTime - shootingTank.lastShotTime >= enemyShootingParams.танк.cooldown) {
+                    shootingTank.lastShotTime = currentTime;
+                    enemyMissiles.push({
+                        x: shootingTank.x + shootingTank.width / 2 - enemyShootingParams.танк.bulletSize.width / 2,
+                        y: shootingTank.y + shootingTank.height,
+                        width: enemyShootingParams.танк.bulletSize.width,
+                        height: enemyShootingParams.танк.bulletSize.height,
+                        speed: 4,
+                        type: 'single',
+                        source: 'танк'
+                    });
+                }
             }
-        });
-    }
 
-    function createExplosion(x, y) {
-        explosions.push({
-            x,
-            y,
-            radius: 5,
-            maxRadius: 20,
-            alpha: 1,
-            duration: 20
-        });
-    }
-
-    function drawExplosions() {
-        explosions.forEach((explosion, index) => {
-            ctx.beginPath();
-            ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
-            ctx.fill();
-
-            explosion.radius += 1;
-            explosion.alpha -= 0.05;
-
-            if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
-                explosions.splice(index, 1);
-            }
-        });
-    }
-
-    function checkCollision(obj1, obj2) {
-        return (
-            obj1.x < obj2.x + obj2.width &&
-            obj1.x + obj1.width > obj2.x &&
-            obj1.y < obj2.y + obj2.height &&
-            obj1.y + obj1.height > obj2.y
-        );
-    }
-
-    function avoidCollisions() {
-        for (let i = 0; i < enemies.length; i++) {
-            for (let j = i + 1; j < enemies.length; j++) {
-                const enemy1 = enemies[i];
-                const enemy2 = enemies[j];
-
-                if (checkCollision(enemy1, enemy2)) {
-                    if (enemy1.x < enemy2.x) {
-                        enemy1.x -= 2;
-                        enemy2.x += 2;
-                    } else {
-                        enemy1.x += 2;
-                        enemy2.x -= 2;
-                    }
+            const rszos = enemies.filter(enemy => enemy.type === 'РСЗО');
+            if (rszos.length > 0 && currentTime - lastRszShotTime >= enemyShootingParams.РСЗО.cooldown) {
+                const shootingRsz = rszos[Math.floor(Math.random() * rszos.length)];
+                lastRszShotTime = currentTime;
+                for (let i = 0; i < enemyShootingParams.РСЗО.burstCount; i++) {
+                    const angle = -missileSpreadAngle * (enemyShootingParams.РСЗО.burstCount - 1) / 2 + i * missileSpreadAngle;
+                    const angleInRadians = (angle * Math.PI) / 180;
+                    enemyMissiles.push({
+                        x: shootingRsz.x + shootingRsz.width / 2 - enemyShootingParams.РСЗО.bulletSize.width / 2,
+                        y: shootingRsz.y + shootingRsz.height,
+                        width: enemyShootingParams.РСЗО.bulletSize.width,
+                        height: enemyShootingParams.РСЗО.bulletSize.height,
+                        angle: angle,
+                        speed: 4,
+                        type: 'burst',
+                        source: 'РСЗО'
+                    });
                 }
             }
         }
-    }
 
-    function checkPlayerCollision() {
-        enemies.forEach((enemy) => {
-            if (checkCollision(player, enemy)) {
-                gameOver = true;
-            }
-        });
-    }
+        function checkEnemyMissileCollisions() {
+            enemyMissiles.forEach((missile, index) => {
+                if (checkCollision(player, missile)) {
+                    const hitSound = document.getElementById('hitSound');
+                    hitSound.currentTime = 0;
+                    hitSound.play();
 
-    function spawnEnemy() {
-        if (!gameOver && !isPaused) {
-            for (let i = 0; i < 3; i++) {
-                const enemyType = getRandomEnemyType();
-                const x = Math.random() * (canvas.width - enemyType.width);
-                enemies.push({
-                    ...enemyType,
-                    x,
-                    y: 0,
-                    speed: enemyType.baseSpeed * speedMultiplier,
-                    lastShotTime: 0
-                });
-            }
-        }
-    }
-
-    function updateScoreboard() {
-        document.getElementById('modalTotalScore').textContent = score;
-        document.getElementById('modalHighScoreDisplay').textContent = highScore;
-        document.getElementById('modalInfantryCount').textContent = infantryCount;
-        document.getElementById('modalTankCount').textContent = tankCount;
-        document.getElementById('modalRocketLauncherCount').textContent = rocketLauncherCount;
-        document.getElementById('modalLevel').textContent = level;
-        document.getElementById('modalDifficultyLevel').textContent = Math.round((speedMultiplier - 1) * 100);
-        document.getElementById('modalHealthDisplay').textContent = `${player.health}%`;
-
-        if (score >= lastHealthIncreaseScore + 100 && player.health < 100) {
-            player.health += 1;
-            lastHealthIncreaseScore = score;
-            if (player.health > 100) {
-                player.health = 100;
-            }
-            updateScoreboard();
-        }
-    }
-
-    function checkCollisionsWithMissiles() {
-        player.missiles.forEach((missile, mIndex) => {
-            enemies.forEach((enemy, eIndex) => {
-                if (checkCollision(missile, enemy)) {
-                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
-                    playExplosionSound();
-
-                    if (enemy.type === 'пехота') {
-                        infantryHitCounter++;
-                        if (infantryHitCounter % 10 === 0) {
-                            playInfantryHitSound();
+                    if (missile.source) {
+                        switch (missile.source) {
+                            case 'пехота':
+                                player.health -= 10;
+                                break;
+                            case 'танк':
+                                player.health -= 50;
+                                break;
+                            case 'РСЗО':
+                                player.health = 0;
+                                break;
                         }
+                    } else if (missile.type === 'burst') {
+                        player.health = 0;
                     }
 
-                    player.missiles.splice(mIndex, 1);
-                    enemies.splice(eIndex, 1);
-                    score += enemy.score;
+                    if (player.health < 0) {
+                        player.health = 0;
+                    }
 
-                    if (enemy.type === 'пехота') {
-                        infantryCount++;
-                    } else if (enemy.type === 'танк') {
-                        tankCount++;
-                    } else if (enemy.type === 'РСЗО') {
-                        rocketLauncherCount++;
+                    enemyMissiles.splice(index, 1);
+
+                    if (player.health <= 0) {
+                        gameOver = true;
                     }
 
                     updateScoreboard();
-                    updateEnemySpeeds();
                 }
             });
-        });
-    }
-
-    function playShootSound() {
-        const shootSound = document.getElementById('shootSound');
-        shootSound.currentTime = 0;
-        shootSound.play();
-    }
-
-    function playExplosionSound() {
-        const explosionSound = document.getElementById('explosionSound');
-        explosionSound.currentTime = 0;
-        explosionSound.play();
-    }
-
-    function startBackgroundMusic() {
-        const backgroundMusic = document.getElementById('backgroundMusic');
-        backgroundMusic.play();
-    }
-
-    function stopBackgroundMusic() {
-        const backgroundMusic = document.getElementById('backgroundMusic');
-        backgroundMusic.pause();
-        backgroundMusic.currentTime = 0;
-    }
-
-    function restartGame() {
-        gameOver = false;
-        defeatHandled = false;
-        clearInterval(explosionInterval);
-        stopBlinking(); // Останавливаем моргание
-        document.getElementById('scoreModal').style.display = 'none';
-        score = 0;
-        infantryCount = 0;
-        tankCount = 0;
-        rocketLauncherCount = 0;
-        level = 1;
-        speedMultiplier = 1;
-        lastRszShotTime = 0;
-        player.health = 100;
-        lastHealthIncreaseScore = 0;
-        infantryHitCounter = 0;
-        updateScoreboard();
-        player.missiles = [];
-        enemies.length = 0;
-        enemyMissiles.length = 0;
-        explosions.length = 0;
-        startBackgroundMusic();
-
-        clearInterval(enemySpawnInterval);
-        enemySpawnInterval = setInterval(spawnEnemy, 1000);
-
-        resizeCanvas();
-        gameLoop();
-    }
-
-    document.getElementById('restartButton').addEventListener('click', restartGame);
-
-    function drawBackground() {
-        if (backgroundImage.complete) {
-            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
         }
-    }
 
-    function drawHealthBar() {
-        const barWidth = 200;
-        const barHeight = 20;
-        const x = 10;
-        const y = 10;
-
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-        ctx.fillRect(x, y, barWidth, barHeight);
-
-        ctx.fillStyle = 'rgba(255, 0, 0, 1)';
-        ctx.fillRect(x, y, (player.health / 100) * barWidth, barHeight);
-
-        ctx.strokeStyle = 'white';
-        ctx.strokeRect(x, y, barWidth, barHeight);
-    }
-
-    function updateHighScore() {
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('highScore', highScore);
-            updateScoreboard();
-        }
-    }
-
-    function togglePause() {
-        isPaused = !isPaused;
-        if (isPaused) {
-            clearInterval(enemySpawnInterval);
-            stopBackgroundMusic();
-        } else {
-            enemySpawnInterval = setInterval(spawnEnemy, 1000);
-            startBackgroundMusic();
-        }
-    }
-
-    function drawPauseMenu() {
-        if (isPaused) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'white';
-            ctx.font = '30px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Пауза', canvas.width / 2, canvas.height / 2);
-        }
-    }
-
-    function shoot() {
-        const currentTime = Date.now();
-        if (currentTime - lastShotTime < 1000 / maxShotsPerSecond) return;
-        lastShotTime = currentTime;
-
-        for (let i = 0; i < missileCount; i++) {
-            const angle = -missileSpreadAngle * (missileCount - 1) / 2 + i * missileSpreadAngle;
-            const speedVariation = baseMissileSpeed * (0.9 + Math.random() * 0.2);
-            let explosionY;
-            if (i === missileCount - 1) {
-                explosionY = 0;
-            } else {
-                explosionY = Math.random() * (canvas.height / 2) + (canvas.height / 4);
-            }
-
-            player.missiles.push({
-                x: player.x + player.width / 2 - 2.5,
-                y: player.y,
-                width: 5,
-                height: 10,
-                angle: angle,
-                speed: speedVariation,
-                willReachEnd: i === missileCount - 1,
-                explosionY: explosionY
+        function createExplosion(x, y) {
+            explosions.push({
+                x,
+                y,
+                radius: 5,
+                maxRadius: 20,
+                alpha: 1,
+                duration: 20
             });
         }
 
-        playShootSound();
-    }
+        function drawExplosions() {
+            explosions.forEach((explosion, index) => {
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
+                ctx.fill();
 
-    function gameLoop() {
-        if (gameOver || player.health <= 0) {
-            if (!defeatHandled) {
-                handleDefeat();
+                explosion.radius += 1;
+                explosion.alpha -= 0.05;
+
+                if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
+                    explosions.splice(index, 1);
+                }
+            });
+        }
+
+        function checkCollision(obj1, obj2) {
+            return (
+                obj1.x < obj2.x + obj2.width &&
+                obj1.x + obj1.width > obj2.x &&
+                obj1.y < obj2.y + obj2.height &&
+                obj1.y + obj1.height > obj2.y
+            );
+        }
+
+        function avoidCollisions() {
+            for (let i = 0; i < enemies.length; i++) {
+                for (let j = i + 1; j < enemies.length; j++) {
+                    const enemy1 = enemies[i];
+                    const enemy2 = enemies[j];
+
+                    if (checkCollision(enemy1, enemy2)) {
+                        if (enemy1.x < enemy2.x) {
+                            enemy1.x -= 2;
+                            enemy2.x += 2;
+                        } else {
+                            enemy1.x += 2;
+                            enemy2.x -= 2;
+                        }
+                    }
+                }
             }
-            return;
         }
 
-        if (isPaused) {
-            drawPauseMenu();
+        function checkPlayerCollision() {
+            enemies.forEach((enemy) => {
+                if (checkCollision(player, enemy)) {
+                    gameOver = true;
+                }
+            });
+        }
+
+        function spawnEnemy() {
+            if (!gameOver && !isPaused) {
+                for (let i = 0; i < 3; i++) {
+                    const enemyType = getRandomEnemyType();
+                    const x = Math.random() * (canvas.width - enemyType.width);
+                    enemies.push({
+                        ...enemyType,
+                        x,
+                        y: 0,
+                        speed: enemyType.baseSpeed * speedMultiplier,
+                        lastShotTime: 0
+                    });
+                }
+            }
+        }
+
+        function updateScoreboard() {
+            document.getElementById('modalTotalScore').textContent = score;
+            document.getElementById('modalHighScoreDisplay').textContent = highScore;
+            document.getElementById('modalInfantryCount').textContent = infantryCount;
+            document.getElementById('modalTankCount').textContent = tankCount;
+            document.getElementById('modalRocketLauncherCount').textContent = rocketLauncherCount;
+            document.getElementById('modalLevel').textContent = level;
+            document.getElementById('modalDifficultyLevel').textContent = Math.round((speedMultiplier - 1) * 100);
+            document.getElementById('modalHealthDisplay').textContent = `${player.health}%`;
+
+            if (score >= lastHealthIncreaseScore + 100 && player.health < 100) {
+                player.health += 1;
+                lastHealthIncreaseScore = score;
+                if (player.health > 100) {
+                    player.health = 100;
+                }
+                updateScoreboard();
+            }
+        }
+
+        function checkCollisionsWithMissiles() {
+            player.missiles.forEach((missile, mIndex) => {
+                enemies.forEach((enemy, eIndex) => {
+                    if (checkCollision(missile, enemy)) {
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                        playExplosionSound();
+
+                        if (enemy.type === 'пехота') {
+                            infantryHitCounter++;
+                            if (infantryHitCounter % 10 === 0) {
+                                playInfantryHitSound();
+                            }
+                        }
+
+                        player.missiles.splice(mIndex, 1);
+                        enemies.splice(eIndex, 1);
+                        score += enemy.score;
+
+                        if (enemy.type === 'пехота') {
+                            infantryCount++;
+                        } else if (enemy.type === 'танк') {
+                            tankCount++;
+                        } else if (enemy.type === 'РСЗО') {
+                            rocketLauncherCount++;
+                        }
+
+                        updateScoreboard();
+                        updateEnemySpeeds();
+                    }
+                });
+            });
+        }
+
+        function playShootSound() {
+            const shootSound = document.getElementById('shootSound');
+            shootSound.currentTime = 0;
+            shootSound.play();
+        }
+
+        function playExplosionSound() {
+            const explosionSound = document.getElementById('explosionSound');
+            explosionSound.currentTime = 0;
+            explosionSound.play();
+        }
+
+        function startBackgroundMusic() {
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            backgroundMusic.play();
+        }
+
+        function stopBackgroundMusic() {
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+        }
+
+        function restartGame() {
+            gameOver = false;
+            defeatHandled = false;
+            clearInterval(explosionInterval);
+            stopBlinking(); // Останавливаем моргание
+            document.getElementById('scoreModal').style.display = 'none';
+            score = 0;
+            infantryCount = 0;
+            tankCount = 0;
+            rocketLauncherCount = 0;
+            level = 1;
+            speedMultiplier = 1;
+            lastRszShotTime = 0;
+            player.health = 100;
+            lastHealthIncreaseScore = 0;
+            infantryHitCounter = 0;
+            updateScoreboard();
+            player.missiles = [];
+            enemies.length = 0;
+            enemyMissiles.length = 0;
+            explosions.length = 0;
+            startBackgroundMusic();
+
+            clearInterval(enemySpawnInterval);
+            enemySpawnInterval = setInterval(spawnEnemy, 1000);
+
+            resizeCanvas();
+            gameLoop();
+        }
+
+        document.getElementById('restartButton').addEventListener('click', restartGame);
+
+        function drawBackground() {
+            if (backgroundImage.complete) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function drawHealthBar() {
+            const barWidth = 200;
+            const barHeight = 20;
+            const x = 10;
+            const y = 10;
+
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(x, y, barWidth, barHeight);
+
+            ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+            ctx.fillRect(x, y, (player.health / 100) * barWidth, barHeight);
+
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(x, y, barWidth, barHeight);
+        }
+
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                updateScoreboard();
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                clearInterval(enemySpawnInterval);
+                stopBackgroundMusic();
+            } else {
+                enemySpawnInterval = setInterval(spawnEnemy, 1000);
+                startBackgroundMusic();
+            }
+        }
+
+        function drawPauseMenu() {
+            if (isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Пауза', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        function shoot() {
+            const currentTime = Date.now();
+            if (currentTime - lastShotTime < 1000 / maxShotsPerSecond) return;
+            lastShotTime = currentTime;
+
+            for (let i = 0; i < missileCount; i++) {
+                const angle = -missileSpreadAngle * (missileCount - 1) / 2 + i * missileSpreadAngle;
+                const speedVariation = baseMissileSpeed * (0.9 + Math.random() * 0.2);
+                let explosionY;
+                if (i === missileCount - 1) {
+                    explosionY = 0;
+                } else {
+                    explosionY = Math.random() * (canvas.height / 2) + (canvas.height / 4);
+                }
+
+                player.missiles.push({
+                    x: player.x + player.width / 2 - 2.5,
+                    y: player.y,
+                    width: 5,
+                    height: 10,
+                    angle: angle,
+                    speed: speedVariation,
+                    willReachEnd: i === missileCount - 1,
+                    explosionY: explosionY
+                });
+            }
+
+            playShootSound();
+        }
+
+        function gameLoop() {
+            if (gameOver || player.health <= 0) {
+                if (!defeatHandled) {
+                    handleDefeat();
+                }
+                return;
+            }
+
+            if (isPaused) {
+                drawPauseMenu();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawPlayer();
+            drawMissiles();
+            drawEnemies();
+            drawEnemyMissiles();
+            drawExplosions();
+            drawHealthBar();
+            avoidCollisions();
+            checkPlayerCollision();
+            checkCollisionsWithMissiles();
+            checkEnemyMissileCollisions();
+            enemyShoot();
+            updateLevel();
+
             requestAnimationFrame(gameLoop);
-            return;
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawBackground();
-        drawPlayer();
-        drawMissiles();
-        drawEnemies();
-        drawEnemyMissiles();
-        drawExplosions();
-        drawHealthBar();
-        avoidCollisions();
-        checkPlayerCollision();
-        checkCollisionsWithMissiles();
-        checkEnemyMissileCollisions();
-        enemyShoot();
-        updateLevel();
+        function resizeCanvas() {
+            const maxWidth = 400; // Максимальная ширина игрового поля
+            const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
 
-        requestAnimationFrame(gameLoop);
-    }
+            // Рассчитываем ширину и высоту холста
+            gameWidth = Math.min(window.innerWidth - 40, maxWidth);
+            gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
 
-    function resizeCanvas() {
-        const maxWidth = 400; // Максимальная ширина игрового поля
-        const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
+            // Устанавливаем размеры холста
+            canvas.width = gameWidth;
+            canvas.height = gameHeight;
 
-        // Рассчитываем ширину и высоту холста
-        gameWidth = Math.min(window.innerWidth - 40, maxWidth);
-        gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
+            // Позиционируем холст по центру горизонтально и вверху вертикально
+            canvas.style.position = 'absolute';
+            canvas.style.left = '50%'; // Центрируем по горизонтали
+            canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+            canvas.style.top = '0';
 
-        // Устанавливаем размеры холста
-        canvas.width = gameWidth;
-        canvas.height = gameHeight;
+            // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
+            document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
 
-        // Позиционируем холст по центру горизонтально и вверху вертикально
-        canvas.style.position = 'absolute';
-        canvas.style.left = '50%'; // Центрируем по горизонтали
-        canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
-        canvas.style.top = '0';
+            // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 40;
+        }
 
-        // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
-        document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+        function checkOrientation() {
+            const isPortrait = window.innerHeight > window.innerWidth;
 
-        // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
-        player.x = canvas.width / 2 - player.width / 2;
-        player.y = canvas.height - 40;
-    }
+            if (!isPortrait) {
+                isPaused = true; // Ставим игру на паузу
+                stopBackgroundMusic(); // Останавливаем фоновую музыку
+                showOrientationWarning(); // Показываем предупреждение
+            } else {
+                isPaused = false; // Снимаем с паузы, если ориентация правильная
+                startBackgroundMusic(); // Возобновляем фоновую музыку
+                hideOrientationWarning(); // Скрываем предупреждение
+                resizeCanvas(); // Обновляем размеры холста
+            }
+        }
 
-    function checkOrientation() {
-        const isPortrait = window.innerHeight > window.innerWidth;
+        function showOrientationWarning() {
+            const warning = document.createElement('div');
+            warning.id = 'orientationWarning';
+            warning.style.position = 'fixed';
+            warning.style.top = '0';
+            warning.style.left = '0';
+            warning.style.width = '100%';
+            warning.style.height = '100%';
+            warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            warning.style.color = 'white';
+            warning.style.display = 'flex';
+            warning.style.justifyContent = 'center';
+            warning.style.alignItems = 'center';
+            warning.style.zIndex = '2000';
+            warning.style.fontSize = '24px';
+            warning.style.textAlign = 'center';
+            warning.style.padding = '20px';
+            warning.style.boxSizing = 'border-box';
+            warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
+            document.body.appendChild(warning);
+        }
 
-        if (!isPortrait) {
-            isPaused = true; // Ставим игру на паузу
-            stopBackgroundMusic(); // Останавливаем фоновую музыку
-            showOrientationWarning(); // Показываем предупреждение
-        } else {
-            isPaused = false; // Снимаем с паузы, если ориентация правильная
-            startBackgroundMusic(); // Возобновляем фоновую музыку
-            hideOrientationWarning(); // Скрываем предупреждение
+        function hideOrientationWarning() {
+            const warning = document.getElementById('orientationWarning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+
+        // Проверка ориентации при загрузке страницы и изменении размера окна
+        checkOrientation();
+        window.addEventListener('resize', () => {
+            checkOrientation(); // Проверяем ориентацию
             resizeCanvas(); // Обновляем размеры холста
-        }
-    }
+        });
 
-    function showOrientationWarning() {
-        const warning = document.createElement('div');
-        warning.id = 'orientationWarning';
-        warning.style.position = 'fixed';
-        warning.style.top = '0';
-        warning.style.left = '0';
-        warning.style.width = '100%';
-        warning.style.height = '100%';
-        warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-        warning.style.color = 'white';
-        warning.style.display = 'flex';
-        warning.style.justifyContent = 'center';
-        warning.style.alignItems = 'center';
-        warning.style.zIndex = '2000';
-        warning.style.fontSize = '24px';
-        warning.style.textAlign = 'center';
-        warning.style.padding = '20px';
-        warning.style.boxSizing = 'border-box';
-        warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
-        document.body.appendChild(warning);
-    }
+        // Запрет масштабирования на touch-устройствах
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== 1) {
+                event.preventDefault(); // Запрещаем масштабирование
+            }
+        }, { passive: false });
 
-    function hideOrientationWarning() {
-        const warning = document.getElementById('orientationWarning');
-        if (warning) {
-            warning.remove();
-        }
-    }
+        // Ожидание загрузки всех изображений
+        Promise.all([
+            new Promise((resolve) => { playerImage.onload = resolve; }),
+            new Promise((resolve) => { infantryImage.onload = resolve; }),
+            new Promise((resolve) => { tankImage.onload = resolve; }),
+            new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
+            new Promise((resolve) => { backgroundImage.onload = resolve; })
+        ]).then(() => {
+            resizeCanvas(); // Устанавливаем начальные размеры холста
+        });
 
-    // Проверка ориентации при загрузке страницы и изменении размера окна
-    checkOrientation();
-    window.addEventListener('resize', () => {
-        checkOrientation(); // Проверяем ориентацию
-        resizeCanvas(); // Обновляем размеры холста
-    });
+        // Логика для модального окна с инструкцией
+        const instructionModal = document.getElementById('instructionModal');
+        const instructionButton = document.getElementById('instructionButton');
+        const instructionModalContent = document.getElementById('instructionModalContent');
 
-    // Запрет масштабирования на touch-устройствах
-    document.addEventListener('touchmove', function (event) {
-        if (event.scale !== 1) {
-            event.preventDefault(); // Запрещаем масштабирование
-        }
-    }, { passive: false });
+        // Открываем модальное окно с инструкцией
+        instructionButton.addEventListener('click', () => {
+            instructionModal.style.display = 'flex';
+        });
 
-    // Ожидание загрузки всех изображений
-    Promise.all([
-        new Promise((resolve) => { playerImage.onload = resolve; }),
-        new Promise((resolve) => { infantryImage.onload = resolve; }),
-        new Promise((resolve) => { tankImage.onload = resolve; }),
-        new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
-        new Promise((resolve) => { backgroundImage.onload = resolve; })
-    ]).then(() => {
-        resizeCanvas(); // Устанавливаем начальные размеры холста
-    });
+        // Закрываем модальное окно при клике в любом месте
+        instructionModal.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+        });
 
-    // Логика для модального окна с инструкцией
-    const instructionModal = document.getElementById('instructionModal');
-    const instructionButton = document.getElementById('instructionButton');
-    const instructionModalContent = document.getElementById('instructionModalContent');
+        // Обработка прокрутки текста внутри модального окна
+        let startY = 0;
 
-    // Открываем модальное окно с инструкцией
-    instructionButton.addEventListener('click', () => {
-        instructionModal.style.display = 'flex';
-    });
+        instructionModalContent.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY; // Запоминаем начальную позицию касания
+        });
 
-    // Закрываем модальное окно при клике в любом месте
-    instructionModal.addEventListener('click', () => {
-        instructionModal.style.display = 'none';
-    });
+        instructionModalContent.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            const deltaY = startY - currentY; // Вычисляем разницу по Y
 
-    // Обработка прокрутки текста внутри модального окна
-    let startY = 0;
+            // Прокручиваем содержимое
+            instructionModalContent.scrollBy(0, deltaY);
 
-    instructionModalContent.addEventListener('touchstart', (e) => {
-        startY = e.touches[0].clientY; // Запоминаем начальную позицию касания
-    });
-
-    instructionModalContent.addEventListener('touchmove', (e) => {
-        const currentY = e.touches[0].clientY;
-        const deltaY = startY - currentY; // Вычисляем разницу по Y
-
-        // Прокручиваем содержимое
-        instructionModalContent.scrollBy(0, deltaY);
-
-        startY = currentY; // Обновляем начальную позицию
-    });
-</script>
+            startY = currentY; // Обновляем начальную позицию
+        });
+    </script>
 </body>
 </html>
