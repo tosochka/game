@@ -7,19 +7,19 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0; /* Убираем отступы */
-            padding: 0; /* Убираем отступы */
+            margin: 0;
+            padding: 0;
             display: flex;
-            justify-content: center; /* Центрируем по горизонтали */
-            align-items: flex-start; /* Прижимаем контейнер к верхней границе */
+            justify-content: center;
+            align-items: flex-start;
             height: 100vh;
             background-color: #f4f4f4;
-            overflow: hidden; /* Убираем прокрутку */
+            overflow: hidden;
         }
 
         .game-container {
-            width: 100vw; /* Ширина равна ширине экрана */
-            height: 100vh; /* Высота равна высоте экрана */
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             background: white;
@@ -27,81 +27,78 @@
             overflow: hidden;
         }
 
-        /* Для портретной ориентации (мобильные устройства) */
         @media (orientation: portrait) {
             .game-container {
-                width: 100vw; /* Ширина равна ширине экрана */
-                height: calc(100vw * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
-                max-width: none; /* Убираем ограничение по ширине */
-                max-height: 100vh; /* Ограничиваем высоту экраном */
+                width: 100vw;
+                height: calc(100vw * 16 / 9);
+                max-width: none;
+                max-height: 100vh;
             }
 
             #question-section {
-                height: 15%; /* Уменьшаем высоту поля вопроса */
-                font-size: clamp(16px, 4vw, 24px); /* Автоматическое форматирование текста */
-                padding: 10px; /* Уменьшаем отступы */
+                height: 15%;
+                font-size: clamp(16px, 4vw, 24px);
+                padding: 10px;
             }
 
             #progress-bar {
-                height: 3px; /* Высота прогресс-бара */
+                height: 3px;
             }
 
             #answer-section {
-                height: calc(85% - 3px); /* Увеличиваем высоту зоны ответов, учитывая прогресс-бар */
-                grid-template-columns: repeat(2, 1fr); /* Две колонки для ответов */
-                gap: 10px; /* Промежуток между ответами */
-                padding: 10px; /* Уменьшаем отступы */
+                height: calc(85% - 3px);
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 10px;
             }
 
             .answer {
-                padding: 5px; /* Уменьшаем отступы внутри кнопок */
+                padding: 5px;
             }
 
             .answer img {
-                width: 95%; /* Занимает 95% ширины кнопки */
-                height: 95%; /* Занимает 95% высоты кнопки */
-                object-fit: contain; /* Сохраняет пропорции изображения */
+                width: 95%;
+                height: 95%;
+                object-fit: contain;
             }
         }
 
-        /* Для альбомной ориентации (ПК и мобильные устройства) */
         @media (orientation: landscape) {
             .game-container {
-                width: calc(100vh * 16 / 9); /* Ширина рассчитывается по соотношению 16:9 */
-                height: 100vh; /* Высота равна высоте экрана */
-                max-width: none; /* Убираем ограничение по ширине */
-                max-height: 80vh; /* Ограничиваем высоту экраном */
+                width: calc(100vh * 16 / 9);
+                height: 100vh;
+                max-width: none;
+                max-height: 80vh;
             }
 
             #question-section {
-                height: 10%; /* Уменьшаем высоту на 50% */
-                font-size: clamp(16px, 2.5vw, 24px); /* Автоматическое форматирование текста */
-                padding: 10px; /* Уменьшаем отступы */
+                height: 10%;
+                font-size: clamp(16px, 2.5vw, 24px);
+                padding: 10px;
             }
 
             #progress-bar {
-                height: 3px; /* Высота прогресс-бара */
+                height: 3px;
             }
 
             #answer-section {
-                height: calc(90% - 3px); /* Увеличиваем высоту зоны ответов, учитывая прогресс-бар */
-                grid-template-columns: repeat(4, 1fr); /* Один ряд (4 кнопки) */
-                gap: 10px; /* Промежуток между ответами */
-                padding: 20px; /* Отступы */
+                height: calc(90% - 3px);
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+                padding: 20px;
             }
 
             .answer {
-                padding: 5px; /* Уменьшаем отступы внутри кнопок */
+                padding: 5px;
             }
 
             .answer img {
-                width: 95%; /* Занимает 95% ширины кнопки */
-                height: 95%; /* Занимает 95% высоты кнопки */
-                object-fit: contain; /* Сохраняет пропорции изображения */
+                width: 95%;
+                height: 95%;
+                object-fit: contain;
             }
         }
 
-        /* Остальные стили */
         #question-section {
             display: flex;
             justify-content: center;
@@ -127,14 +124,14 @@
 
         .answer {
             display: flex;
-            align-items: center; /* Вертикальное выравнивание содержимого */
-            justify-content: center; /* Горизонтальное выравнивание содержимого */
+            align-items: center;
+            justify-content: center;
             background-color: #f4f4f4;
             border: 2px solid #ddd;
             border-radius: 10px;
             cursor: pointer;
             transition: transform 0.3s, opacity 0.3s;
-            text-align: center; /* Центрирование текста */
+            text-align: center;
         }
 
         .answer.correct {
@@ -154,7 +151,6 @@
             pointer-events: none;
         }
 
-        /* Стили для модального окна */
         .modal {
             display: none;
             position: fixed;
@@ -201,14 +197,10 @@
         <div id="question-section">
             <h1 id="question"></h1>
         </div>
-        <!-- Прогресс-бар -->
         <div id="progress-bar"></div>
-        <div id="answer-section">
-            <!-- Ответы будут здесь -->
-        </div>
+        <div id="answer-section"></div>
     </div>
 
-    <!-- Модальное окно -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <h2>Статистика игры</h2>
@@ -220,7 +212,6 @@
         </div>
     </div>
 
-    <!-- Аудио-теги -->
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
     <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
     <audio id="click-sound" src="sounds/click.mp3"></audio>
@@ -263,9 +254,8 @@
         let score = 0;
         let timer;
         const timeLimit = 10;
-        const maxGameCount = 30000; // Максимальное количество игр
+        const maxGameCount = 3000;
 
-        // Загрузка счетчика игр из localStorage
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
 
         function shuffleArray(array) {
@@ -299,8 +289,8 @@
                 return;
             }
 
-            resetTimer(); // Сбрасываем таймер и прогресс-бар
-            startTimer(); // Запускаем таймер и прогресс-бар
+            resetTimer();
+            startTimer();
 
             const question = currentQuestions[currentQuestionIndex];
             questionElement.innerText = question.question;
@@ -311,8 +301,46 @@
                 const button = document.createElement('div');
                 button.classList.add('answer');
                 button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
+
                 button.addEventListener('click', () => removeAnswer(button, answer));
+
+                if ('ontouchstart' in window) {
+                    addSwipeListener(button, answer);
+                }
+
                 answerSection.appendChild(button);
+            });
+        }
+
+        function addSwipeListener(button, answer) {
+            let startX = 0;
+            let startY = 0;
+            let isSwiped = false;
+
+            button.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                isSwiped = false;
+            });
+
+            button.addEventListener('touchmove', (e) => {
+                if (isSwiped) return;
+
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - startX;
+                const deltaY = touch.clientY - startY;
+
+                if (Math.abs(deltaX) > 50 || Math.abs(deltaY) > 50) {
+                    isSwiped = true;
+                    removeAnswer(button, answer);
+                }
+            });
+
+            button.addEventListener('touchend', (e) => {
+                if (isSwiped) {
+                    e.preventDefault();
+                }
             });
         }
 
