@@ -18,34 +18,37 @@
         }
 
         .game-container {
-            width: 100%;
-            max-width: 600px;
-            height: 100vh;
+            width: 100vw; /* Ширина равна ширине экрана */
+            height: 100vh; /* Высота равна высоте экрана */
             display: flex;
             flex-direction: column;
             background: white;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            margin: auto; /* Центрируем контейнер */
         }
 
         /* Для портретной ориентации (мобильные устройства) */
         @media (orientation: portrait) {
             .game-container {
                 width: 100vw; /* Ширина равна ширине экрана */
-                height: 100vh; /* Высота равна высоте экрана */
+                height: calc(100vw * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 100vh; /* Ограничиваем высоту экраном */
+                background-color: lightcoral; /* Временный цвет для проверки */
             }
 
             #question-section {
-                height: 15vh; /* Фиксированная высота поля вопроса */
+                height: 15%; /* Уменьшаем высоту поля вопроса */
                 font-size: clamp(16px, 4vw, 24px); /* Автоматическое форматирование текста */
                 padding: 10px; /* Уменьшаем отступы */
             }
 
+            #progress-bar {
+                height: 3px; /* Высота прогресс-бара */
+            }
+
             #answer-section {
-                height: 85vh; /* Фиксированная высота зоны ответов */
+                height: calc(85% - 3px); /* Увеличиваем высоту зоны ответов, учитывая прогресс-бар */
                 grid-template-columns: 1fr; /* Один столбец для ответов */
                 gap: 5px; /* Уменьшаем промежуток между ответами */
                 padding: 10px; /* Уменьшаем отступы */
@@ -67,16 +70,21 @@
                 height: 100vh; /* Высота равна высоте экрана */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 100vh; /* Ограничиваем высоту экраном */
+                background-color: lightblue; /* Временный цвет для проверки */
             }
 
             #question-section {
-                height: 10vh; /* Фиксированная высота поля вопроса */
+                height: 10%; /* Уменьшаем высоту на 50% */
                 font-size: clamp(16px, 2.5vw, 24px); /* Автоматическое форматирование текста */
                 padding: 10px; /* Уменьшаем отступы */
             }
 
+            #progress-bar {
+                height: 3px; /* Высота прогресс-бара */
+            }
+
             #answer-section {
-                height: 90vh; /* Фиксированная высота зоны ответов */
+                height: calc(90% - 3px); /* Увеличиваем высоту зоны ответов, учитывая прогресс-бар */
                 grid-template-columns: repeat(2, 1fr); /* Два столбца для ответов */
                 gap: 10px; /* Промежуток между ответами */
                 padding: 20px; /* Отступы */
@@ -89,7 +97,6 @@
 
         /* Остальные стили */
         #question-section {
-            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -100,7 +107,6 @@
 
         #progress-bar {
             width: 100%;
-            height: 3px;
             background-color: #ffa500;
             transform-origin: left;
             transform: scaleX(0);
@@ -108,7 +114,6 @@
         }
 
         #answer-section {
-            flex: 1;
             display: grid;
             gap: 10px;
             padding: 20px;
