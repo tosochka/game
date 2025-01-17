@@ -34,7 +34,6 @@
                 height: calc(100vw * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 100vh; /* Ограничиваем высоту экраном */
-            /*  background-color: lightcoral; /* Временный цвет для проверки */
             }
 
             #question-section {
@@ -49,8 +48,8 @@
 
             #answer-section {
                 height: calc(85% - 3px); /* Увеличиваем высоту зоны ответов, учитывая прогресс-бар */
-                grid-template-columns: 1fr; /* Один столбец для ответов */
-                gap: 5px; /* Уменьшаем промежуток между ответами */
+                grid-template-columns: repeat(2, 1fr); /* Две колонки для ответов */
+                gap: 10px; /* Промежуток между ответами */
                 padding: 10px; /* Уменьшаем отступы */
             }
 
@@ -70,7 +69,6 @@
                 height: 100vh; /* Высота равна высоте экрана */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 80vh; /* Ограничиваем высоту экраном */
-			/* 	background-color: lightblue; /* Временный цвет для проверки */
             }
 
             #question-section {
@@ -85,7 +83,7 @@
 
             #answer-section {
                 height: calc(90% - 3px); /* Увеличиваем высоту зоны ответов, учитывая прогресс-бар */
-                grid-template-columns: repeat(2, 1fr); /* Два столбца для ответов */
+                grid-template-columns: repeat(4, 1fr); /* Один ряд (4 кнопки) */
                 gap: 10px; /* Промежуток между ответами */
                 padding: 20px; /* Отступы */
             }
@@ -121,46 +119,25 @@
 
         .answer {
             display: flex;
-            justify-content: center;
-            align-items: center;
+            align-items: center; /* Вертикальное выравнивание содержимого */
+            justify-content: center; /* Горизонтальное выравнивание содержимого */
             background-color: #f4f4f4;
             border: 2px solid #ddd;
             border-radius: 10px;
             cursor: pointer;
             transition: transform 0.3s, opacity 0.3s;
+            padding: 10px; /* Отступы внутри кнопок */
+            text-align: center; /* Центрирование текста */
         }
 
         .answer img {
-            max-width: 100%;
+            max-height: 60px; /* Размер изображений */
+            margin: 0 auto; /* Центрирование изображения */
         }
 
-		 .answer.correct {
-			border-color: green;
-			animation: correctAnswer 0.5s ease-in-out;
-		}
-
-		.answer.wrong {
-			border-color: red;
-			animation: wrongAnswer 0.5s ease-in-out;
-		}
-
-		@keyframes correctAnswer {
-			0% { transform: scale(1); }
-			50% { transform: scale(1.05); }
-			100% { transform: scale(1); }
-		}
-
-		@keyframes wrongAnswer {
-			0% { transform: translateX(0); }
-			25% { transform: translateX(-10px); }
-			50% { transform: translateX(10px); }
-			75% { transform: translateX(-10px); }
-			100% { transform: translateX(0); }
-		}       
-		
-		.answer.correct {
-					border-color: green;
-				}
+        .answer.correct {
+            border-color: green;
+        }
 
         .answer.wrong {
             border-color: red;
@@ -261,13 +238,22 @@
             {
                 question: "The Ultimate Driving Machine",
                 answers: [
-                    { text: "BMW", correct: true, image: "https://via.placeholder.com/150?text=BMW" },
-                    { text: "Mercedes-Benz", correct: false, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
-                    { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" }
+                    { text: "BMW", correct: true, image: "images/adidas.png" },
+                    { text: "Mercedes-Benz", correct: false, image: "images/adidas.png" },
+                    { text: "Audi", correct: false, image: "images/adidas.png" },
+                    { text: "Toyota", correct: false, image: "images/adidas.png" }
                 ]
             },
-            // ... (остальные вопросы)
+            {
+                question: "Just Do It",
+                answers: [
+                    { text: "Nike", correct: true, image: "images/adidas.png" },
+                    { text: "Adidas", correct: false, image: "images/adidas.png" },
+                    { text: "Puma", correct: false, image: "images/adidas.png" },
+                    { text: "Reebok", correct: false, image: "images/adidas.png" }
+                ]
+            },
+            // Добавьте больше вопросов здесь
         ];
 
         let currentQuestions = [];
