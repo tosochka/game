@@ -14,6 +14,7 @@
             align-items: center;
             height: 100vh;
             background-color: #f4f4f4;
+            overflow: hidden; /* Убираем прокрутку */
         }
 
         .game-container {
@@ -28,23 +29,55 @@
             margin: auto; /* Центрируем контейнер */
         }
 
-        /* Для портретной ориентации (9:16) */
+        /* Для портретной ориентации (мобильные устройства) */
         @media (orientation: portrait) {
             .game-container {
-                width: 100vh; /* Ширина равна высоте экрана */
-                height: calc(100vh * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
+                width: 100vw; /* Ширина равна ширине экрана */
+                height: calc(100vw * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 100vh; /* Ограничиваем высоту экраном */
             }
+
+            #question-section {
+                font-size: 1.2em; /* Увеличиваем размер текста для удобства */
+            }
+
+            #answer-section {
+                grid-template-columns: 1fr; /* Один столбец для ответов */
+                gap: 5px; /* Уменьшаем промежуток между ответами */
+                padding: 10px; /* Уменьшаем отступы */
+            }
+
+            .answer {
+                padding: 10px; /* Уменьшаем отступы внутри ответов */
+            }
+
+            .answer img {
+                max-height: 60px; /* Уменьшаем размер изображений */
+            }
         }
 
-        /* Для альбомной ориентации (16:9) */
+        /* Для альбомной ориентации (ПК и мобильные устройства) */
         @media (orientation: landscape) {
             .game-container {
                 width: calc(100vh * 16 / 9); /* Ширина рассчитывается по соотношению 16:9 */
                 height: 100vh; /* Высота равна высоте экрана */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 100vh; /* Ограничиваем высоту экраном */
+            }
+
+            #question-section {
+                font-size: 1.5em; /* Увеличиваем размер текста */
+            }
+
+            #answer-section {
+                grid-template-columns: repeat(2, 1fr); /* Два столбца для ответов */
+                gap: 10px; /* Промежуток между ответами */
+                padding: 20px; /* Отступы */
+            }
+
+            .answer img {
+                max-height: 80px; /* Размер изображений */
             }
         }
 
@@ -72,7 +105,6 @@
         #answer-section {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
             padding: 20px;
         }
@@ -90,7 +122,6 @@
 
         .answer img {
             max-width: 100%;
-            max-height: 100%;
         }
 
         .answer.correct {
@@ -150,12 +181,6 @@
             background-color: #ccc;
             cursor: not-allowed;
         }
-
-        @media (orientation: portrait) {
-            #answer-section {
-                grid-template-columns: 1fr;
-            }
-        }
     </style>
 </head>
 <body>
@@ -186,7 +211,7 @@
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
     <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
     <audio id="click-sound" src="sounds/click.mp3"></audio>
-
+	
     <script>
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
