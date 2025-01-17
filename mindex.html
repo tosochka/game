@@ -61,7 +61,7 @@
         @media (orientation: landscape) {
             .game-container {
                 width: calc(100vh * 16 / 9);
-                height: calc(100vh - env(safe-area-inset-bottom, 0)); /* Учитываем безопасную зону */
+                height: 100vh;
                 max-width: none;
                 max-height: 100vh;
             }
@@ -231,6 +231,15 @@
                     { text: "Mercedes-Benz", correct: false, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
                     { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
                     { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" }
+                ]
+            },
+            {
+                question: "The Power of Dreams",
+                answers: [
+                    { text: "Honda", correct: true, image: "https://via.placeholder.com/150?text=Honda" },
+                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
                 ]
             },
             // ... (остальные вопросы)
@@ -437,17 +446,17 @@
         // Динамическая подстройка высоты контейнера
         function adjustGameContainerHeight() {
             const gameContainer = document.querySelector('.game-container');
-            if (window.innerHeight > window.innerWidth) {
-                // Портретная ориентация
-                gameContainer.style.height = `${window.innerHeight}px`;
-            } else {
-                // Альбомная ориентация
-                gameContainer.style.height = `${window.innerHeight}px`;
-            }
+            if (!gameContainer) return;
+
+            const viewportHeight = window.innerHeight;
+            gameContainer.style.height = `${viewportHeight}px`;
+
+            console.log(`Viewport height: ${viewportHeight}px, Container height: ${gameContainer.style.height}`);
         }
 
-        window.addEventListener('resize', adjustGameContainerHeight);
         window.addEventListener('load', adjustGameContainerHeight);
+        window.addEventListener('resize', adjustGameContainerHeight);
+        window.addEventListener('orientationchange', adjustGameContainerHeight);
 
         modalCloseBtn.addEventListener('click', closeModal);
         modalRestartBtn.addEventListener('click', () => {
