@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Угадай бренд по слогану</title>
     <style>
         body {
@@ -14,7 +14,7 @@
             align-items: center;
             height: 100vh;
             background-color: #f4f4f4;
-            overflow: hidden;
+            overflow: hidden; /* Убираем прокрутку */
         }
 
         .game-container {
@@ -26,62 +26,63 @@
             background: white;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            margin: auto;
+            margin: auto; /* Центрируем контейнер */
         }
 
         /* Для портретной ориентации (мобильные устройства) */
         @media (orientation: portrait) {
             .game-container {
-                width: 100vw;
-                height: calc(100vw * 16 / 9);
-                max-width: none;
-                max-height: 100vh;
+                width: 100vw; /* Ширина равна ширине экрана */
+                height: calc(100vw * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
+                max-width: none; /* Убираем ограничение по ширине */
+                max-height: 100vh; /* Ограничиваем высоту экраном */
             }
 
             #question-section {
-                font-size: 1.2em;
+                height: calc(100% - 10px); /* Уменьшаем высоту на 10px */
+                font-size: 1em; /* Стандартный размер текста */
             }
 
             #answer-section {
-                grid-template-columns: 1fr;
-                gap: 5px;
-                padding: 10px;
+                grid-template-columns: 1fr; /* Один столбец для ответов */
+                gap: 5px; /* Уменьшаем промежуток между ответами */
+                padding: 10px; /* Уменьшаем отступы */
             }
 
             .answer {
-                padding: 10px;
+                padding: 10px; /* Уменьшаем отступы внутри ответов */
             }
 
             .answer img {
-                max-height: 60px;
+                max-height: 60px; /* Уменьшаем размер изображений */
             }
         }
 
         /* Для альбомной ориентации (ПК и мобильные устройства) */
         @media (orientation: landscape) {
             .game-container {
-                width: calc(100vh * 16 / 9);
-                height: 100vh;
-                max-width: none;
-                max-height: 100vh;
+                width: calc(100vh * 16 / 9); /* Ширина рассчитывается по соотношению 16:9 */
+                height: 100vh; /* Высота равна высоте экрана */
+                max-width: none; /* Убираем ограничение по ширине */
+                max-height: 100vh; /* Ограничиваем высоту экраном */
             }
 
             #question-section {
-                font-size: 1.5em;
+                font-size: 1em; /* Стандартный размер текста */
             }
 
             #answer-section {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                padding: 20px;
+                grid-template-columns: repeat(2, 1fr); /* Два столбца для ответов */
+                gap: 10px; /* Промежуток между ответами */
+                padding: 20px; /* Отступы */
             }
 
             .answer img {
-                max-height: 80px;
+                max-height: 80px; /* Стандартный размер изображений */
             }
         }
 
-        /* Остальные стили */
+        /* Остальные стили остаются без изменений */
         #question-section {
             flex: 1;
             display: flex;
@@ -242,7 +243,213 @@
                     { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
                 ]
             },
-            // ... (остальные вопросы)
+            {
+                question: "Zoom-Zoom",
+                answers: [
+                    { text: "Mazda", correct: true, image: "https://via.placeholder.com/150?text=Mazda" },
+                    { text: "Hyundai", correct: false, image: "https://via.placeholder.com/150?text=Hyundai" },
+                    { text: "Kia", correct: false, image: "https://via.placeholder.com/150?text=Kia" },
+                    { text: "Subaru", correct: false, image: "https://via.placeholder.com/150?text=Subaru" }
+                ]
+            },
+            {
+                question: "The Relentless Pursuit of Perfection",
+                answers: [
+                    { text: "Lexus", correct: true, image: "https://via.placeholder.com/150?text=Lexus" },
+                    { text: "Acura", correct: false, image: "https://via.placeholder.com/150?text=Acura" },
+                    { text: "Infiniti", correct: false, image: "https://via.placeholder.com/150?text=Infiniti" },
+                    { text: "Cadillac", correct: false, image: "https://via.placeholder.com/150?text=Cadillac" }
+                ]
+            },
+            {
+                question: "Vorsprung durch Technik",
+                answers: [
+                    { text: "Audi", correct: true, image: "https://via.placeholder.com/150?text=Audi" },
+                    { text: "BMW", correct: false, image: "https://via.placeholder.com/150?text=BMW" },
+                    { text: "Mercedes-Benz", correct: false, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
+                    { text: "Volkswagen", correct: false, image: "https://via.placeholder.com/150?text=Volkswagen" }
+                ]
+            },
+            {
+                question: "The Best or Nothing",
+                answers: [
+                    { text: "Mercedes-Benz", correct: true, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
+                    { text: "BMW", correct: false, image: "https://via.placeholder.com/150?text=BMW" },
+                    { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
+                    { text: "Lexus", correct: false, image: "https://via.placeholder.com/150?text=Lexus" }
+                ]
+            },
+            {
+                question: "Driving Performance",
+                answers: [
+                    { text: "Porsche", correct: true, image: "https://via.placeholder.com/150?text=Porsche" },
+                    { text: "Ferrari", correct: false, image: "https://via.placeholder.com/150?text=Ferrari" },
+                    { text: "Lamborghini", correct: false, image: "https://via.placeholder.com/150?text=Lamborghini" },
+                    { text: "Maserati", correct: false, image: "https://via.placeholder.com/150?text=Maserati" }
+                ]
+            },
+            {
+                question: "The Art of Performance",
+                answers: [
+                    { text: "Infiniti", correct: true, image: "https://via.placeholder.com/150?text=Infiniti" },
+                    { text: "Lexus", correct: false, image: "https://via.placeholder.com/150?text=Lexus" },
+                    { text: "Acura", correct: false, image: "https://via.placeholder.com/150?text=Acura" },
+                    { text: "Cadillac", correct: false, image: "https://via.placeholder.com/150?text=Cadillac" }
+                ]
+            },
+            {
+                question: "Engineered to Move the Human Spirit",
+                answers: [
+                    { text: "Hyundai", correct: true, image: "https://via.placeholder.com/150?text=Hyundai" },
+                    { text: "Kia", correct: false, image: "https://via.placeholder.com/150?text=Kia" },
+                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Honda", correct: false, image: "https://via.placeholder.com/150?text=Honda" }
+                ]
+            },
+            {
+                question: "The Power to Surprise",
+                answers: [
+                    { text: "Kia", correct: true, image: "https://via.placeholder.com/150?text=Kia" },
+                    { text: "Hyundai", correct: false, image: "https://via.placeholder.com/150?text=Hyundai" },
+                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Honda", correct: false, image: "https://via.placeholder.com/150?text=Honda" }
+                ]
+            },
+            {
+                question: "Let's Go Places",
+                answers: [
+                    { text: "Toyota", correct: true, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Honda", correct: false, image: "https://via.placeholder.com/150?text=Honda" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
+                ]
+            },
+            {
+                question: "Built Ford Tough",
+                answers: [
+                    { text: "Ford", correct: true, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" },
+                    { text: "Dodge", correct: false, image: "https://via.placeholder.com/150?text=Dodge" },
+                    { text: "GMC", correct: false, image: "https://via.placeholder.com/150?text=GMC" }
+                ]
+            },
+            {
+                question: "Find New Roads",
+                answers: [
+                    { text: "Chevrolet", correct: true, image: "https://via.placeholder.com/150?text=Chevrolet" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Dodge", correct: false, image: "https://via.placeholder.com/150?text=Dodge" },
+                    { text: "GMC", correct: false, image: "https://via.placeholder.com/150?text=GMC" }
+                ]
+            },
+            {
+                question: "Grab Life by the Horns",
+                answers: [
+                    { text: "Dodge", correct: true, image: "https://via.placeholder.com/150?text=Dodge" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" },
+                    { text: "GMC", correct: false, image: "https://via.placeholder.com/150?text=GMC" }
+                ]
+            },
+            {
+                question: "We Are Professional Grade",
+                answers: [
+                    { text: "GMC", correct: true, image: "https://via.placeholder.com/150?text=GMC" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" },
+                    { text: "Dodge", correct: false, image: "https://via.placeholder.com/150?text=Dodge" }
+                ]
+            },
+            {
+                question: "The Quiet Revolution",
+                answers: [
+                    { text: "Tesla", correct: true, image: "https://via.placeholder.com/150?text=Tesla" },
+                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
+                ]
+            },
+            {
+                question: "The Future of Automotive",
+                answers: [
+                    { text: "Tesla", correct: true, image: "https://via.placeholder.com/150?text=Tesla" },
+                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
+                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
+                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
+                ]
+            },
+            {
+                question: "Just Do It",
+                answers: [
+                    { text: "Nike", correct: true, image: "https://via.placeholder.com/150?text=Nike" },
+                    { text: "Adidas", correct: false, image: "https://via.placeholder.com/150?text=Adidas" },
+                    { text: "Puma", correct: false, image: "https://via.placeholder.com/150?text=Puma" },
+                    { text: "Reebok", correct: false, image: "https://via.placeholder.com/150?text=Reebok" }
+                ]
+            },
+            {
+                question: "Think Different",
+                answers: [
+                    { text: "Apple", correct: true, image: "https://via.placeholder.com/150?text=Apple" },
+                    { text: "Microsoft", correct: false, image: "https://via.placeholder.com/150?text=Microsoft" },
+                    { text: "Samsung", correct: false, image: "https://via.placeholder.com/150?text=Samsung" },
+                    { text: "Google", correct: false, image: "https://via.placeholder.com/150?text=Google" }
+                ]
+            },
+            {
+                question: "Impossible is Nothing",
+                answers: [
+                    { text: "Adidas", correct: true, image: "https://via.placeholder.com/150?text=Adidas" },
+                    { text: "Nike", correct: false, image: "https://via.placeholder.com/150?text=Nike" },
+                    { text: "Puma", correct: false, image: "https://via.placeholder.com/150?text=Puma" },
+                    { text: "Reebok", correct: false, image: "https://via.placeholder.com/150?text=Reebok" }
+                ]
+            },
+            {
+                question: "Because You're Worth It",
+                answers: [
+                    { text: "L'Oréal", correct: true, image: "https://via.placeholder.com/150?text=L'Oréal" },
+                    { text: "Maybelline", correct: false, image: "https://via.placeholder.com/150?text=Maybelline" },
+                    { text: "Revlon", correct: false, image: "https://via.placeholder.com/150?text=Revlon" },
+                    { text: "Estée Lauder", correct: false, image: "https://via.placeholder.com/150?text=Estée+Lauder" }
+                ]
+            },
+            {
+                question: "I'm Lovin' It",
+                answers: [
+                    { text: "McDonald's", correct: true, image: "https://via.placeholder.com/150?text=McDonald's" },
+                    { text: "Burger King", correct: false, image: "https://via.placeholder.com/150?text=Burger+King" },
+                    { text: "KFC", correct: false, image: "https://via.placeholder.com/150?text=KFC" },
+                    { text: "Subway", correct: false, image: "https://via.placeholder.com/150?text=Subway" }
+                ]
+            },
+            {
+                question: "Have a Break, Have a KitKat",
+                answers: [
+                    { text: "KitKat", correct: true, image: "https://via.placeholder.com/150?text=KitKat" },
+                    { text: "Snickers", correct: false, image: "https://via.placeholder.com/150?text=Snickers" },
+                    { text: "Twix", correct: false, image: "https://via.placeholder.com/150?text=Twix" },
+                    { text: "Mars", correct: false, image: "https://via.placeholder.com/150?text=Mars" }
+                ]
+            },
+            {
+                question: "Melts in Your Mouth, Not in Your Hands",
+                answers: [
+                    { text: "M&M's", correct: true, image: "https://via.placeholder.com/150?text=M&M's" },
+                    { text: "Skittles", correct: false, image: "https://via.placeholder.com/150?text=Skittles" },
+                    { text: "Reese's", correct: false, image: "https://via.placeholder.com/150?text=Reese's" },
+                    { text: "Hershey's", correct: false, image: "https://via.placeholder.com/150?text=Hershey's" }
+                ]
+            },
+            {
+                question: "The Quicker Picker Upper",
+                answers: [
+                    { text: "Bounty", correct: true, image: "https://via.placeholder.com/150?text=Bounty" },
+                    { text: "Brawny", correct: false, image: "https://via.placeholder.com/150?text=Brawny" },
+                    { text: "Scott", correct: false, image: "https://via.placeholder.com/150?text=Scott" },
+                    { text: "Viva", correct: false, image: "https://via.placeholder.com/150?text=Viva" }
+                ]
+            }
         ];
 
         let currentQuestions = [];
@@ -250,8 +457,9 @@
         let score = 0;
         let timer;
         const timeLimit = 10;
-        const maxGameCount = 30000;
+        const maxGameCount = 30000; // Максимальное количество игр
 
+        // Загрузка счетчика игр из localStorage
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
 
         function shuffleArray(array) {
@@ -285,8 +493,8 @@
                 return;
             }
 
-            resetTimer();
-            startTimer();
+            resetTimer(); // Сбрасываем таймер и прогресс-бар
+            startTimer(); // Запускаем таймер и прогресс-бар
 
             const question = currentQuestions[currentQuestionIndex];
             questionElement.innerText = question.question;
@@ -442,21 +650,6 @@
             const progressBar = document.getElementById('progress-bar');
             progressBar.style.transform = 'scaleX(0)';
         }
-
-        // Динамическая подстройка высоты контейнера
-        function adjustGameContainerHeight() {
-            const gameContainer = document.querySelector('.game-container');
-            if (!gameContainer) return;
-
-            const viewportHeight = window.innerHeight;
-            gameContainer.style.height = `${viewportHeight}px`;
-
-            console.log(`Viewport height: ${viewportHeight}px, Container height: ${gameContainer.style.height}`);
-        }
-
-        window.addEventListener('load', adjustGameContainerHeight);
-        window.addEventListener('resize', adjustGameContainerHeight);
-        window.addEventListener('orientationchange', adjustGameContainerHeight);
 
         modalCloseBtn.addEventListener('click', closeModal);
         modalRestartBtn.addEventListener('click', () => {
