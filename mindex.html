@@ -312,37 +312,58 @@
             });
         }
 
-        function addSwipeListener(button, answer) {
-            let startX = 0;
-            let startY = 0;
-            let isSwiped = false;
+		function addSwipeListener(button, answer) {
+			let startX = 0;
+			let startY = 0;
+			let isSwiped = false;
 
-            button.addEventListener('touchstart', (e) => {
-                const touch = e.touches[0];
-                startX = touch.clientX;
-                startY = touch.clientY;
-                isSwiped = false;
-            });
+			button.addEventListener('touchstart', (e) => {
+				const touch = e.touches[0];
+				startX = touch.clientX;
+				startY = touch.clientY;
+				isSwiped = false;
+			});
 
-            button.addEventListener('touchmove', (e) => {
-                if (isSwiped) return;
+			button.addEventListener('touchmove', (e) => {
+				if (isSwiped) return;
 
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - startX;
-                const deltaY = touch.clientY - startY;
+				const touch = e.touches[0];
+				const deltaX = touch.clientX - startX;
+				const deltaY = touch.clientY - startY;
 
-                if (Math.abs(deltaX) > 50 || Math.abs(deltaY) > 50) {
-                    isSwiped = true;
-                    removeAnswer(button, answer);
-                }
-            });
+				// Увеличиваем минимальное расстояние для свайпа
+				if (Math.abs(deltaX) > 100 || Math.abs(deltaY) > 100) {
+					isSwiped = true;
 
-            button.addEventListener('touchend', (e) => {
-                if (isSwiped) {
-                    e.preventDefault();
-                }
-            });
-        }
+					// Определяем направление свайпа
+					const direction = Math.abs(deltaX) > Math.abs(deltaY) ? (deltaX > 0 ? 'right' : 'left') : (deltaY > 0 ? 'down' : 'up');
+
+					// Анимация "уезжания" картинки
+					button.style.transition = 'transform 0.3s, opacity 0.3s';
+					if (direction === 'left' || direction === 'right') {
+						button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
+					} else {
+						button.style.transform = `translateY(${deltaY > 0 ? 100 : -100}%)`;
+					}
+					button.style.opacity = '0';
+
+					// Удаляем картинку после завершения анимации
+					setTimeout(() => {
+						removeAnswer(button, answer);
+					}, 300);
+				}
+			});
+
+			// Возврат картинки на место, если свайп не завершен
+			button.addEventListener('touchend', (e) => {
+				if (!isSwiped) {
+					// Возвращаем картинку на место, если свайп не завершен
+					button.style.transition = 'transform 0.2s, opacity 0.2s';
+					button.style.transform = 'translateX(0) translateY(0)';
+					button.style.opacity = '1';
+				}
+			});
+		}
 
         function removeAnswer(button, answer) {
             playSound('click');
