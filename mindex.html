@@ -68,6 +68,8 @@
         .answer img {
             max-width: 100%;
             max-height: 100%;
+            border-radius: 10px;
+            object-fit: cover;
         }
 
         .answer.correct {
@@ -177,228 +179,21 @@
 
         const allQuestions = [
             {
-                question: "The Ultimate Driving Machine",
-                answers: [
-                    { text: "BMW", correct: true, image: "https://via.placeholder.com/150?text=BMW" },
-                    { text: "Mercedes-Benz", correct: false, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
-                    { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" }
-                ]
-            },
-            {
-                question: "The Power of Dreams",
-                answers: [
-                    { text: "Honda", correct: true, image: "https://via.placeholder.com/150?text=Honda" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
-                ]
-            },
-            {
-                question: "Zoom-Zoom",
-                answers: [
-                    { text: "Mazda", correct: true, image: "https://via.placeholder.com/150?text=Mazda" },
-                    { text: "Hyundai", correct: false, image: "https://via.placeholder.com/150?text=Hyundai" },
-                    { text: "Kia", correct: false, image: "https://via.placeholder.com/150?text=Kia" },
-                    { text: "Subaru", correct: false, image: "https://via.placeholder.com/150?text=Subaru" }
-                ]
-            },
-            {
                 question: "The Relentless Pursuit of Perfection",
                 answers: [
-                    { text: "Lexus", correct: true, image: "https://via.placeholder.com/150?text=Lexus" },
-                    { text: "Acura", correct: false, image: "https://via.placeholder.com/150?text=Acura" },
-                    { text: "Infiniti", correct: false, image: "https://via.placeholder.com/150?text=Infiniti" },
-                    { text: "Cadillac", correct: false, image: "https://via.placeholder.com/150?text=Cadillac" }
+                    { text: "Lexus", correct: true, image: "images/adidas.png" },
+                    { text: "Acura", correct: false, image: "images/adidas.png" },
+                    { text: "Infiniti", correct: false, image: "images/adidas.png" },
+                    { text: "Cadillac", correct: false, image: "images/adidas.png" }
                 ]
             },
             {
                 question: "Vorsprung durch Technik",
                 answers: [
-                    { text: "Audi", correct: true, image: "https://via.placeholder.com/150?text=Audi" },
-                    { text: "BMW", correct: false, image: "https://via.placeholder.com/150?text=BMW" },
-                    { text: "Mercedes-Benz", correct: false, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
-                    { text: "Volkswagen", correct: false, image: "https://via.placeholder.com/150?text=Volkswagen" }
-                ]
-            },
-            {
-                question: "The Best or Nothing",
-                answers: [
-                    { text: "Mercedes-Benz", correct: true, image: "https://via.placeholder.com/150?text=Mercedes-Benz" },
-                    { text: "BMW", correct: false, image: "https://via.placeholder.com/150?text=BMW" },
-                    { text: "Audi", correct: false, image: "https://via.placeholder.com/150?text=Audi" },
-                    { text: "Lexus", correct: false, image: "https://via.placeholder.com/150?text=Lexus" }
-                ]
-            },
-            {
-                question: "Driving Performance",
-                answers: [
-                    { text: "Porsche", correct: true, image: "https://via.placeholder.com/150?text=Porsche" },
-                    { text: "Ferrari", correct: false, image: "https://via.placeholder.com/150?text=Ferrari" },
-                    { text: "Lamborghini", correct: false, image: "https://via.placeholder.com/150?text=Lamborghini" },
-                    { text: "Maserati", correct: false, image: "https://via.placeholder.com/150?text=Maserati" }
-                ]
-            },
-            {
-                question: "The Art of Performance",
-                answers: [
-                    { text: "Infiniti", correct: true, image: "https://via.placeholder.com/150?text=Infiniti" },
-                    { text: "Lexus", correct: false, image: "https://via.placeholder.com/150?text=Lexus" },
-                    { text: "Acura", correct: false, image: "https://via.placeholder.com/150?text=Acura" },
-                    { text: "Cadillac", correct: false, image: "https://via.placeholder.com/150?text=Cadillac" }
-                ]
-            },
-            {
-                question: "Engineered to Move the Human Spirit",
-                answers: [
-                    { text: "Hyundai", correct: true, image: "https://via.placeholder.com/150?text=Hyundai" },
-                    { text: "Kia", correct: false, image: "https://via.placeholder.com/150?text=Kia" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
-                    { text: "Honda", correct: false, image: "https://via.placeholder.com/150?text=Honda" }
-                ]
-            },
-            {
-                question: "The Power to Surprise",
-                answers: [
-                    { text: "Kia", correct: true, image: "https://via.placeholder.com/150?text=Kia" },
-                    { text: "Hyundai", correct: false, image: "https://via.placeholder.com/150?text=Hyundai" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
-                    { text: "Honda", correct: false, image: "https://via.placeholder.com/150?text=Honda" }
-                ]
-            },
-            {
-                question: "Let's Go Places",
-                answers: [
-                    { text: "Toyota", correct: true, image: "https://via.placeholder.com/150?text=Toyota" },
-                    { text: "Honda", correct: false, image: "https://via.placeholder.com/150?text=Honda" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
-                ]
-            },
-            {
-                question: "Built Ford Tough",
-                answers: [
-                    { text: "Ford", correct: true, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" },
-                    { text: "Dodge", correct: false, image: "https://via.placeholder.com/150?text=Dodge" },
-                    { text: "GMC", correct: false, image: "https://via.placeholder.com/150?text=GMC" }
-                ]
-            },
-            {
-                question: "Find New Roads",
-                answers: [
-                    { text: "Chevrolet", correct: true, image: "https://via.placeholder.com/150?text=Chevrolet" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Dodge", correct: false, image: "https://via.placeholder.com/150?text=Dodge" },
-                    { text: "GMC", correct: false, image: "https://via.placeholder.com/150?text=GMC" }
-                ]
-            },
-            {
-                question: "Grab Life by the Horns",
-                answers: [
-                    { text: "Dodge", correct: true, image: "https://via.placeholder.com/150?text=Dodge" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" },
-                    { text: "GMC", correct: false, image: "https://via.placeholder.com/150?text=GMC" }
-                ]
-            },
-            {
-                question: "We Are Professional Grade",
-                answers: [
-                    { text: "GMC", correct: true, image: "https://via.placeholder.com/150?text=GMC" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" },
-                    { text: "Dodge", correct: false, image: "https://via.placeholder.com/150?text=Dodge" }
-                ]
-            },
-            {
-                question: "The Quiet Revolution",
-                answers: [
-                    { text: "Tesla", correct: true, image: "https://via.placeholder.com/150?text=Tesla" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
-                ]
-            },
-            {
-                question: "The Future of Automotive",
-                answers: [
-                    { text: "Tesla", correct: true, image: "https://via.placeholder.com/150?text=Tesla" },
-                    { text: "Toyota", correct: false, image: "https://via.placeholder.com/150?text=Toyota" },
-                    { text: "Ford", correct: false, image: "https://via.placeholder.com/150?text=Ford" },
-                    { text: "Chevrolet", correct: false, image: "https://via.placeholder.com/150?text=Chevrolet" }
-                ]
-            },
-            {
-                question: "Just Do It",
-                answers: [
-                    { text: "Nike", correct: true, image: "https://via.placeholder.com/150?text=Nike" },
-                    { text: "Adidas", correct: false, image: "https://via.placeholder.com/150?text=Adidas" },
-                    { text: "Puma", correct: false, image: "https://via.placeholder.com/150?text=Puma" },
-                    { text: "Reebok", correct: false, image: "https://via.placeholder.com/150?text=Reebok" }
-                ]
-            },
-            {
-                question: "Think Different",
-                answers: [
-                    { text: "Apple", correct: true, image: "https://via.placeholder.com/150?text=Apple" },
-                    { text: "Microsoft", correct: false, image: "https://via.placeholder.com/150?text=Microsoft" },
-                    { text: "Samsung", correct: false, image: "https://via.placeholder.com/150?text=Samsung" },
-                    { text: "Google", correct: false, image: "https://via.placeholder.com/150?text=Google" }
-                ]
-            },
-            {
-                question: "Impossible is Nothing",
-                answers: [
-                    { text: "Adidas", correct: true, image: "https://via.placeholder.com/150?text=Adidas" },
-                    { text: "Nike", correct: false, image: "https://via.placeholder.com/150?text=Nike" },
-                    { text: "Puma", correct: false, image: "https://via.placeholder.com/150?text=Puma" },
-                    { text: "Reebok", correct: false, image: "https://via.placeholder.com/150?text=Reebok" }
-                ]
-            },
-            {
-                question: "Because You're Worth It",
-                answers: [
-                    { text: "L'Oréal", correct: true, image: "https://via.placeholder.com/150?text=L'Oréal" },
-                    { text: "Maybelline", correct: false, image: "https://via.placeholder.com/150?text=Maybelline" },
-                    { text: "Revlon", correct: false, image: "https://via.placeholder.com/150?text=Revlon" },
-                    { text: "Estée Lauder", correct: false, image: "https://via.placeholder.com/150?text=Estée+Lauder" }
-                ]
-            },
-            {
-                question: "I'm Lovin' It",
-                answers: [
-                    { text: "McDonald's", correct: true, image: "https://via.placeholder.com/150?text=McDonald's" },
-                    { text: "Burger King", correct: false, image: "https://via.placeholder.com/150?text=Burger+King" },
-                    { text: "KFC", correct: false, image: "https://via.placeholder.com/150?text=KFC" },
-                    { text: "Subway", correct: false, image: "https://via.placeholder.com/150?text=Subway" }
-                ]
-            },
-            {
-                question: "Have a Break, Have a KitKat",
-                answers: [
-                    { text: "KitKat", correct: true, image: "https://via.placeholder.com/150?text=KitKat" },
-                    { text: "Snickers", correct: false, image: "https://via.placeholder.com/150?text=Snickers" },
-                    { text: "Twix", correct: false, image: "https://via.placeholder.com/150?text=Twix" },
-                    { text: "Mars", correct: false, image: "https://via.placeholder.com/150?text=Mars" }
-                ]
-            },
-            {
-                question: "Melts in Your Mouth, Not in Your Hands",
-                answers: [
-                    { text: "M&M's", correct: true, image: "https://via.placeholder.com/150?text=M&M's" },
-                    { text: "Skittles", correct: false, image: "https://via.placeholder.com/150?text=Skittles" },
-                    { text: "Reese's", correct: false, image: "https://via.placeholder.com/150?text=Reese's" },
-                    { text: "Hershey's", correct: false, image: "https://via.placeholder.com/150?text=Hershey's" }
-                ]
-            },
-            {
-                question: "The Quicker Picker Upper",
-                answers: [
-                    { text: "Bounty", correct: true, image: "https://via.placeholder.com/150?text=Bounty" },
-                    { text: "Brawny", correct: false, image: "https://via.placeholder.com/150?text=Brawny" },
-                    { text: "Scott", correct: false, image: "https://via.placeholder.com/150?text=Scott" },
-                    { text: "Viva", correct: false, image: "https://via.placeholder.com/150?text=Viva" }
+                    { text: "Audi", correct: true, image: "images/adidas.png" },
+                    { text: "BMW", correct: false, image: "images/adidas.png" },
+                    { text: "Mercedes-Benz", correct: false, image: "images/adidas.png" },
+                    { text: "Volkswagen", correct: false, image: "images/adidas.png" }
                 ]
             }
         ];
@@ -427,7 +222,7 @@
                 return;
             }
 
-            currentQuestions = getRandomQuestions(25);
+            currentQuestions = getRandomQuestions(5); // Уменьшено для тестирования
             currentQuestionIndex = 0;
             score = 0;
             showQuestion();
