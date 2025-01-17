@@ -7,11 +7,11 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 0; /* Убираем отступы */
+            padding: 0; /* Убираем отступы */
             display: flex;
-            justify-content: center;
-            align-items: center;
+            justify-content: center; /* Центрируем по горизонтали */
+            align-items: flex-start; /* Прижимаем контейнер к верхней границе */
             height: 100vh;
             background-color: #f4f4f4;
             overflow: hidden; /* Убираем прокрутку */
@@ -33,7 +33,8 @@
                 width: 100vw; /* Ширина равна ширине экрана */
                 height: calc(100vw * 16 / 9); /* Высота рассчитывается по соотношению 9:16 */
                 max-width: none; /* Убираем ограничение по ширине */
-                max-height: 95vh; /* Ограничиваем высоту экраном */
+                max-height: 100vh; /* Ограничиваем высоту экраном */
+                background-color: lightcoral; /* Временный цвет для проверки */
             }
 
             #question-section {
@@ -66,9 +67,10 @@
         @media (orientation: landscape) {
             .game-container {
                 width: calc(100vh * 16 / 9); /* Ширина рассчитывается по соотношению 16:9 */
-                height: 85vh; /* Высота равна высоте экрана */
+                height: 100vh; /* Высота равна высоте экрана */
                 max-width: none; /* Убираем ограничение по ширине */
                 max-height: 100vh; /* Ограничиваем высоту экраном */
+                background-color: lightblue; /* Временный цвет для проверки */
             }
 
             #question-section {
