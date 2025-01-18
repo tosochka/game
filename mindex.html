@@ -332,14 +332,14 @@
 				const deltaY = touch.clientY - startY;
 
 				// Увеличиваем минимальное расстояние для свайпа
-				if (Math.abs(deltaX) > 100 || Math.abs(deltaY) > 100) {
+				if (Math.abs(deltaX) > 150 || Math.abs(deltaY) > 150) {
 					isSwiped = true;
 
 					// Определяем направление свайпа
 					const direction = Math.abs(deltaX) > Math.abs(deltaY) ? (deltaX > 0 ? 'right' : 'left') : (deltaY > 0 ? 'down' : 'up');
 
 					// Анимация "уезжания" картинки
-					button.style.transition = 'transform 0.3s, opacity 0.3s';
+					button.style.transition = 'transform 0.5s, opacity 0.5s';
 					if (direction === 'left' || direction === 'right') {
 						button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
 					} else {
@@ -350,17 +350,33 @@
 					// Удаляем картинку после завершения анимации
 					setTimeout(() => {
 						removeAnswer(button, answer);
-					}, 300);
+					}, 500); // Задержка в миллисекундах перед удалением картинки. Это время должно совпадать с длительностью анимации (transition)
 				}
 			});
 
 			// Возврат картинки на место, если свайп не завершен
 			button.addEventListener('touchend', (e) => {
 				if (!isSwiped) {
-					// Возвращаем картинку на место, если свайп не завершен
-					button.style.transition = 'transform 0.2s, opacity 0.2s';
-					button.style.transform = 'translateX(0) translateY(0)';
-					button.style.opacity = '1';
+					const deltaX = e.changedTouches[0].clientX - startX;
+					const deltaY = e.changedTouches[0].clientY - startY;
+
+					// Проверка скорости свайпа
+					const speedX = Math.abs(deltaX) / (e.timeStamp - startTime);
+					if (speedX < 0.9) {
+						// Возвращаем картинку на место, если скорость слишком низкая
+						button.style.transition = 'transform 0.2s, opacity 0.2s';
+						button.style.transform = 'translateX(0) translateY(0)';
+						button.style.opacity = '1';
+					} else {
+						// Свайп завершен, удаляем картинку
+						isSwiped = true;
+						button.style.transition = 'transform 0.3s, opacity 0.3s';
+						button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
+						button.style.opacity = '0';
+						setTimeout(() => {
+							removeAnswer(button, answer);
+						}, 300);
+					}
 				}
 			});
 		}
