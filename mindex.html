@@ -332,14 +332,14 @@
 				const deltaY = touch.clientY - startY;
 
 				// Увеличиваем минимальное расстояние для свайпа
-				if (Math.abs(deltaX) > 150 || Math.abs(deltaY) > 150) {
+				if (Math.abs(deltaX) > 100 || Math.abs(deltaY) > 100) {
 					isSwiped = true;
 
 					// Определяем направление свайпа
 					const direction = Math.abs(deltaX) > Math.abs(deltaY) ? (deltaX > 0 ? 'right' : 'left') : (deltaY > 0 ? 'down' : 'up');
 
 					// Анимация "уезжания" картинки
-					button.style.transition = 'transform 0.5s, opacity 0.5s';
+					button.style.transition = 'transform 0.3s, opacity 0.3s';
 					if (direction === 'left' || direction === 'right') {
 						button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
 					} else {
@@ -350,7 +350,7 @@
 					// Удаляем картинку после завершения анимации
 					setTimeout(() => {
 						removeAnswer(button, answer);
-					}, 500); // Задержка в миллисекундах перед удалением картинки. Это время должно совпадать с длительностью анимации (transition)
+					}, 300); // Задержка в миллисекундах перед удалением картинки. Это время должно совпадать с длительностью анимации (transition)
 				}
 			});
 
@@ -362,7 +362,7 @@
 
 					// Проверка скорости свайпа
 					const speedX = Math.abs(deltaX) / (e.timeStamp - startTime);
-					if (speedX < 0.9) {
+					if (speedX < 0.5) {
 						// Возвращаем картинку на место, если скорость слишком низкая
 						button.style.transition = 'transform 0.2s, opacity 0.2s';
 						button.style.transform = 'translateX(0) translateY(0)';
