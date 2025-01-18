@@ -215,9 +215,22 @@
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
     <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
     <audio id="click-sound" src="sounds/click.mp3"></audio>
-	<audio id="swipe-sound" src="sounds/swipe.mp3"></audio>
 
     <script>
+        // Разблокировка звука при загрузке страницы
+        window.addEventListener('load', () => {
+            const unlockSound = document.createElement('audio');
+            unlockSound.src = 'sounds/click.mp3'; // Короткий звук для разблокировки
+            unlockSound.volume = 0.01; // Делаем звук почти неслышным
+            unlockSound.play().then(() => {
+                console.log("Звук разблокирован!");
+            }).catch(error => {
+                console.error("Ошибка разблокировки звука:", error);
+            });
+
+            // Симулируем взаимодействие пользователя
+            document.body.click();
+        });
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
 
@@ -332,14 +345,14 @@
 				const deltaX = touch.clientX - startX;
 				const deltaY = touch.clientY - startY;
 
+				// Увеличиваем минимальное расстояние для свайпа
 				if (Math.abs(deltaX) > 100 || Math.abs(deltaY) > 100) {
 					isSwiped = true;
 
-					// Воспроизводим звук свайпа
-					playSound('swipe');
-
+					// Определяем направление свайпа
 					const direction = Math.abs(deltaX) > Math.abs(deltaY) ? (deltaX > 0 ? 'right' : 'left') : (deltaY > 0 ? 'down' : 'up');
 
+					// Анимация "уезжания" картинки
 					button.style.transition = 'transform 0.3s, opacity 0.3s';
 					if (direction === 'left' || direction === 'right') {
 						button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
@@ -348,17 +361,36 @@
 					}
 					button.style.opacity = '0';
 
+					// Удаляем картинку после завершения анимации
 					setTimeout(() => {
 						removeAnswer(button, answer);
-					}, 300);
+					}, 300); // Задержка в миллисекундах перед удалением картинки. Это время должно совпадать с длительностью анимации (transition)
 				}
 			});
 
+			// Возврат картинки на место, если свайп не завершен
 			button.addEventListener('touchend', (e) => {
 				if (!isSwiped) {
-					button.style.transition = 'transform 0.3s, opacity 0.3s';
-					button.style.transform = 'translateX(0) translateY(0)';
-					button.style.opacity = '1';
+					const deltaX = e.changedTouches[0].clientX - startX;
+					const deltaY = e.changedTouches[0].clientY - startY;
+
+					// Проверка скорости свайпа
+					const speedX = Math.abs(deltaX) / (e.timeStamp - startTime);
+					if (speedX < 0.5) {
+						// Возвращаем картинку на место, если скорость слишком низкая
+						button.style.transition = 'transform 0.2s, opacity 0.2s';
+						button.style.transform = 'translateX(0) translateY(0)';
+						button.style.opacity = '1';
+					} else {
+						// Свайп завершен, удаляем картинку
+						isSwiped = true;
+						button.style.transition = 'transform 0.3s, opacity 0.3s';
+						button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
+						button.style.opacity = '0';
+						setTimeout(() => {
+							removeAnswer(button, answer);
+						}, 300);
+					}
 				}
 			});
 		}
@@ -397,25 +429,22 @@
             }
         }
 
-		function handleTimeOut() {
-			// Воспроизводим звук "wrong"
-			playSound('wrong');
+        function handleTimeOut() {
+            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+            remainingAnswers.forEach(answer => {
+                answer.classList.add('wrong');
+                answer.classList.add('disabled');
+            });
 
-			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-			remainingAnswers.forEach(answer => {
-				answer.classList.add('wrong');
-				answer.classList.add('disabled');
-			});
+            if (currentQuestionIndex === currentQuestions.length - 1) {
+                clearInterval(timer);
+            }
 
-			if (currentQuestionIndex === currentQuestions.length - 1) {
-				clearInterval(timer);
-			}
-
-			setTimeout(() => {
-				currentQuestionIndex++;
-				showQuestion();
-			}, 1000);
-		}
+            setTimeout(() => {
+                currentQuestionIndex++;
+                showQuestion();
+            }, 1000);
+        }
 
         function endGame() {
             gameCount++;
@@ -478,6 +507,7 @@
 					return;
 			}
 			if (sound) {
+				console.log(`Воспроизведение звука: ${type}`);
 				sound.currentTime = 0;
 				sound.play().catch(error => console.error("Ошибка воспроизведения звука:", error));
 			} else {
