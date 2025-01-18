@@ -488,6 +488,11 @@
 					questionElement.classList.remove('fade-in');
 					answerSection.classList.remove('fade-in');
 				}, 700); // Длительность анимации
+				// Запуск таймера после завершения анимации появления
+				setTimeout(() => {
+					resetTimer();
+					startTimer();
+				}, 700); // Задержка перед запуском таймера				
 			}, 700); // Задержка перед обновлением
 		}
 
