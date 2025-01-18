@@ -5,18 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Угадай бренд по слогану</title>
     <style>
-        /* Ваши стили */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            height: 100vh;
-            background-color: #f4f4f4;
-            overflow: hidden;
-        }
+    /* Ваши текущие стили */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        height: 100vh;
+        background-color: #f4f4f4;
+        overflow: hidden;
+    }
+
+	/* Анимация для исчезновения */
+	.fade-out {
+		animation: fadeOut 0.7s ease forwards;
+	}
+
+	@keyframes fadeOut {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+
+	/* Анимация для появления */
+	.fade-in {
+		animation: fadeIn 0.7s ease forwards;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+    /* Остальные стили */
+    .game-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
 
         .game-container {
             width: 100vw;
@@ -382,34 +421,53 @@
             return shuffledQuestions.slice(0, count);
         }
 
-        function showQuestion() {
-            if (currentQuestionIndex >= currentQuestions.length) {
-                endGame();
-                return;
-            }
+		function showQuestion() {
+			if (currentQuestionIndex >= currentQuestions.length) {
+				endGame();
+				return;
+			}
 
-            resetTimer();
-            startTimer();
+			// Анимация исчезновения текущего вопроса
+			questionElement.classList.add('fade-out');
+			answerSection.classList.add('fade-out');
 
-            const question = currentQuestions[currentQuestionIndex];
-            questionElement.innerText = question.question;
-            answerSection.innerHTML = '';
+			// Ждем завершения анимации перед обновлением содержимого
+			setTimeout(() => {
+				resetTimer();
+				startTimer();
 
-            const shuffledAnswers = shuffleArray([...question.answers]);
-            shuffledAnswers.forEach(answer => {
-                const button = document.createElement('div');
-                button.classList.add('answer');
-                button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
+				const question = currentQuestions[currentQuestionIndex];
+				questionElement.innerText = question.question;
+				answerSection.innerHTML = '';
 
-                button.addEventListener('click', () => removeAnswer(button, answer));
+				const shuffledAnswers = shuffleArray([...question.answers]);
+				shuffledAnswers.forEach(answer => {
+					const button = document.createElement('div');
+					button.classList.add('answer');
+					button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
 
-                if ('ontouchstart' in window) {
-                    addSwipeListener(button, answer);
-                }
+					button.addEventListener('click', () => removeAnswer(button, answer));
 
-                answerSection.appendChild(button);
-            });
-        }
+					if ('ontouchstart' in window) {
+						addSwipeListener(button, answer);
+					}
+
+					answerSection.appendChild(button);
+				});
+
+				// Анимация появления нового вопроса
+				questionElement.classList.remove('fade-out');
+				answerSection.classList.remove('fade-out');
+				questionElement.classList.add('fade-in');
+				answerSection.classList.add('fade-in');
+
+				// Убираем классы анимации после завершения
+				setTimeout(() => {
+					questionElement.classList.remove('fade-in');
+					answerSection.classList.remove('fade-in');
+				}, 700); // Длительность анимации
+			}, 700); // Задержка перед обновлением
+		}
 
         function addSwipeListener(button, answer) {
             let startX = 0;
@@ -430,7 +488,7 @@
                 const deltaX = touch.clientX - startX;
                 const deltaY = touch.clientY - startY;
 
-                if (Math.abs(deltaX) > 100 || Math.abs(deltaY) > 100) {
+                if (Math.abs(deltaX) > 50 || Math.abs(deltaY) > 50) {
                     isSwiped = true;
 
                     const direction = Math.abs(deltaX) > Math.abs(deltaY) ? (deltaX > 0 ? 'right' : 'left') : (deltaY > 0 ? 'down' : 'up');
