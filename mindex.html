@@ -46,6 +46,28 @@
 		}
 	}
 
+	/* Анимация мигания для правильного ответа */
+	@keyframes correctBlink {
+		0% { border-color: green; }
+		50% { border-color: transparent; }
+		100% { border-color: green; }
+	}
+
+	.correct-border {
+		animation: correctBlink 0.5s ease 4; /* Мигание 4 раза */
+	}
+
+	/* Анимация мигания для неправильного ответа */
+	@keyframes wrongBlink {
+		0% { border-color: red; }
+		50% { border-color: transparent; }
+		100% { border-color: red; }
+	}
+
+	.wrong-border {
+		animation: wrongBlink 0.5s ease 4; /* Мигание 4 раза */
+	}
+
     /* Остальные стили */
     .game-container {
         width: 100vw;
@@ -582,6 +604,41 @@
                 showQuestion();
             }, 1000);
         }
+
+		function checkRemainingAnswers() {
+			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+			if (remainingAnswers.length === 1) {
+				const selectedAnswer = remainingAnswers[0];
+				selectedAnswer.classList.add('disabled');
+
+				const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+
+				if (isCorrect) {
+					score++;
+					selectedAnswer.classList.add('correct');
+					selectedAnswer.classList.add('correct-border'); // Анимация для правильного ответа
+					playSound('correct');
+				} else {
+					selectedAnswer.classList.add('wrong');
+					selectedAnswer.classList.add('wrong-border'); // Анимация для неправильного ответа
+					playSound('wrong');
+				}
+
+				if (currentQuestionIndex === currentQuestions.length - 1) {
+					clearInterval(timer);
+				}
+
+				// Удаляем классы анимации через 1 секунду
+				setTimeout(() => {
+					selectedAnswer.classList.remove('correct-border', 'wrong-border');
+				}, 2000);
+
+				setTimeout(() => {
+					currentQuestionIndex++;
+					showQuestion();
+				}, 2000);
+			}
+		}
 
         function endGame() {
             gameCount++;
