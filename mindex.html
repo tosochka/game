@@ -319,63 +319,133 @@
     <script>
         // Переменная для отслеживания разблокировки звука
         let isSoundUnlocked = false;
+		
+		// Флаг для отслеживания воспроизведения звука
+		let isSoundPlaying = false;
+
+		// Массив для хранения активных звуков				
+		let activeSounds = [];
+		
+		function waitForSounds(callback) {
+			const checkSounds = () => {
+				if (activeSounds.length === 0) {
+					callback(); // Вызываем callback, когда звуков нет
+				} else {
+					setTimeout(checkSounds, 100); // Проверяем каждые 100 мс
+				}
+			};
+			checkSounds();
+		}		
 
         // Функция для воспроизведения звука
-        function playSound(type) {
-            if (!isSoundUnlocked) {
-                console.log("Звук заблокирован: пользователь не начал игру.");
-                return;
-            }
+		function playSound(type) {
+			if (!isSoundUnlocked) {
+				console.log("Звук заблокирован: пользователь не начал игру.");
+				return;
+			}
 
-            let sound;
-            switch (type) {
-                case 'correct':
-                    sound = document.getElementById('correct-sound');
-                    break;
-                case 'wrong':
-                    sound = document.getElementById('wrong-sound');
-                    break;
-                case 'click':
-                    sound = document.getElementById('click-sound');
-                    break;
-                case 'swipe':
-                    sound = document.getElementById('swipe-sound');
-                    break;
-                default:
-                    console.error("Неизвестный тип звука:", type);
-                    return;
-            }
-            if (sound) {
-                console.log(`Воспроизведение звука: ${type}`);
-                sound.currentTime = 0;
-                sound.play().catch(error => console.error("Ошибка воспроизведения звука:", error));
-            } else {
-                console.error("Звук не найден:", type);
-            }
-        }
+			// Воспроизведение базового звука (кроме типа 'end')
+			let baseSound;
+			if (type !== 'end') { // Исключаем базовый звук для типа 'end'
+				switch (type) {
+					case 'correct':
+						baseSound = document.getElementById('correct-sound');
+						break;
+					case 'wrong':
+						baseSound = document.getElementById('wrong-sound');
+						break;
+					case 'click':
+						baseSound = document.getElementById('click-sound');
+						break;
+					case 'swipe':
+						baseSound = document.getElementById('swipe-sound');
+						break;
+					default:
+						baseSound = null;
+				}
+			}
+
+			if (baseSound) {
+				console.log(`Воспроизведение базового звука: ${type}`);
+				baseSound.currentTime = 0;
+				activeSounds.push(baseSound); // Добавляем звук в массив активных
+				baseSound.play().catch(error => console.error("Ошибка воспроизведения базового звука:", error));
+
+				// Удаляем звук из массива после завершения
+				baseSound.addEventListener('ended', () => {
+					activeSounds = activeSounds.filter(sound => sound !== baseSound);
+					console.log(`Базовый звук ${type} завершен.`);
+				});
+			}
+
+			// Воспроизведение случайного звука из папки
+			let soundFolder;
+			let soundFiles = [];
+
+			switch (type) {
+				case 'correct':
+					soundFolder = 'sounds/correct/';
+					soundFiles = ['correct1.mp3', 'correct2.mp3', 'correct3.mp3'];
+					break;
+				case 'wrong':
+					soundFolder = 'sounds/wrong/';
+					soundFiles = ['wrong1.mp3', 'wrong2.mp3', 'wrong3.mp3'];
+					break;
+				case 'start':
+					soundFolder = 'sounds/start/';
+					soundFiles = ['start1.mp3', 'start2.mp3', 'start3.mp3'];
+					break;
+				case 'end':
+					soundFolder = 'sounds/end/';
+					soundFiles = ['end1.mp3', 'end2.mp3', 'end3.mp3'];
+					break;
+				default:
+					return; // Для типа 'click' и 'swipe' не воспроизводим случайный звук
+			}
+
+			if (soundFolder && soundFiles.length > 0) {
+				const randomSoundFile = soundFiles[Math.floor(Math.random() * soundFiles.length)];
+				const randomSound = new Audio(soundFolder + randomSoundFile);
+
+				// Задержка перед воспроизведением случайного звука
+				setTimeout(() => {
+					console.log(`Воспроизведение случайного звука: ${type}`);
+					randomSound.currentTime = 0;
+					activeSounds.push(randomSound); // Добавляем звук в массив активных
+					randomSound.play().catch(error => console.error("Ошибка воспроизведения случайного звука:", error));
+
+					// Удаляем звук из массива после завершения
+					randomSound.addEventListener('ended', () => {
+						activeSounds = activeSounds.filter(sound => sound !== randomSound);
+						console.log(`Случайный звук ${type} завершен.`);
+					});
+				}, baseSound ? baseSound.duration * 1000 : 0); // Ждем завершения базового звука
+			}
+		}
 
         // Обработчик нажатия кнопки "Начать игру"
         const startScreen = document.getElementById('start-screen');
         const startBtn = document.getElementById('start-btn');
         const gameContainer = document.querySelector('.game-container');
 
-        startBtn.addEventListener('click', () => {
-            console.log("Кнопка 'Начать игру' нажата."); // Отладочное сообщение
+		startBtn.addEventListener('click', () => {
+			console.log("Кнопка 'Начать игру' нажата."); // Отладочное сообщение
 
-            isSoundUnlocked = true; // Разблокируем звук
-            playSound('click'); // Воспроизводим короткий звук
+			isSoundUnlocked = true; // Разблокируем звук
+			playSound('click'); // Воспроизводим короткий звук клика
+			playSound('start'); // Воспроизводим звук начала игры
 
-            // Скрываем начальный экран
-            startScreen.classList.add('hidden');
-            console.log("Начальный экран скрыт."); // Отладочное сообщение
+			// Скрываем начальный экран
+			startScreen.classList.add('hidden');
+			console.log("Начальный экран скрыт."); // Отладочное сообщение
 
-            // Показываем игровой контейнер
-            gameContainer.classList.remove('hidden');
-            console.log("Игровой контейнер показан."); // Отладочное сообщение
+			// Показываем игровой контейнер
+			gameContainer.classList.remove('hidden');
+			console.log("Игровой контейнер показан."); // Отладочное сообщение
 
-            startGame(); // Запускаем игру
-        });
-
+			startGame(); // Запускаем игру
+		});
+		
         // Остальной JavaScript код
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
@@ -563,52 +633,61 @@
             checkRemainingAnswers();
         }
 
-        function checkRemainingAnswers() {
-            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-            if (remainingAnswers.length === 1) {
-                const selectedAnswer = remainingAnswers[0];
-                selectedAnswer.classList.add('disabled');
+        //function checkRemainingAnswers() {
+          //const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+          //if (remainingAnswers.length === 1) {
+                //const selectedAnswer = remainingAnswers[0];
+                //selectedAnswer.classList.add('disabled');
 
-                const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+                //const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
 
-                if (isCorrect) {
-                    score++;
-                    selectedAnswer.classList.add('correct');
-                    playSound('correct');
-                } else {
-                    selectedAnswer.classList.add('wrong');
-                    playSound('wrong');
-                }
+                //if (isCorrect) {
+                    //score++;
+                    //selectedAnswer.classList.add('correct');
+                    //playSound('correct');
+                //} else {
+                    //selectedAnswer.classList.add('wrong');
+                    //playSound('wrong');
+                //}
 
-                if (currentQuestionIndex === currentQuestions.length - 1) {
-                    clearInterval(timer);
-                }
+                //if (currentQuestionIndex === currentQuestions.length - 1) {
+                    //clearInterval(timer);
+                //}
 
-                setTimeout(() => {
-                    currentQuestionIndex++;
-                    showQuestion();
-                }, 1000);
-            }
-        }
+                //setTimeout(() => {
+                    //currentQuestionIndex++;
+                    //showQuestion();
+                //}, 1000);
+            //}
+        //}
 
-        function handleTimeOut() {
-            playSound('wrong'); // Воспроизведение звука при истечении времени
+		function handleTimeOut() {
+			playSound('wrong'); // Воспроизведение звука при истечении времени
 
-            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-            remainingAnswers.forEach(answer => {
-                answer.classList.add('wrong');
-                answer.classList.add('disabled');
-            });
+			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+			remainingAnswers.forEach(answer => {
+				answer.classList.add('wrong');
+				answer.classList.add('wrong-border'); // Анимация мигания
+				answer.classList.add('disabled');
+			});
 
-            if (currentQuestionIndex === currentQuestions.length - 1) {
-                clearInterval(timer);
-            }
+			// Убираем анимацию через 2 секунды
+			setTimeout(() => {
+				remainingAnswers.forEach(answer => {
+					answer.classList.remove('wrong-border');
+				});
+			}, 2000);
 
-            setTimeout(() => {
-                currentQuestionIndex++;
-                showQuestion();
-            }, 1000);
-        }
+			if (currentQuestionIndex === currentQuestions.length - 1) {
+				clearInterval(timer);
+			}
+
+			// Ждем завершения звука перед переходом к следующему вопросу
+			waitForSounds(() => {
+				currentQuestionIndex++;
+				showQuestion();
+			});
+		}
 
 		function checkRemainingAnswers() {
 			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
@@ -633,24 +712,27 @@
 					clearInterval(timer);
 				}
 
-				// Удаляем классы анимации через 1 секунду
+				// Удаляем классы анимации через 2 секунды
 				setTimeout(() => {
 					selectedAnswer.classList.remove('correct-border', 'wrong-border');
 				}, 2000);
 
-				setTimeout(() => {
+				waitForSounds(() => {
 					currentQuestionIndex++;
 					showQuestion();
-				}, 2000);
+				});
 			}
 		}
 
-        function endGame() {
-            gameCount++;
-            localStorage.setItem('gameCount', gameCount);
-            saveScore(score);
-            showModal();
-        }
+		function endGame() {
+			gameCount++;
+			localStorage.setItem('gameCount', gameCount);
+			saveScore(score);
+			playSound('end'); // Воспроизводим звук завершения игры
+			waitForSounds(() => {
+				showModal();
+			});
+		}
 
         function saveScore(score) {
             const highScore = localStorage.getItem('brandGameHighScore') || 0;
