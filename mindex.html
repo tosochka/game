@@ -213,46 +213,106 @@
             pointer-events: none;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-        }
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.7); /* Темный полупрозрачный фон */
+			justify-content: center;
+			align-items: center;
+			z-index: 1000;
+		}
 
-        .modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-        }
+		.modal-content {
+			background: white; /* Белый фон для средней зоны */
+			border-radius: 20px;
+			overflow: hidden; /* Чтобы углы были скруглены */
+			max-width: 400px;
+			width: 90%;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень для контраста */
+			animation: slideIn 0.5s ease-out;
+		}
 
-        .modal-content h2 {
-            margin-top: 0;
-        }
+		@keyframes slideIn {
+			from {
+				transform: translateY(-50px);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
 
-        .modal-content button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+		/* Верхняя зона */
+		.modal-header {
+			background: #007bff; /* Синий фон, как у зоны вопросов в игре */
+			padding: 20px;
+			text-align: center;
+		}
 
-        .modal-content button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+		.modal-header h2 {
+			margin: 0;
+			font-size: 30px;
+			color: white; /* Белый текст */
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Легкая тень */
+		}
 
+		/* Средняя зона */
+		.modal-body {
+			padding: 8px;
+			text-align: center;
+		}
+
+		.modal-body p {
+			font-size: 18px;
+			color: #333; /* Черный текст */
+			margin: 10px 0;
+		}
+
+		/* Нижняя зона */
+		.modal-footer {
+		/* 	background: #0056b3; /* Темно-синий фон для кнопок */
+			padding: 8px;
+			text-align: center;
+		}
+
+		.modal-footer button {
+			margin: 5px;
+			padding: 12px 24px;
+			background: #007bff; /* Синий цвет кнопок */
+			color: white; /* Белый текст */
+			border: none;
+			border-radius: 25px;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: bold;
+			text-transform: uppercase;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень */
+			transition: all 0.3s ease;
+		}
+
+		.modal-footer button:hover {
+			background: #004080; /* Темно-синий при наведении */
+			transform: translateY(-2px);
+			box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Увеличенная тень */
+		}
+
+		.modal-footer button:disabled {
+			background: #ccc; /* Серый для неактивных кнопок */
+			cursor: not-allowed;
+			transform: none;
+			box-shadow: none;
+		}
+
+		.modal-footer button:active {
+			transform: translateY(0);
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень при нажатии */
+		}
+		
         /* Новые стили для начального экрана */
         #start-screen {
             position: fixed;
@@ -301,22 +361,80 @@
         <div id="answer-section"></div>
     </div>
 
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <h2>Статистика игры</h2>
-            <p id="modal-score"></p>
-            <p id="modal-high-score"></p>
-            <p id="game-count-message"></p>
-            <button id="modal-close-btn">Закрыть</button>
-            <button id="modal-restart-btn">Играть снова</button>
-        </div>
-    </div>
+	<div id="modal" class="modal">
+		<div class="modal-content">
+			<!-- Верхняя зона -->
+			<div class="modal-header">
+				<h2>Статистика игры</h2>
+			</div>
+
+			<!-- Средняя зона -->
+			<div class="modal-body">
+				<p id="modal-score">Правильных ответов: <span class="highlight">0</span> из <span class="highlight">25</span></p>
+				<p id="modal-high-score">🏆 Лучший результат: <span class="highlight">0</span></p>
+				<p id="game-count-message">🎮 Сыграно игр: <span class="highlight">0</span> из 3000</p>
+			</div>
+
+			<!-- Нижняя зона -->
+			<div class="modal-footer">
+				<button id="modal-close-btn">Закрыть</button>
+				<button id="modal-restart-btn">Играть снова</button>
+			</div>
+		</div>
+	</div>
 
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
     <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
+	
+		// Предзагрузка звуков
+		function preloadSounds() {
+			const soundUrls = [
+				'sounds/correct.mp3',
+				'sounds/wrong.mp3',
+				'sounds/click.mp3',
+				'sounds/correct/correct1.mp3',
+				'sounds/correct/correct2.mp3',
+				'sounds/correct/correct3.mp3',
+				'sounds/correct/correct4.mp3',
+				'sounds/correct/correct5.mp3',
+				'sounds/wrong/wrong1.mp3',
+				'sounds/wrong/wrong2.mp3',
+				'sounds/wrong/wrong3.mp3',
+				'sounds/wrong/wrong4.mp3',
+				'sounds/wrong/wrong5.mp3',
+				'sounds/wrong/wrong6.mp3',
+				'sounds/wrong/wrong7.mp3',
+				'sounds/wrong/wrong8.mp3',
+				'sounds/wrong/wrong9.mp3',
+				'sounds/wrong/wrong10.mp3',
+				'sounds/wrong/wrong11.mp3',
+				'sounds/wrong/wrong12.mp3',
+				'sounds/start/start1.mp3',
+				'sounds/start/start2.mp3',
+				'sounds/start/start3.mp3',
+				'sounds/start/start4.mp3',
+				'sounds/start/start5.mp3',
+				'sounds/start/start6.mp3',
+				'sounds/start/start7.mp3',
+				'sounds/end/end1.mp3',
+				'sounds/end/end2.mp3',
+				'sounds/end/end3.mp3',
+				'sounds/end/end4.mp3',
+				'sounds/end/end5.mp3'
+			];
+
+			soundUrls.forEach(url => {
+				const audio = new Audio(url);
+				audio.preload = 'auto';
+			});
+		}
+
+		// Вызов функции предзагрузки при загрузке страницы
+		window.addEventListener('load', preloadSounds);	
+			
         // Переменная для отслеживания разблокировки звука
         let isSoundUnlocked = false;
 		
@@ -484,7 +602,7 @@
         let score = 0;
         let timer;
         const timeLimit = 10;
-        const maxGameCount = 3000;
+        const maxGameCount = 30000;
 
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
 
