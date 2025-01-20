@@ -5,80 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Угадай бренд по слогану</title>
     <style>
-    /* Ваши текущие стили */
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        height: 100vh;
-        background-color: #f4f4f4;
-        overflow: hidden;
-    }
+        /* Ваши текущие стили */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            background-color: #f4f4f4;
+            overflow: hidden;
+        }
 
-	/* Анимация для исчезновения */
-	.fade-out {
-		animation: fadeOut 0.7s ease forwards;
-	}
+        /* Анимация для исчезновения */
+        .fade-out {
+            animation: fadeOut 0.7s ease forwards;
+        }
 
-	@keyframes fadeOut {
-		from {
-			opacity: 1;
-		}
-		to {
-			opacity: 0;
-		}
-	}
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
 
-	/* Анимация для появления */
-	.fade-in {
-		animation: fadeIn 0.7s ease forwards;
-	}
+        /* Анимация для появления */
+        .fade-in {
+            animation: fadeIn 0.7s ease forwards;
+        }
 
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
 
-	/* Анимация мигания для правильного ответа */
-	@keyframes correctBlink {
-		0% { border-color: green; }
-		50% { border-color: transparent; }
-		100% { border-color: green; }
-	}
+        /* Анимация мигания для правильного ответа */
+        @keyframes correctBlink {
+            0% { border-color: green; }
+            50% { border-color: transparent; }
+            100% { border-color: green; }
+        }
 
-	.correct-border {
-		animation: correctBlink 0.5s ease 4; /* Мигание 4 раза */
-	}
+        .correct-border {
+            animation: correctBlink 0.5s ease 4; /* Мигание 4 раза */
+        }
 
-	/* Анимация мигания для неправильного ответа */
-	@keyframes wrongBlink {
-		0% { border-color: red; }
-		50% { border-color: transparent; }
-		100% { border-color: red; }
-	}
+        /* Анимация мигания для неправильного ответа */
+        @keyframes wrongBlink {
+            0% { border-color: red; }
+            50% { border-color: transparent; }
+            100% { border-color: red; }
+        }
 
-	.wrong-border {
-		animation: wrongBlink 0.5s ease 4; /* Мигание 4 раза */
-	}
+        .wrong-border {
+            animation: wrongBlink 0.5s ease 4; /* Мигание 4 раза */
+        }
 
-    /* Остальные стили */
-    .game-container {
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background: white;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-    }
-
+        /* Остальные стили */
         .game-container {
             width: 100vw;
             height: 100vh;
@@ -213,119 +203,139 @@
             pointer-events: none;
         }
 
-		.modal {
-			display: none;
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-color: rgba(0, 0, 0, 0.7); /* Темный полупрозрачный фон */
-			justify-content: center;
-			align-items: center;
-			z-index: 1000;
-		}
-
-		.modal-content {
-			background: white; /* Белый фон для средней зоны */
-			border-radius: 20px;
-			overflow: hidden; /* Чтобы углы были скруглены */
-			max-width: 400px;
-			width: 90%;
-			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень для контраста */
-			animation: slideIn 0.5s ease-out;
-		}
-
-		@keyframes slideIn {
-			from {
-				transform: translateY(-50px);
-				opacity: 0;
-			}
-			to {
-				transform: translateY(0);
-				opacity: 1;
-			}
-		}
-
-		/* Верхняя зона */
-		.modal-header {
-			background: #007bff; /* Синий фон, как у зоны вопросов в игре */
-			padding: 20px;
-			text-align: center;
-		}
-
-		.modal-header h2 {
-			margin: 0;
-			font-size: 30px;
-			color: white; /* Белый текст */
-			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Легкая тень */
-		}
-
-		/* Средняя зона */
-		.modal-body {
-			padding: 8px;
-			text-align: center;
-		}
-
-		.modal-body p {
-			font-size: 18px;
-			color: #333; /* Черный текст */
-			margin: 10px 0;
-		}
-
-		/* Нижняя зона */
-		.modal-footer {
-		/* 	background: #0056b3; /* Темно-синий фон для кнопок */
-			padding: 8px;
-			text-align: center;
-		}
-
-		.modal-footer button {
-			margin: 5px;
-			padding: 12px 24px;
-			background: #007bff; /* Синий цвет кнопок */
-			color: white; /* Белый текст */
-			border: none;
-			border-radius: 25px;
-			cursor: pointer;
-			font-size: 16px;
-			font-weight: bold;
-			text-transform: uppercase;
-			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень */
-			transition: all 0.3s ease;
-		}
-
-		.modal-footer button:hover {
-			background: #004080; /* Темно-синий при наведении */
-			transform: translateY(-2px);
-			box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Увеличенная тень */
-		}
-
-		.modal-footer button:disabled {
-			background: #ccc; /* Серый для неактивных кнопок */
-			cursor: not-allowed;
-			transform: none;
-			box-shadow: none;
-		}
-
-		.modal-footer button:active {
-			transform: translateY(0);
-			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень при нажатии */
-		}
-		
-        /* Новые стили для начального экрана */
-        #start-screen {
+        .modal {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
+            background-color: rgba(0, 0, 0, 0.7); /* Темный полупрозрачный фон */
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
+
+        .modal-content {
+            background: white; /* Белый фон для средней зоны */
+            border-radius: 20px;
+            overflow: hidden; /* Чтобы углы были скруглены */
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень для контраста */
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Верхняя зона */
+        .modal-header {
+            background: #007bff; /* Синий фон, как у зоны вопросов в игре */
+            padding: 20px;
+            text-align: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 30px;
+            color: white; /* Белый текст */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Легкая тень */
+        }
+
+        /* Средняя зона */
+        .modal-body {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .modal-body p {
+            font-size: 18px;
+            color: #333; /* Черный текст */
+            margin: 10px 0;
+        }
+
+        /* Нижняя зона */
+        .modal-footer {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .modal-footer button {
+            margin: 5px;
+            padding: 12px 24px;
+            background: #007bff; /* Синий цвет кнопок */
+            color: white; /* Белый текст */
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень */
+            transition: all 0.3s ease;
+        }
+
+        .modal-footer button:hover {
+            background: #004080; /* Темно-синий при наведении */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Увеличенная тень */
+        }
+
+        .modal-footer button:disabled {
+            background: #ccc; /* Серый для неактивных кнопок */
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .modal-footer button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень при нажатии */
+        }
+
+        /* Новые стили для начального экрана */
+		#game-condition {
+			text-align: center;
+			font-size: clamp(16px, 4vw, 24px); /* Адаптивный размер шрифта */
+			color: white;
+			margin-bottom: 20px;
+			padding: 15px;
+			background-color: rgba(0, 0, 0, 0.0); /* rgba(0, 0, 0, 0.5) длч создания более темного фона текста*/
+			border-radius: 10px;
+			max-width: 80%; /* Ограничение ширины текстового блока */
+			width: 90%; /* Ширина блока */
+			line-height: 1.5;
+			font-family: 'Arial', sans-serif;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+			box-sizing: border-box; /* Учитываем padding в ширине */
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		#start-screen {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.8);
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			z-index: 1000;
+			padding: 300px; /* Отступы от краев экрана */
+			box-sizing: border-box; /* Учитываем padding в размерах */
+		}
 
         #start-btn {
             padding: 15px 30px;
@@ -349,6 +359,10 @@
 <body>
     <!-- Начальный экран -->
     <div id="start-screen">
+        <div id="game-condition">
+          <!--  О, игрок! Тебе предоставляется шанс обыграть Великого-и-Ужасного Загадочника из Textazy, 
+            ответить на 25 вопросов и получить от него редкие и богатые милости.   -->
+        </div>
         <button id="start-btn">Начать игру</button>
     </div>
 
@@ -361,207 +375,206 @@
         <div id="answer-section"></div>
     </div>
 
-	<div id="modal" class="modal">
-		<div class="modal-content">
-			<!-- Верхняя зона -->
-			<div class="modal-header">
-				<h2>Статистика игры</h2>
-			</div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <!-- Верхняя зона -->
+            <div class="modal-header">
+                <h2>Статистика игры</h2>
+            </div>
 
-			<!-- Средняя зона -->
-			<div class="modal-body">
-				<p id="modal-score">Правильных ответов: <span class="highlight">0</span> из <span class="highlight">25</span></p>
-				<p id="modal-high-score">🏆 Лучший результат: <span class="highlight">0</span></p>
-				<p id="game-count-message">🎮 Сыграно игр: <span class="highlight">0</span> из 3000</p>
-			</div>
+            <!-- Средняя зона -->
+            <div class="modal-body">
+                <p id="modal-score">Правильных ответов: <span class="highlight">0</span> из <span class="highlight">25</span></p>
+                <p id="modal-high-score">🏆 Лучший результат: <span class="highlight">0</span></p>
+                <p id="game-count-message">🎮 Сыграно игр: <span class="highlight">0</span> из 3000</p>
+            </div>
 
-			<!-- Нижняя зона -->
-			<div class="modal-footer">
-				<button id="modal-close-btn">Закрыть</button>
-				<button id="modal-restart-btn">Играть снова</button>
-			</div>
-		</div>
-	</div>
+            <!-- Нижняя зона -->
+            <div class="modal-footer">
+                <button id="modal-close-btn">Закрыть</button>
+                <button id="modal-restart-btn">Играть снова</button>
+            </div>
+        </div>
+    </div>
 
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
     <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
-	
-		// Предзагрузка звуков
-		function preloadSounds() {
-			const soundUrls = [
-				'sounds/correct.mp3',
-				'sounds/wrong.mp3',
-				'sounds/click.mp3',
-				'sounds/correct/correct1.mp3',
-				'sounds/correct/correct2.mp3',
-				'sounds/correct/correct3.mp3',
-				'sounds/correct/correct4.mp3',
-				'sounds/correct/correct5.mp3',
-				'sounds/wrong/wrong1.mp3',
-				'sounds/wrong/wrong2.mp3',
-				'sounds/wrong/wrong3.mp3',
-				'sounds/wrong/wrong4.mp3',
-				'sounds/wrong/wrong5.mp3',
-				'sounds/wrong/wrong6.mp3',
-				'sounds/wrong/wrong7.mp3',
-				'sounds/wrong/wrong8.mp3',
-				'sounds/wrong/wrong9.mp3',
-				'sounds/wrong/wrong10.mp3',
-				'sounds/wrong/wrong11.mp3',
-				'sounds/wrong/wrong12.mp3',
-				'sounds/start/start1.mp3',
-				'sounds/start/start2.mp3',
-				'sounds/start/start3.mp3',
-				'sounds/start/start4.mp3',
-				'sounds/start/start5.mp3',
-				'sounds/end/end1.mp3',
-				'sounds/end/end2.mp3',
-				'sounds/end/end3.mp3',
-				'sounds/end/end4.mp3',
-				'sounds/end/end5.mp3'
-			];
+        // Предзагрузка звуков
+        function preloadSounds() {
+            const soundUrls = [
+                'sounds/correct.mp3',
+                'sounds/wrong.mp3',
+                'sounds/click.mp3',
+                'sounds/correct/correct1.mp3',
+                'sounds/correct/correct2.mp3',
+                'sounds/correct/correct3.mp3',
+                'sounds/correct/correct4.mp3',
+                'sounds/correct/correct5.mp3',
+                'sounds/wrong/wrong1.mp3',
+                'sounds/wrong/wrong2.mp3',
+                'sounds/wrong/wrong3.mp3',
+                'sounds/wrong/wrong4.mp3',
+                'sounds/wrong/wrong5.mp3',
+                'sounds/wrong/wrong6.mp3',
+                'sounds/wrong/wrong7.mp3',
+                'sounds/wrong/wrong8.mp3',
+                'sounds/wrong/wrong9.mp3',
+                'sounds/wrong/wrong10.mp3',
+                'sounds/wrong/wrong11.mp3',
+                'sounds/wrong/wrong12.mp3',
+                'sounds/start/start1.mp3',
+                'sounds/start/start2.mp3',
+                'sounds/start/start3.mp3',
+                'sounds/start/start4.mp3',
+                'sounds/start/start5.mp3',
+                'sounds/end/end1.mp3',
+                'sounds/end/end2.mp3',
+                'sounds/end/end3.mp3',
+                'sounds/end/end4.mp3',
+                'sounds/end/end5.mp3'
+            ];
 
-			soundUrls.forEach(url => {
-				const audio = new Audio(url);
-				audio.preload = 'auto';
-			});
-		}
+            soundUrls.forEach(url => {
+                const audio = new Audio(url);
+                audio.preload = 'auto';
+            });
+        }
 
-		// Вызов функции предзагрузки при загрузке страницы
-		window.addEventListener('load', preloadSounds);	
-			
+        // Вызов функции предзагрузки при загрузке страницы
+        window.addEventListener('load', preloadSounds);
+
         // Переменная для отслеживания разблокировки звука
         let isSoundUnlocked = false;
-		
-		// Флаг для отслеживания воспроизведения звука
-		let isSoundPlaying = false;
 
-		// Массив для хранения активных звуков				
-		let activeSounds = [];
-		
-		function waitForSounds(callback) {
-			const checkSounds = () => {
-				if (activeSounds.length === 0) {
-					callback(); // Вызываем callback, когда звуков нет
-				} else {
-					setTimeout(checkSounds, 100); // Проверяем каждые 100 мс
-				}
-			};
-			checkSounds();
-		}		
+        // Флаг для отслеживания воспроизведения звука
+        let isSoundPlaying = false;
+
+        // Массив для хранения активных звуков
+        let activeSounds = [];
+
+        function waitForSounds(callback) {
+            const checkSounds = () => {
+                if (activeSounds.length === 0) {
+                    callback(); // Вызываем callback, когда звуков нет
+                } else {
+                    setTimeout(checkSounds, 100); // Проверяем каждые 100 мс
+                }
+            };
+            checkSounds();
+        }
 
         // Функция для воспроизведения звука
-		function playSound(type) {
-			if (!isSoundUnlocked) {
-				console.log("Звук заблокирован: пользователь не начал игру.");
-				return;
-			}
+        function playSound(type) {
+            if (!isSoundUnlocked) {
+                console.log("Звук заблокирован: пользователь не начал игру.");
+                return;
+            }
 
-			// Воспроизведение базового звука (кроме типа 'end')
-			let baseSound;
-			if (type !== 'end') { // Исключаем базовый звук для типа 'end'
-				switch (type) {
-					case 'correct':
-						baseSound = document.getElementById('correct-sound');
-						break;
-					case 'wrong':
-						baseSound = document.getElementById('wrong-sound');
-						break;
-					case 'click':
-						baseSound = document.getElementById('click-sound');
-						break;
-					case 'swipe':
-						baseSound = document.getElementById('swipe-sound');
-						break;
-					default:
-						baseSound = null;
-				}
-			}
+            // Воспроизведение базового звука (кроме типа 'end')
+            let baseSound;
+            if (type !== 'end') { // Исключаем базовый звук для типа 'end'
+                switch (type) {
+                    case 'correct':
+                        baseSound = document.getElementById('correct-sound');
+                        break;
+                    case 'wrong':
+                        baseSound = document.getElementById('wrong-sound');
+                        break;
+                    case 'click':
+                        baseSound = document.getElementById('click-sound');
+                        break;
+                    case 'swipe':
+                        baseSound = document.getElementById('swipe-sound');
+                        break;
+                    default:
+                        baseSound = null;
+                }
+            }
 
-			if (baseSound) {
-				console.log(`Воспроизведение базового звука: ${type}`);
-				baseSound.currentTime = 0;
-				activeSounds.push(baseSound); // Добавляем звук в массив активных
-				baseSound.play().catch(error => console.error("Ошибка воспроизведения базового звука:", error));
+            if (baseSound) {
+                console.log(`Воспроизведение базового звука: ${type}`);
+                baseSound.currentTime = 0;
+                activeSounds.push(baseSound); // Добавляем звук в массив активных
+                baseSound.play().catch(error => console.error("Ошибка воспроизведения базового звука:", error));
 
-				// Удаляем звук из массива после завершения
-				baseSound.addEventListener('ended', () => {
-					activeSounds = activeSounds.filter(sound => sound !== baseSound);
-					console.log(`Базовый звук ${type} завершен.`);
-				});
-			}
+                // Удаляем звук из массива после завершения
+                baseSound.addEventListener('ended', () => {
+                    activeSounds = activeSounds.filter(sound => sound !== baseSound);
+                    console.log(`Базовый звук ${type} завершен.`);
+                });
+            }
 
-			// Воспроизведение случайного звука из папки
-			let soundFolder;
-			let soundFiles = [];
+            // Воспроизведение случайного звука из папки
+            let soundFolder;
+            let soundFiles = [];
 
-			switch (type) {
-				case 'correct':
-					soundFolder = 'sounds/correct/';
-					soundFiles = ['correct1.mp3', 'correct2.mp3', 'correct3.mp3', 'correct4.mp3', 'correct5.mp3', 'correct6.mp3', 'correct7.mp3', 'correct8.mp3'];
-					break;
-				case 'wrong':
-					soundFolder = 'sounds/wrong/';
-					soundFiles = ['wrong1.mp3', 'wrong2.mp3', 'wrong3.mp3', 'wrong4.mp3', 'wrong5.mp3', 'wrong6.mp3', 'wrong7.mp3', 'wrong8.mp3', 'wrong9.mp3', 'wrong10.mp3', 'wrong11.mp3', 'wrong12.mp3', 'wrong13.mp3', 'wrong14.mp3', 'wrong15.mp3'];
-					break;
-				case 'start':
-					soundFolder = 'sounds/start/';
-					soundFiles = ['start1.mp3', 'start2.mp3', 'start3.mp3', 'start4.mp3', 'start5.mp3'];
-					break;
-				case 'end':
-					soundFolder = 'sounds/end/';
-					soundFiles = ['end1.mp3', 'end2.mp3', 'end3.mp3', 'end4.mp3', 'end5.mp3', 'end6.mp3'];
-					break;
-				default:
-					return; // Для типа 'click' и 'swipe' не воспроизводим случайный звук
-			}
+            switch (type) {
+                case 'correct':
+                    soundFolder = 'sounds/correct/';
+                    soundFiles = ['correct1.mp3', 'correct2.mp3', 'correct3.mp3', 'correct4.mp3', 'correct5.mp3', 'correct6.mp3', 'correct7.mp3', 'correct8.mp3'];
+                    break;
+                case 'wrong':
+                    soundFolder = 'sounds/wrong/';
+                    soundFiles = ['wrong1.mp3', 'wrong2.mp3', 'wrong3.mp3', 'wrong4.mp3', 'wrong5.mp3', 'wrong6.mp3', 'wrong7.mp3', 'wrong8.mp3', 'wrong9.mp3', 'wrong10.mp3', 'wrong11.mp3', 'wrong12.mp3', 'wrong13.mp3', 'wrong14.mp3', 'wrong15.mp3'];
+                    break;
+                case 'start':
+                    soundFolder = 'sounds/start/';
+                    soundFiles = ['start1.mp3', 'start2.mp3', 'start3.mp3', 'start4.mp3', 'start5.mp3'];
+                    break;
+                case 'end':
+                    soundFolder = 'sounds/end/';
+                    soundFiles = ['end1.mp3', 'end2.mp3', 'end3.mp3', 'end4.mp3', 'end5.mp3', 'end6.mp3'];
+                    break;
+                default:
+                    return; // Для типа 'click' и 'swipe' не воспроизводим случайный звук
+            }
 
-			if (soundFolder && soundFiles.length > 0) {
-				const randomSoundFile = soundFiles[Math.floor(Math.random() * soundFiles.length)];
-				const randomSound = new Audio(soundFolder + randomSoundFile);
+            if (soundFolder && soundFiles.length > 0) {
+                const randomSoundFile = soundFiles[Math.floor(Math.random() * soundFiles.length)];
+                const randomSound = new Audio(soundFolder + randomSoundFile);
 
-				// Задержка перед воспроизведением случайного звука
-				setTimeout(() => {
-					console.log(`Воспроизведение случайного звука: ${type}`);
-					randomSound.currentTime = 0;
-					activeSounds.push(randomSound); // Добавляем звук в массив активных
-					randomSound.play().catch(error => console.error("Ошибка воспроизведения случайного звука:", error));
+                // Задержка перед воспроизведением случайного звука
+                setTimeout(() => {
+                    console.log(`Воспроизведение случайного звука: ${type}`);
+                    randomSound.currentTime = 0;
+                    activeSounds.push(randomSound); // Добавляем звук в массив активных
+                    randomSound.play().catch(error => console.error("Ошибка воспроизведения случайного звука:", error));
 
-					// Удаляем звук из массива после завершения
-					randomSound.addEventListener('ended', () => {
-						activeSounds = activeSounds.filter(sound => sound !== randomSound);
-						console.log(`Случайный звук ${type} завершен.`);
-					});
-				}, baseSound ? baseSound.duration * 1000 : 0); // Ждем завершения базового звука
-			}
-		}
+                    // Удаляем звук из массива после завершения
+                    randomSound.addEventListener('ended', () => {
+                        activeSounds = activeSounds.filter(sound => sound !== randomSound);
+                        console.log(`Случайный звук ${type} завершен.`);
+                    });
+                }, baseSound ? baseSound.duration * 1000 : 0); // Ждем завершения базового звука
+            }
+        }
 
         // Обработчик нажатия кнопки "Начать игру"
         const startScreen = document.getElementById('start-screen');
         const startBtn = document.getElementById('start-btn');
         const gameContainer = document.querySelector('.game-container');
 
-		startBtn.addEventListener('click', () => {
-			console.log("Кнопка 'Начать игру' нажата."); // Отладочное сообщение
+        startBtn.addEventListener('click', () => {
+            console.log("Кнопка 'Начать игру' нажата."); // Отладочное сообщение
 
-			isSoundUnlocked = true; // Разблокируем звук
-			playSound('click'); // Воспроизводим короткий звук клика
-			playSound('start'); // Воспроизводим звук начала игры
+            isSoundUnlocked = true; // Разблокируем звук
+            playSound('click'); // Воспроизводим короткий звук клика
+            playSound('start'); // Воспроизводим звук начала игры
 
-			// Скрываем начальный экран
-			startScreen.classList.add('hidden');
-			console.log("Начальный экран скрыт."); // Отладочное сообщение
+            // Скрываем начальный экран
+            startScreen.classList.add('hidden');
+            console.log("Начальный экран скрыт."); // Отладочное сообщение
 
-			// Показываем игровой контейнер
-			gameContainer.classList.remove('hidden');
-			console.log("Игровой контейнер показан."); // Отладочное сообщение
+            // Показываем игровой контейнер
+            gameContainer.classList.remove('hidden');
+            console.log("Игровой контейнер показан."); // Отладочное сообщение
 
-			startGame(); // Запускаем игру
-		});
-		
+            startGame(); // Запускаем игру
+        });
+
         // Остальной JavaScript код
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
@@ -592,7 +605,6 @@
                     { text: "Reebok", correct: false, image: "images/reebok.jpg" }
                 ]
             }
-			
             // Добавьте больше вопросов здесь
         ];
 
@@ -630,58 +642,58 @@
             return shuffledQuestions.slice(0, count);
         }
 
-		function showQuestion() {
-			if (currentQuestionIndex >= currentQuestions.length) {
-				endGame();
-				return;
-			}
+        function showQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length) {
+                endGame();
+                return;
+            }
 
-			// Анимация исчезновения текущего вопроса
-			questionElement.classList.add('fade-out');
-			answerSection.classList.add('fade-out');
+            // Анимация исчезновения текущего вопроса
+            questionElement.classList.add('fade-out');
+            answerSection.classList.add('fade-out');
 
-			// Ждем завершения анимации перед обновлением содержимого
-			setTimeout(() => {
-				resetTimer();
-				startTimer();
+            // Ждем завершения анимации перед обновлением содержимого
+            setTimeout(() => {
+                resetTimer();
+                startTimer();
 
-				const question = currentQuestions[currentQuestionIndex];
-				questionElement.innerText = question.question;
-				answerSection.innerHTML = '';
+                const question = currentQuestions[currentQuestionIndex];
+                questionElement.innerText = question.question;
+                answerSection.innerHTML = '';
 
-				const shuffledAnswers = shuffleArray([...question.answers]);
-				shuffledAnswers.forEach(answer => {
-					const button = document.createElement('div');
-					button.classList.add('answer');
-					button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
+                const shuffledAnswers = shuffleArray([...question.answers]);
+                shuffledAnswers.forEach(answer => {
+                    const button = document.createElement('div');
+                    button.classList.add('answer');
+                    button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
 
-					button.addEventListener('click', () => removeAnswer(button, answer));
+                    button.addEventListener('click', () => removeAnswer(button, answer));
 
-					if ('ontouchstart' in window) {
-						addSwipeListener(button, answer);
-					}
+                    if ('ontouchstart' in window) {
+                        addSwipeListener(button, answer);
+                    }
 
-					answerSection.appendChild(button);
-				});
+                    answerSection.appendChild(button);
+                });
 
-				// Анимация появления нового вопроса
-				questionElement.classList.remove('fade-out');
-				answerSection.classList.remove('fade-out');
-				questionElement.classList.add('fade-in');
-				answerSection.classList.add('fade-in');
+                // Анимация появления нового вопроса
+                questionElement.classList.remove('fade-out');
+                answerSection.classList.remove('fade-out');
+                questionElement.classList.add('fade-in');
+                answerSection.classList.add('fade-in');
 
-				// Убираем классы анимации после завершения
-				setTimeout(() => {
-					questionElement.classList.remove('fade-in');
-					answerSection.classList.remove('fade-in');
-				}, 700); // Длительность анимации
-				// Запуск таймера после завершения анимации появления
-				setTimeout(() => {
-					resetTimer();
-					startTimer();
-				}, 700); // Задержка перед запуском таймера				
-			}, 700); // Задержка перед обновлением
-		}
+                // Убираем классы анимации после завершения
+                setTimeout(() => {
+                    questionElement.classList.remove('fade-in');
+                    answerSection.classList.remove('fade-in');
+                }, 700); // Длительность анимации
+                // Запуск таймера после завершения анимации появления
+                setTimeout(() => {
+                    resetTimer();
+                    startTimer();
+                }, 700); // Задержка перед запуском таймера
+            }, 700); // Задержка перед обновлением
+        }
 
         function addSwipeListener(button, answer) {
             let startX = 0;
@@ -750,121 +762,93 @@
             checkRemainingAnswers();
         }
 
-        //function checkRemainingAnswers() {
-          //const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-          //if (remainingAnswers.length === 1) {
-                //const selectedAnswer = remainingAnswers[0];
-                //selectedAnswer.classList.add('disabled');
+        function handleTimeOut() {
+            playSound('wrong'); // Воспроизведение звука при истечении времени
 
-                //const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+            remainingAnswers.forEach(answer => {
+                answer.classList.add('wrong');
+                answer.classList.add('wrong-border'); // Анимация мигания
+                answer.classList.add('disabled');
+            });
 
-                //if (isCorrect) {
-                    //score++;
-                    //selectedAnswer.classList.add('correct');
-                    //playSound('correct');
-                //} else {
-                    //selectedAnswer.classList.add('wrong');
-                    //playSound('wrong');
-                //}
+            // Убираем анимацию через 2 секунды
+            setTimeout(() => {
+                remainingAnswers.forEach(answer => {
+                    answer.classList.remove('wrong-border');
+                });
+            }, 2000);
 
-                //if (currentQuestionIndex === currentQuestions.length - 1) {
-                    //clearInterval(timer);
-                //}
+            if (currentQuestionIndex === currentQuestions.length - 1) {
+                clearInterval(timer);
+            }
 
-                //setTimeout(() => {
-                    //currentQuestionIndex++;
-                    //showQuestion();
-                //}, 1000);
-            //}
-        //}
+            // Ждем завершения звука перед переходом к следующему вопросу
+            waitForSounds(() => {
+                currentQuestionIndex++;
+                showQuestion();
+            });
+        }
 
-		function handleTimeOut() {
-			playSound('wrong'); // Воспроизведение звука при истечении времени
+        function checkRemainingAnswers() {
+            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+            if (remainingAnswers.length === 1) {
+                const selectedAnswer = remainingAnswers[0];
+                selectedAnswer.classList.add('disabled');
 
-			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-			remainingAnswers.forEach(answer => {
-				answer.classList.add('wrong');
-				answer.classList.add('wrong-border'); // Анимация мигания
-				answer.classList.add('disabled');
-			});
+                const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
 
-			// Убираем анимацию через 2 секунды
-			setTimeout(() => {
-				remainingAnswers.forEach(answer => {
-					answer.classList.remove('wrong-border');
-				});
-			}, 2000);
+                if (isCorrect) {
+                    score++;
+                    selectedAnswer.classList.add('correct');
+                    selectedAnswer.classList.add('correct-border'); // Анимация для правильного ответа
+                    playSound('correct');
+                } else {
+                    selectedAnswer.classList.add('wrong');
+                    selectedAnswer.classList.add('wrong-border'); // Анимация для неправильного ответа
+                    playSound('wrong');
+                }
 
-			if (currentQuestionIndex === currentQuestions.length - 1) {
-				clearInterval(timer);
-			}
+                // Останавливаем таймер сразу после выбора последнего ответа
+                clearInterval(timer); // Добавлено: остановка таймера
+                resetTimer(); // Сбрасываем прогресс-бар
 
-			// Ждем завершения звука перед переходом к следующему вопросу
-			waitForSounds(() => {
-				currentQuestionIndex++;
-				showQuestion();
-			});
-		}
+                if (currentQuestionIndex === currentQuestions.length - 1) {
+                    // Если это последний вопрос, завершаем игру
+                    endGame();
+                } else {
+                    // Удаляем классы анимации через 2 секунды
+                    setTimeout(() => {
+                        selectedAnswer.classList.remove('correct-border', 'wrong-border');
+                    }, 2000);
 
-		function checkRemainingAnswers() {
-			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-			if (remainingAnswers.length === 1) {
-				const selectedAnswer = remainingAnswers[0];
-				selectedAnswer.classList.add('disabled');
+                    // Ждем завершения звука перед переходом к следующему вопросу
+                    waitForSounds(() => {
+                        currentQuestionIndex++;
+                        showQuestion();
+                    });
+                }
+            }
+        }
 
-				const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+        function endGame() {
+            gameCount++;
+            localStorage.setItem('gameCount', gameCount);
+            saveScore(score);
 
-				if (isCorrect) {
-					score++;
-					selectedAnswer.classList.add('correct');
-					selectedAnswer.classList.add('correct-border'); // Анимация для правильного ответа
-					playSound('correct');
-				} else {
-					selectedAnswer.classList.add('wrong');
-					selectedAnswer.classList.add('wrong-border'); // Анимация для неправильного ответа
-					playSound('wrong');
-				}
+            // Ждем завершения всех звуков (включая звук последнего ответа)
+            waitForSounds(() => {
+                // Задержка перед воспроизведением звука завершения игры
+                setTimeout(() => {
+                    playSound('end'); // Воспроизводим звук завершения игры
+                }, 1000); // Задержка 1 секунда
 
-				// Останавливаем таймер сразу после выбора последнего ответа
-				clearInterval(timer); // Добавлено: остановка таймера
-				resetTimer(); // Сбрасываем прогресс-бар
-
-				if (currentQuestionIndex === currentQuestions.length - 1) {
-					// Если это последний вопрос, завершаем игру
-					endGame();
-				} else {
-					// Удаляем классы анимации через 2 секунды
-					setTimeout(() => {
-						selectedAnswer.classList.remove('correct-border', 'wrong-border');
-					}, 2000);
-
-					// Ждем завершения звука перед переходом к следующему вопросу
-					waitForSounds(() => {
-						currentQuestionIndex++;
-						showQuestion();
-					});
-				}
-			}
-		}
-
-		function endGame() {
-			gameCount++;
-			localStorage.setItem('gameCount', gameCount);
-			saveScore(score);
-
-			// Ждем завершения всех звуков (включая звук последнего ответа)
-			waitForSounds(() => {
-				// Задержка перед воспроизведением звука завершения игры
-				setTimeout(() => {
-					playSound('end'); // Воспроизводим звук завершения игры
-				}, 1000); // Задержка 1 секунда
-
-				// Ждем завершения звука завершения игры перед показом модального окна
-				waitForSounds(() => {
-					showModal();
-				});
-			});
-		}
+                // Ждем завершения звука завершения игры перед показом модального окна
+                waitForSounds(() => {
+                    showModal();
+                });
+            });
+        }
 
         function saveScore(score) {
             const highScore = localStorage.getItem('brandGameHighScore') || 0;
@@ -873,28 +857,23 @@
             }
         }
 
-		function showModal() {
-			const modal = document.getElementById('modal');
-			const modalContent = document.querySelector('.modal-content');
-			const highScore = localStorage.getItem('brandGameHighScore') || 0;
+        function showModal() {
+            const modal = document.getElementById('modal');
+            const modalContent = document.querySelector('.modal-content');
+            const highScore = localStorage.getItem('brandGameHighScore') || 0;
 
-			modalScore.innerText = `Правильных ответов: ${score} из ${currentQuestions.length}`;
-			modalHighScore.innerText = `Лучший результат: ${highScore}`;
-			gameCountMessage.innerText = `Сыграно игр: ${gameCount} из ${maxGameCount}`;
+            modalScore.innerText = `Правильных ответов: ${score} из ${currentQuestions.length}`;
+            modalHighScore.innerText = `Лучший результат: ${highScore}`;
+            gameCountMessage.innerText = `Сыграно игр: ${gameCount} из ${maxGameCount}`;
 
-			if (gameCount >= maxGameCount) {
-				modalRestartBtn.disabled = true;
-				modalRestartBtn.innerText = "Лимит игр исчерпан";
-			}
+            if (gameCount >= maxGameCount) {
+                modalRestartBtn.disabled = true;
+                modalRestartBtn.innerText = "Лимит игр исчерпан";
+            }
 
-			// Показываем модальное окно
-			modal.style.display = 'flex';
-
-			// Ожидаем завершения анимации
-			//modalContent.addEventListener('animationend', () => {
-				//playSound('end'); // Воспроизводим звук модального окна
-			//}, { once: true }); // Обработчик сработает только один раз
-		}
+            // Показываем модальное окно
+            modal.style.display = 'flex';
+        }
 
         function resetGameCounter() {
             gameCount = 0;
@@ -924,10 +903,10 @@
             }, 1000);
         }
 
-		function closeModal() {
-			const modal = document.getElementById('modal');
-			modal.style.display = 'none';
-		}
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.style.display = 'none';
+        }
 
         function resetTimer() {
             clearInterval(timer);
@@ -935,26 +914,11 @@
             progressBar.style.transform = 'scaleX(0)';
         }
 
-		function stopAndClearAllSounds() {
-			activeSounds.forEach(sound => {
-				sound.pause(); // Останавливаем воспроизведение
-				sound.currentTime = 0; // Сбрасываем время звука
-			});
-			activeSounds = []; // Очищаем массив активных звуков
-		}
-
-		// Добавление обработчиков для кнопок в модальном окне
-		modalCloseBtn.addEventListener('click', () => {
-			stopAndClearAllSounds(); // Останавливаем звуки перед закрытием
-			closeModal();
-		});
-
-		modalRestartBtn.addEventListener('click', () => {
-			stopAndClearAllSounds(); // Останавливаем звуки перед перезапуском
-			closeModal();
-			startGame();
-		});
-
+        modalCloseBtn.addEventListener('click', closeModal);
+        modalRestartBtn.addEventListener('click', () => {
+            closeModal();
+            startGame();
+        });
     </script>
 </body>
 </html>
