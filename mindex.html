@@ -417,8 +417,6 @@
 				'sounds/start/start3.mp3',
 				'sounds/start/start4.mp3',
 				'sounds/start/start5.mp3',
-				'sounds/start/start6.mp3',
-				'sounds/start/start7.mp3',
 				'sounds/end/end1.mp3',
 				'sounds/end/end2.mp3',
 				'sounds/end/end3.mp3',
@@ -853,9 +851,18 @@
 			gameCount++;
 			localStorage.setItem('gameCount', gameCount);
 			saveScore(score);
-			playSound('end'); // Воспроизводим звук завершения игры
+
+			// Ждем завершения всех звуков (включая звук последнего ответа)
 			waitForSounds(() => {
-				showModal();
+				// Задержка перед воспроизведением звука завершения игры
+				setTimeout(() => {
+					playSound('end'); // Воспроизводим звук завершения игры
+				}, 1000); // Задержка 1 секунда
+
+				// Ждем завершения звука завершения игры перед показом модального окна
+				waitForSounds(() => {
+					showModal();
+				});
 			});
 		}
 
@@ -866,23 +873,28 @@
             }
         }
 
-        function showModal() {
-            const highScore = localStorage.getItem('brandGameHighScore') || 0;
-            modalScore.innerText = `Правильных ответов: ${score} из ${currentQuestions.length}`;
-            modalHighScore.innerText = `Лучший результат: ${highScore}`;
-            gameCountMessage.innerText = `Сыграно игр: ${gameCount} из ${maxGameCount}`;
+		function showModal() {
+			const modal = document.getElementById('modal');
+			const modalContent = document.querySelector('.modal-content');
+			const highScore = localStorage.getItem('brandGameHighScore') || 0;
 
-            if (gameCount >= maxGameCount) {
-                modalRestartBtn.disabled = true;
-                modalRestartBtn.innerText = "Лимит игр исчерпан";
-            }
+			modalScore.innerText = `Правильных ответов: ${score} из ${currentQuestions.length}`;
+			modalHighScore.innerText = `Лучший результат: ${highScore}`;
+			gameCountMessage.innerText = `Сыграно игр: ${gameCount} из ${maxGameCount}`;
 
-            modal.style.display = 'flex';
-        }
+			if (gameCount >= maxGameCount) {
+				modalRestartBtn.disabled = true;
+				modalRestartBtn.innerText = "Лимит игр исчерпан";
+			}
 
-        function closeModal() {
-            modal.style.display = 'none';
-        }
+			// Показываем модальное окно
+			modal.style.display = 'flex';
+
+			// Ожидаем завершения анимации
+			//modalContent.addEventListener('animationend', () => {
+				//playSound('end'); // Воспроизводим звук модального окна
+			//}, { once: true }); // Обработчик сработает только один раз
+		}
 
         function resetGameCounter() {
             gameCount = 0;
@@ -911,6 +923,11 @@
                 }
             }, 1000);
         }
+
+		function closeModal() {
+			const modal = document.getElementById('modal');
+			modal.style.display = 'none';
+		}
 
         function resetTimer() {
             clearInterval(timer);
