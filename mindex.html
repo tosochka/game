@@ -577,12 +577,12 @@
 
         const allQuestions = [
             {
-                question: "The Ultimate Driving Machine",
+                question: "Найдётся всё",
                 answers: [
-                    { text: "BMW", correct: true, image: "images/adidas.jpg" },
-                    { text: "Mercedes-Benz", correct: false, image: "images/nike.jpg" },
-                    { text: "Audi", correct: false, image: "images/adidas.jpg" },
-                    { text: "Toyota", correct: false, image: "images/nike.jpg" }
+                    { text: "Яндекс", correct: true, image: "images/yandex.jpg" },
+                    { text: "Google", correct: false, image: "images/google.jpg" },
+                    { text: "Mail.ru", correct: false, image: "images/mailru.jpg" },
+                    { text: "Rambler", correct: false, image: "images/rambler.jpg" }
                 ]
             },
             {
@@ -593,7 +593,8 @@
                     { text: "Puma", correct: false, image: "images/nike.jpg" },
                     { text: "Reebok", correct: false, image: "images/adidas.jpg" }
                 ]
-            },
+            }
+			
             // Добавьте больше вопросов здесь
         ];
 
@@ -826,19 +827,25 @@
 					playSound('wrong');
 				}
 
+				// Останавливаем таймер сразу после выбора последнего ответа
+				clearInterval(timer); // Добавлено: остановка таймера
+				resetTimer(); // Сбрасываем прогресс-бар
+
 				if (currentQuestionIndex === currentQuestions.length - 1) {
-					clearInterval(timer);
+					// Если это последний вопрос, завершаем игру
+					endGame();
+				} else {
+					// Удаляем классы анимации через 2 секунды
+					setTimeout(() => {
+						selectedAnswer.classList.remove('correct-border', 'wrong-border');
+					}, 2000);
+
+					// Ждем завершения звука перед переходом к следующему вопросу
+					waitForSounds(() => {
+						currentQuestionIndex++;
+						showQuestion();
+					});
 				}
-
-				// Удаляем классы анимации через 2 секунды
-				setTimeout(() => {
-					selectedAnswer.classList.remove('correct-border', 'wrong-border');
-				}, 2000);
-
-				waitForSounds(() => {
-					currentQuestionIndex++;
-					showQuestion();
-				});
 			}
 		}
 
