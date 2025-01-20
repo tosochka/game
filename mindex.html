@@ -935,11 +935,26 @@
             progressBar.style.transform = 'scaleX(0)';
         }
 
-        modalCloseBtn.addEventListener('click', closeModal);
-        modalRestartBtn.addEventListener('click', () => {
-            closeModal();
-            startGame();
-        });
+		function stopAndClearAllSounds() {
+			activeSounds.forEach(sound => {
+				sound.pause(); // Останавливаем воспроизведение
+				sound.currentTime = 0; // Сбрасываем время звука
+			});
+			activeSounds = []; // Очищаем массив активных звуков
+		}
+
+		// Добавление обработчиков для кнопок в модальном окне
+		modalCloseBtn.addEventListener('click', () => {
+			stopAndClearAllSounds(); // Останавливаем звуки перед закрытием
+			closeModal();
+		});
+
+		modalRestartBtn.addEventListener('click', () => {
+			stopAndClearAllSounds(); // Останавливаем звуки перед перезапуском
+			closeModal();
+			startGame();
+		});
+
     </script>
 </body>
 </html>
