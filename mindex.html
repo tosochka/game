@@ -381,11 +381,11 @@
         const modalRestartBtn = document.getElementById('modal-restart-btn');
         const gameCountMessage = document.getElementById('game-count-message');
 
-        // Определение платформы
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
-        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
+		// Определение платформы
+		const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+		const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows'; // По умолчанию Chrome/Windows, если не iOS/Safari
 
-        console.log(`Запущено на: ${platform}`);
+		console.log(`Запущено на: ${platform}`);
 
         // Глобальные переменные
         let currentQuestions = [];
@@ -825,7 +825,8 @@
             });
         }
 
-		async function initChromeWindows() {
+		// Инициализация для Chrome/Windows
+		function initChromeWindows() {
 			console.log("Инициализация для Chrome/Windows");
 
 			preloadSounds();
@@ -836,37 +837,37 @@
 				await playSound('click'); // Звук клика
 				startScreen.classList.add('hidden');
 				gameContainer.classList.remove('hidden');
-				await startGame(); // Запускаем игру (здесь будет воспроизведен звук начала игры)
+				await startGame(); // Запускаем игру
 			});
 		}
 
-        // Инициализация для iOS/Safari
-        function initIOSSafari() {
-            console.log("Инициализация для iOS/Safari");
+		// Инициализация для iOS/Safari
+		function initIOSSafari() {
+			console.log("Инициализация для iOS/Safari");
 
-            isSoundUnlocked = false;
+			isSoundUnlocked = false;
 
-            function setupSimplifiedAnimations() {
-                console.log("Упрощенные анимации для iOS/Safari");
-                document.querySelectorAll('.fade-in, .fade-out').forEach(element => {
-                    element.style.animation = 'none';
-                });
-            }
+			function setupSimplifiedAnimations() {
+				console.log("Упрощенные анимации для iOS/Safari");
+				document.querySelectorAll('.fade-in, .fade-out').forEach(element => {
+					element.style.animation = 'none';
+				});
+			}
 
-            setupSimplifiedAnimations();
-            startBtn.addEventListener('click', () => {
-                startScreen.classList.add('hidden');
-                gameContainer.classList.remove('hidden');
-                startGame();
-            });
-        }
+			setupSimplifiedAnimations();
+			startBtn.addEventListener('click', () => {
+				startScreen.classList.add('hidden');
+				gameContainer.classList.remove('hidden');
+				startGame();
+			});
+		}
 
-        // Выбор ветки в зависимости от платформы
-        if (platform === 'iOS/Safari') {
-            initIOSSafari();
-        } else {
-            initChromeWindows();
-        }
+		// Выбор ветки в зависимости от платформы
+		if (platform === 'iOS/Safari') {
+			initIOSSafari(); // Инициализация для iOS/Safari
+		} else {
+			initChromeWindows(); // Инициализация для Chrome/Windows (по умолчанию)
+		}
 
         // Обработчики событий для модального окна
         modalCloseBtn.addEventListener('click', () => {
