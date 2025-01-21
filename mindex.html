@@ -397,6 +397,7 @@
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
         let isSoundUnlocked = false;
         let activeSounds = [];
+		let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
 
         // Функция для воспроизведения звука
         function playSound(type) {
@@ -567,6 +568,9 @@
 
         // Функция для проверки оставшихся ответов
 		async function checkRemainingAnswers() {
+			if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
+			isAnswerSelected = true; // Устанавливаем флаг
+
 			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
 			if (remainingAnswers.length === 1) {
 				const selectedAnswer = remainingAnswers[0];
@@ -577,12 +581,12 @@
 				if (isCorrect) {
 					score++;
 					selectedAnswer.classList.add('correct');
-					selectedAnswer.classList.add('correct-border'); // Добавляем мигание для правильного ответа
-					await playSound('correct'); // Ждем завершения звука
+					selectedAnswer.classList.add('correct-border');
+					await playSound('correct');
 				} else {
 					selectedAnswer.classList.add('wrong');
-					selectedAnswer.classList.add('wrong-border'); // Добавляем мигание для неправильного ответа
-					await playSound('wrong'); // Ждем завершения звука
+					selectedAnswer.classList.add('wrong-border');
+					await playSound('wrong');
 				}
 
 				clearInterval(timer);
@@ -592,37 +596,42 @@
 					endGame();
 				} else {
 					currentQuestionIndex++;
-					await waitForSounds(); // Ждем завершения всех звуков
+					await waitForSounds();
 					showQuestion();
 				}
 			}
+			isAnswerSelected = false; // Сбрасываем флаг после завершения
 		}
 
-        // Функция для обработки истечения времени
-        async function handleTimeOut() {
-            await playSound('wrong'); // Воспроизводим звук ошибки и ждем его завершения
+		async function handleTimeOut() {
+			if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
+			isAnswerSelected = true; // Устанавливаем флаг
 
-            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-            remainingAnswers.forEach(answer => {
-                answer.classList.add('wrong');
-                answer.classList.add('wrong-border'); // Добавляем мигание для неправильного ответа
-                answer.classList.add('disabled');
-            });
+			await playSound('wrong');
 
-            setTimeout(() => {
-                remainingAnswers.forEach(answer => {
-                    answer.classList.remove('wrong-border'); // Убираем мигание через 2 секунды
-                });
-            }, 2000);
+			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+			remainingAnswers.forEach(answer => {
+				answer.classList.add('wrong');
+				answer.classList.add('wrong-border');
+				answer.classList.add('disabled');
+			});
 
-            if (currentQuestionIndex === currentQuestions.length - 1) {
-                clearInterval(timer);
-            }
+			setTimeout(() => {
+				remainingAnswers.forEach(answer => {
+					answer.classList.remove('wrong-border');
+				});
+			}, 2000);
 
-            await waitForSounds(); // Ждем завершения всех звуков
-            currentQuestionIndex++;
-            showQuestion();
-        }
+			if (currentQuestionIndex === currentQuestions.length - 1) {
+				clearInterval(timer);
+			}
+
+			await waitForSounds();
+			currentQuestionIndex++;
+			showQuestion();
+
+			isAnswerSelected = false; // Сбрасываем флаг после завершения
+		}
 
         // Функция для сохранения счета
         function saveScore(score) {
