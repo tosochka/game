@@ -125,59 +125,41 @@
             }
         }
 
-		@media (orientation: landscape) {
-			.game-container {
-				width: calc(100vh * 16 / 9); /* Сохраняем пропорции */
-				height: 100vh; /* Занимаем всю высоту экрана */
-				max-width: none;
-				display: flex;
-				flex-direction: column;
-			}
+        @media (orientation: landscape) {
+            .game-container {
+                width: calc(100vh * 16 / 9);
+                height: 100vh;
+				/* Убираем max-height */
+				/* max-height: 80vh; */
+            }
 
-			#question-section {
-				flex: 0 0 10%; /* Фиксированная высота 10% */
-				font-size: clamp(16px, 2.5vw, 24px);
-				padding: 10px;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-			}
+            #question-section {
+                height: 10%;
+                font-size: clamp(16px, 2.5vw, 24px);
+                padding: 10px;
+            }
 
-			#progress-bar {
-				flex: 0 0 3px; /* Фиксированная высота 3px */
-				background-color: #ffa500;
-				transform-origin: left;
-				transform: scaleX(0);
-				transition: transform 0.1s linear;
-			}
+            #progress-bar {
+                height: 3px;
+            }
 
-			#answer-section {
-				flex: 1; /* Занимает оставшееся пространство */
-				display: grid;
-				grid-template-columns: repeat(4, 1fr);
-				gap: 10px;
-				padding: 20px;
-				overflow-y: auto; /* Добавляем прокрутку, если контент не помещается */
-			}
+            #answer-section {
+                height: calc(80% - 3px);
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+                padding: 20px;
+            }
 
-			.answer {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				background-color: #f4f4f4;
-				border: 2px solid #ddd;
-				border-radius: 10px;
-				cursor: pointer;
-				transition: transform 0.3s, opacity 0.3s;
-				text-align: center;
-			}
+            .answer {
+                padding: 5px;
+            }
 
-			.answer img {
-				width: 95%;
-				height: 95%;
-				object-fit: contain;
-			}
-		}
+            .answer img {
+                width: 95%;
+                height: 95%;
+                object-fit: contain;
+            }
+        }
 
         #question-section {
             display: flex;
