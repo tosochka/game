@@ -5,79 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Угадай бренд по слогану</title>
     <style>
-		/* Ваши текущие стили */
-		body {
-			font-family: Arial, sans-serif;
-			margin: 0;
-			padding: 0;
-			display: flex;
-			justify-content: center;
-			align-items: flex-start;
-			height: 100vh;
-			background-color: #f4f4f4;
-			overflow: hidden;
-		}
+    /* Ваши текущие стили */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        height: 100vh;
+        background-color: #f4f4f4;
+        overflow: hidden;
+    }
 
-		/* Анимация для исчезновения */
-		.fade-out {
-			animation: fadeOut 0.7s ease forwards;
-		}
+	/* Анимация для исчезновения */
+	.fade-out {
+		animation: fadeOut 0.7s ease forwards;
+	}
 
-		@keyframes fadeOut {
-			from {
-				opacity: 1;
-			}
-			to {
-				opacity: 0;
-			}
+	@keyframes fadeOut {
+		from {
+			opacity: 1;
 		}
+		to {
+			opacity: 0;
+		}
+	}
 
-		/* Анимация для появления */
-		.fade-in {
-			animation: fadeIn 0.7s ease forwards;
-		}
+	/* Анимация для появления */
+	.fade-in {
+		animation: fadeIn 0.7s ease forwards;
+	}
 
-		@keyframes fadeIn {
-			from {
-				opacity: 0;
-			}
-			to {
-				opacity: 1;
-			}
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
 		}
+		to {
+			opacity: 1;
+		}
+	}
 
-		/* Анимация мигания для правильного ответа */
-		@keyframes correctBlink {
-			0% { border-color: green; }
-			50% { border-color: transparent; }
-			100% { border-color: green; }
-		}
+	/* Анимация мигания для правильного ответа */
+	@keyframes correctBlink {
+		0% { border-color: green; }
+		50% { border-color: transparent; }
+		100% { border-color: green; }
+	}
 
-		.correct-border {
-			animation: correctBlink 0.5s ease 4; /* Мигание 4 раза */
-		}
+	.correct-border {
+		animation: correctBlink 0.5s ease 4; /* Мигание 4 раза */
+	}
 
-		/* Анимация мигания для неправильного ответа */
-		@keyframes wrongBlink {
-			0% { border-color: red; }
-			50% { border-color: transparent; }
-			100% { border-color: red; }
-		}
+	/* Анимация мигания для неправильного ответа */
+	@keyframes wrongBlink {
+		0% { border-color: red; }
+		50% { border-color: transparent; }
+		100% { border-color: red; }
+	}
 
-		.wrong-border {
-			animation: wrongBlink 0.5s ease 4; /* Мигание 4 раза */
-		}
+	.wrong-border {
+		animation: wrongBlink 0.5s ease 4; /* Мигание 4 раза */
+	}
 
     /* Остальные стили */
-		.game-container {
-			width: 100vw;
-			/* height: 100vh; Удалите это */
-			display: flex;
-			flex-direction: column;
-			background: white;
-			box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-			overflow: hidden;
-		}
+    .game-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
 
         @media (orientation: portrait) {
             .game-container {
@@ -333,8 +343,7 @@
 
         .hidden {
             display: none !important; /* Добавлено !important */
-        }	
-
+        }
     </style>
 </head>
 <body>
@@ -379,17 +388,6 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
-	
-        function setGameContainerHeight() {
-            const gameContainer = document.querySelector('.game-container');
-            gameContainer.style.height = `${window.innerHeight}px`;
-        }
-
-        window.addEventListener('resize', setGameContainerHeight);
-        window.addEventListener('orientationchange', setGameContainerHeight);
-
-        // Инициализация при загрузке
-        setGameContainerHeight();
 	
 		// Предзагрузка звуков
 		function preloadSounds() {
