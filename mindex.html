@@ -415,7 +415,6 @@
 		let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
 		
 		function adjustFontSize() {
-			const questionElement = document.getElementById('question');
 			const questionSection = document.getElementById('question-section');
 
 			const maxFontSize = 24; // Максимальный размер шрифта
@@ -456,7 +455,6 @@
 		window.addEventListener('resize', adjustFontSize);
 
 		// Вызываем функцию при изменении текста вопроса
-		const questionElement = document.getElementById('question');
 		new MutationObserver(adjustFontSize).observe(questionElement, {
 			childList: true, // Отслеживаем изменения текста
 		});		
