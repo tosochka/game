@@ -414,6 +414,24 @@
         let activeSounds = [];
 		let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
 		
+		// Функция для проверки загрузки всех изображений
+		function waitForImagesToLoad() {
+			const images = document.querySelectorAll('.answer img');
+			const promises = [];
+
+			images.forEach(img => {
+				if (!img.complete) { // Проверяем, загружено ли изображение
+					const promise = new Promise((resolve) => {
+						img.addEventListener('load', resolve); // Ждем загрузки
+						img.addEventListener('error', resolve); // На случай ошибки
+					});
+					promises.push(promise);
+				}
+			});
+
+			return Promise.all(promises); // Ждем загрузки всех изображений
+		}	
+		
 		function adjustFontSize() {
 			const questionSection = document.getElementById('question-section');
 
@@ -588,8 +606,8 @@
             return shuffledQuestions.slice(0, count);
         }
 
-        // Функция для отображения вопроса
-		function showQuestion() {
+		// Обновленная функция showQuestion
+		async function showQuestion() {
 			console.log("Показ вопроса...");
 
 			if (currentQuestionIndex >= currentQuestions.length) {
@@ -598,7 +616,6 @@
 			}
 
 			resetTimer();
-			startTimer();
 
 			const question = currentQuestions[currentQuestionIndex];
 			const questionElement = document.getElementById('question');
@@ -611,7 +628,7 @@
 			}
 
 			// Ждем завершения анимации исчезновения
-			setTimeout(() => {
+			setTimeout(async () => {
 				// Обновляем текст вопроса и ответы
 				questionElement.innerText = question.question;
 				answerSection.innerHTML = '';
@@ -631,6 +648,9 @@
 					answerSection.appendChild(button);
 				});
 
+				// Ждем загрузки всех изображений
+				await waitForImagesToLoad();
+
 				// Анимация появления нового вопроса (только для Chrome/Windows)
 				if (platform !== 'iOS/Safari') {
 					questionElement.classList.remove('fade-out');
@@ -644,6 +664,9 @@
 						answerSection.classList.remove('fade-in');
 					}, 700); // Время анимации
 				}
+
+				// Запускаем таймер только после загрузки всех изображений
+				startTimer();
 			}, 700); // Время анимации исчезновения
 		}
 
