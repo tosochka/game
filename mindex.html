@@ -121,11 +121,26 @@
                 height: 100vh;
             }
 
-            #question-section {
-                height: 10%;
-                font-size: clamp(16px, 2.5vw, 24px);
-                padding: 10px;
-            }
+			#question-section {
+				width: 100%;
+				height: 10%; /* Высота зоны вопроса */
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				background-color: #007bff;
+				color: white;
+				overflow: hidden; /* Скрываем текст, который не помещается */
+				padding: 10px; /* Отступы внутри контейнера */
+				box-sizing: border-box; /* Учитываем padding в размерах */
+			}
+			
+			#question {
+				margin: 0;
+				padding: 0;
+				text-align: center;
+				transition: font-size 0.3s ease; /* Плавное изменение размера шрифта */
+				word-wrap: break-word; /* Разрешаем перенос слов */
+			}			
 
             #progress-bar {
                 height: 3px;
@@ -398,6 +413,53 @@
         let isSoundUnlocked = false;
         let activeSounds = [];
 		let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
+		
+		function adjustFontSize() {
+			const questionElement = document.getElementById('question');
+			const questionSection = document.getElementById('question-section');
+
+			const maxFontSize = 24; // Максимальный размер шрифта
+			const minFontSize = 12; // Минимальный размер шрифта
+			let fontSize = maxFontSize;
+
+			// Устанавливаем начальный размер шрифта
+			questionElement.style.fontSize = `${fontSize}px`;
+
+			// Проверяем, помещается ли текст в контейнер
+			while (
+				questionElement.scrollWidth > questionSection.offsetWidth ||
+				questionElement.scrollHeight > questionSection.offsetHeight
+			) {
+				// Уменьшаем размер шрифта, если текст не помещается
+				fontSize -= 1;
+				questionElement.style.fontSize = `${fontSize}px`;
+
+				// Если размер шрифта достиг минимума, останавливаем
+				if (fontSize <= minFontSize) {
+					break;
+				}
+			}
+
+			// Если текст слишком короткий, увеличиваем размер шрифта
+			while (
+				fontSize < maxFontSize &&
+				questionElement.scrollWidth < questionSection.offsetWidth &&
+				questionElement.scrollHeight < questionSection.offsetHeight
+			) {
+				fontSize += 1;
+				questionElement.style.fontSize = `${fontSize}px`;
+			}
+		}
+
+		// Вызываем функцию при загрузке страницы и изменении размера окна
+		window.addEventListener('load', adjustFontSize);
+		window.addEventListener('resize', adjustFontSize);
+
+		// Вызываем функцию при изменении текста вопроса
+		const questionElement = document.getElementById('question');
+		new MutationObserver(adjustFontSize).observe(questionElement, {
+			childList: true, // Отслеживаем изменения текста
+		});		
 
         // Функция для воспроизведения звука
         function playSound(type) {
