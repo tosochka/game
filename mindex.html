@@ -667,7 +667,7 @@
 			if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
 			isAnswerSelected = true; // Устанавливаем флаг
 
-			await playSound('wrong');
+			await playSound('wrong'); // Воспроизводим звук "неправильный ответ"
 
 			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
 			remainingAnswers.forEach(answer => {
@@ -676,19 +676,22 @@
 				answer.classList.add('disabled');
 			});
 
-			setTimeout(() => {
-				remainingAnswers.forEach(answer => {
-					answer.classList.remove('wrong-border');
-				});
-			}, 2000);
+			// Ждем завершения анимации мигания
+			await new Promise(resolve => setTimeout(resolve, 2000));
 
+			// Очищаем таймер
+			clearInterval(timer);
+
+			// Если это последний вопрос, завершаем игру
 			if (currentQuestionIndex === currentQuestions.length - 1) {
-				clearInterval(timer);
+				await waitForSounds(); // Ждем завершения всех звуков
+				endGame(); // Завершаем игру
+			} else {
+				// Переходим к следующему вопросу
+				currentQuestionIndex++;
+				await waitForSounds(); // Ждем завершения всех звуков
+				showQuestion(); // Показываем следующий вопрос
 			}
-
-			await waitForSounds();
-			currentQuestionIndex++;
-			showQuestion();
 
 			isAnswerSelected = false; // Сбрасываем флаг после завершения
 		}
