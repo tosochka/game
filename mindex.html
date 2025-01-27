@@ -437,7 +437,7 @@
 			const questionSection = document.getElementById('question-section');
 
 			const maxFontSize = 34; // Максимальный размер шрифта
-			const minFontSize = 16; // Минимальный размер шрифта
+			const minFontSize = 12; // Минимальный размер шрифта
 			let fontSize = maxFontSize;
 
 			// Устанавливаем начальный размер шрифта
@@ -449,7 +449,7 @@
 				questionElement.scrollHeight > questionSection.offsetHeight
 			) {
 				// Уменьшаем размер шрифта, если текст не помещается
-				fontSize -= 4;
+				fontSize -= 1;
 				questionElement.style.fontSize = `${fontSize}px`;
 
 				// Если размер шрифта достиг минимума, останавливаем
