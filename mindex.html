@@ -139,7 +139,8 @@
 				padding: 0;
 				text-align: center;
 				transition: font-size 0.0s ease; /* Плавное изменение размера шрифта */
-				word-wrap: break-word; /* Разрешаем перенос слов */
+				white-space: nowrap;
+				/* word-wrap: break-word; /* Разрешаем перенос слов */
 			}			
 
             #progress-bar {
@@ -448,7 +449,7 @@
 				questionElement.scrollHeight > questionSection.offsetHeight
 			) {
 				// Уменьшаем размер шрифта, если текст не помещается
-				fontSize -= 6;
+				fontSize -= 1;
 				questionElement.style.fontSize = `${fontSize}px`;
 
 				// Если размер шрифта достиг минимума, останавливаем
