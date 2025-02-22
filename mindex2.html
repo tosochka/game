@@ -407,27 +407,8 @@
 
 		/* Адаптация для альбомной ориентации на мобильных устройствах */
 		@media (max-width: 768px) and (orientation: landscape) {
-			#win-modal .modal-content {
-				width: calc(100vh * 16 / 9); /* Ширина как у игрового поля */
-				height: 100vh; /* Высота как у игрового поля */
-				max-width: none; /* Убираем ограничение по максимальной ширине */
-				position: fixed; /* Фиксируем позицию */
-				top: 50%; /* Центрируем по вертикали */
-				left: 50%; /* Центрируем по горизонтали */
-				transform: translate(-50%, -50%); /* Центрируем */
-			}
-
-			#win-modal .modal-header h2 {
-				font-size: 24px; /* Уменьшаем размер заголовка */
-			}
-
-			#win-modal .modal-body p {
-				font-size: 16px; /* Уменьшаем размер текста */
-			}
-
-			#win-modal .modal-footer button {
-				padding: 10px 20px; /* Уменьшаем размер кнопок */
-				font-size: 14px;
+			body {
+				background-color: red; /* Временно для проверки */
 			}
 		}
     </style>
