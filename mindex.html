@@ -121,26 +121,26 @@
                 height: 100vh;
             }
 
-			#question-section {
-				width: 100%;
-				height: 15%; /* Высота зоны вопроса */
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				background-color: #007bff;
-				color: white;
-				overflow: hidden; /* Скрываем текст, который не помещается */			
-				padding: 10px; /* Отступы внутри контейнера */
-				box-sizing: border-box; /* Учитываем padding в размерах */
-			}
-			
-			#question {
-				margin: 10px 15px;
-				padding: 10px 15px;
-				text-align: center;
-				transition: font-size 0.0s ease; /* Плавное изменение размера шрифта */
-				word-wrap: break-word; /* Разрешаем перенос слов */
-			}			
+            #question-section {
+                width: 100%;
+                height: 15%; /* Высота зоны вопроса */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background-color: #007bff;
+                color: white;
+                overflow: hidden; /* Скрываем текст, который не помещается */			
+                padding: 10px; /* Отступы внутри контейнера */
+                box-sizing: border-box; /* Учитываем padding в размерах */
+            }
+
+            #question {
+                margin: 10px 15px;
+                padding: 10px 15px;
+                text-align: center;
+                transition: font-size 0.0s ease; /* Плавное изменение размера шрифта */
+                word-wrap: break-word; /* Разрешаем перенос слов */
+            }			
 
             #progress-bar {
                 height: 3px;
@@ -342,6 +342,67 @@
         .hidden {
             display: none !important;
         }
+
+        /* Стили для модального окна с выигрышем */
+        #win-modal .modal-content {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        #win-modal .modal-header {
+            background: #4CAF50; /* Зеленый цвет для выигрыша */
+            padding: 20px;
+            text-align: center;
+        }
+
+        #win-modal .modal-header h2 {
+            margin: 0;
+            font-size: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #win-modal .modal-body {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #win-modal .modal-body p {
+            font-size: 18px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        #win-modal .modal-footer {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #win-modal .modal-footer button {
+            margin: 5px;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        #win-modal .modal-footer button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -359,7 +420,7 @@
         <div id="answer-section"></div>
     </div>
 
-    <!-- Модальное окно -->
+    <!-- Модальное окно статистики -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -373,6 +434,25 @@
             <div class="modal-footer">
                 <button id="modal-close-btn">Закрыть</button>
                 <button id="modal-restart-btn">Играть снова</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для выигрыша -->
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Вы выиграли!</h2>
+            </div>
+            <div class="modal-body">
+                <p>С чем вас душевно поздравляем.</p>
+                <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТАSY.</p>
+                <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
+                <p>Поторопитесь!</p>
+                <p>И не забудьте сделать скриншот.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="win-modal-close-btn">Закрыть</button>
             </div>
         </div>
     </div>
@@ -395,12 +475,14 @@
         const modalCloseBtn = document.getElementById('modal-close-btn');
         const modalRestartBtn = document.getElementById('modal-restart-btn');
         const gameCountMessage = document.getElementById('game-count-message');
+        const winModal = document.getElementById('win-modal');
+        const winModalCloseBtn = document.getElementById('win-modal-close-btn');
 
-		// Определение платформы
-		const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
-		const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows'; // По умолчанию Chrome/Windows, если не iOS/Safari
+        // Определение платформы
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows'; // По умолчанию Chrome/Windows, если не iOS/Safari
 
-		console.log(`Запущено на: ${platform}`);
+        console.log(`Запущено на: ${platform}`);
 
         // Глобальные переменные
         let currentQuestions = [];
@@ -412,70 +494,70 @@
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
         let isSoundUnlocked = false;
         let activeSounds = [];
-		let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
-		
-		// Функция для проверки загрузки всех изображений
-		function waitForImagesToLoad() {
-			const images = document.querySelectorAll('.answer img');
-			const promises = [];
+        let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
 
-			images.forEach(img => {
-				if (!img.complete) { // Проверяем, загружено ли изображение
-					const promise = new Promise((resolve) => {
-						img.addEventListener('load', resolve); // Ждем загрузки
-						img.addEventListener('error', resolve); // На случай ошибки
-					});
-					promises.push(promise);
-				}
-			});
+        // Функция для проверки загрузки всех изображений
+        function waitForImagesToLoad() {
+            const images = document.querySelectorAll('.answer img');
+            const promises = [];
 
-			return Promise.all(promises); // Ждем загрузки всех изображений
-		}	
-		
-		function adjustFontSize() {
-			const questionSection = document.getElementById('question-section');
+            images.forEach(img => {
+                if (!img.complete) { // Проверяем, загружено ли изображение
+                    const promise = new Promise((resolve) => {
+                        img.addEventListener('load', resolve); // Ждем загрузки
+                        img.addEventListener('error', resolve); // На случай ошибки
+                    });
+                    promises.push(promise);
+                }
+            });
 
-			const maxFontSize = 34; // Максимальный размер шрифта
-			const minFontSize = 16; // Минимальный размер шрифта
-			let fontSize = maxFontSize;
+            return Promise.all(promises); // Ждем загрузки всех изображений
+        }
 
-			// Устанавливаем начальный размер шрифта
-			questionElement.style.fontSize = `${fontSize}px`;
+        function adjustFontSize() {
+            const questionSection = document.getElementById('question-section');
 
-			// Проверяем, помещается ли текст в контейнер
-			while (
-				questionElement.scrollWidth > questionSection.offsetWidth ||
-				questionElement.scrollHeight > questionSection.offsetHeight
-			) {
-				// Уменьшаем размер шрифта, если текст не помещается
-				fontSize -= 1;
-				questionElement.style.fontSize = `${fontSize}px`;
+            const maxFontSize = 34; // Максимальный размер шрифта
+            const minFontSize = 16; // Минимальный размер шрифта
+            let fontSize = maxFontSize;
 
-				// Если размер шрифта достиг минимума, останавливаем
-				if (fontSize <= minFontSize) {
-					break;
-				}
-			}
+            // Устанавливаем начальный размер шрифта
+            questionElement.style.fontSize = `${fontSize}px`;
 
-			// Если текст слишком короткий, увеличиваем размер шрифта
-			while (
-				fontSize < maxFontSize &&
-				questionElement.scrollWidth < questionSection.offsetWidth &&
-				questionElement.scrollHeight < questionSection.offsetHeight
-			) {
-				fontSize += 1;
-				questionElement.style.fontSize = `${fontSize}px`;
-			}
-		}
+            // Проверяем, помещается ли текст в контейнер
+            while (
+                questionElement.scrollWidth > questionSection.offsetWidth ||
+                questionElement.scrollHeight > questionSection.offsetHeight
+            ) {
+                // Уменьшаем размер шрифта, если текст не помещается
+                fontSize -= 1;
+                questionElement.style.fontSize = `${fontSize}px`;
 
-		// Вызываем функцию при загрузке страницы и изменении размера окна
-		window.addEventListener('load', adjustFontSize);
-		window.addEventListener('resize', adjustFontSize);
+                // Если размер шрифта достиг минимума, останавливаем
+                if (fontSize <= minFontSize) {
+                    break;
+                }
+            }
 
-		// Вызываем функцию при изменении текста вопроса
-		new MutationObserver(adjustFontSize).observe(questionElement, {
-			childList: true, // Отслеживаем изменения текста
-		});		
+            // Если текст слишком короткий, увеличиваем размер шрифта
+            while (
+                fontSize < maxFontSize &&
+                questionElement.scrollWidth < questionSection.offsetWidth &&
+                questionElement.scrollHeight < questionSection.offsetHeight
+            ) {
+                fontSize += 1;
+                questionElement.style.fontSize = `${fontSize}px`;
+            }
+        }
+
+        // Вызываем функцию при загрузке страницы и изменении размера окна
+        window.addEventListener('load', adjustFontSize);
+        window.addEventListener('resize', adjustFontSize);
+
+        // Вызываем функцию при изменении текста вопроса
+        new MutationObserver(adjustFontSize).observe(questionElement, {
+            childList: true, // Отслеживаем изменения текста
+        });
 
         // Функция для воспроизведения звука
         function playSound(type) {
@@ -597,8 +679,24 @@
             await playSound('end'); // Воспроизводим звук завершения игры
 
             await waitForSounds(); // Ждем завершения звука завершения игры
-            showModal(); // Показываем модальное окно
+
+            // Проверяем, набрал ли игрок 15 или более правильных ответов
+            if (score >= 1) {
+                showWinModal(); // Показываем модальное окно с сообщением о выигрыше
+            } else {
+                showModal(); // Показываем стандартное модальное окно с статистикой
+            }
         }
+
+        // Функция для отображения модального окна с сообщением о выигрыше
+        function showWinModal() {
+            winModal.style.display = 'flex';
+        }
+
+        // Обработчик закрытия модального окна с выигрышем
+        winModalCloseBtn.addEventListener('click', () => {
+            winModal.style.display = 'none';
+        });
 
         // Функция для получения случайных вопросов
         function getRandomQuestions(count) {
@@ -606,69 +704,69 @@
             return shuffledQuestions.slice(0, count);
         }
 
-		// Обновленная функция showQuestion
-		async function showQuestion() {
-			console.log("Показ вопроса...");
+        // Обновленная функция showQuestion
+        async function showQuestion() {
+            console.log("Показ вопроса...");
 
-			if (currentQuestionIndex >= currentQuestions.length) {
-				endGame();
-				return;
-			}
+            if (currentQuestionIndex >= currentQuestions.length) {
+                endGame();
+                return;
+            }
 
-			resetTimer();
+            resetTimer();
 
-			const question = currentQuestions[currentQuestionIndex];
-			const questionElement = document.getElementById('question');
-			const answerSection = document.getElementById('answer-section');
+            const question = currentQuestions[currentQuestionIndex];
+            const questionElement = document.getElementById('question');
+            const answerSection = document.getElementById('answer-section');
 
-			// Анимация исчезновения предыдущего вопроса (только для Chrome/Windows)
-			if (platform !== 'iOS/Safari') {
-				questionElement.classList.add('fade-out');
-				answerSection.classList.add('fade-out');
-			}
+            // Анимация исчезновения предыдущего вопроса (только для Chrome/Windows)
+            if (platform !== 'iOS/Safari') {
+                questionElement.classList.add('fade-out');
+                answerSection.classList.add('fade-out');
+            }
 
-			// Ждем завершения анимации исчезновения
-			setTimeout(async () => {
-				// Обновляем текст вопроса и ответы
-				questionElement.innerText = question.question;
-				answerSection.innerHTML = '';
+            // Ждем завершения анимации исчезновения
+            setTimeout(async () => {
+                // Обновляем текст вопроса и ответы
+                questionElement.innerText = question.question;
+                answerSection.innerHTML = '';
 
-				const shuffledAnswers = shuffleArray([...question.answers]);
-				shuffledAnswers.forEach(answer => {
-					const button = document.createElement('div');
-					button.classList.add('answer');
-					button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
+                const shuffledAnswers = shuffleArray([...question.answers]);
+                shuffledAnswers.forEach(answer => {
+                    const button = document.createElement('div');
+                    button.classList.add('answer');
+                    button.innerHTML = `<img src="${answer.image}" alt="${answer.text}">`;
 
-					button.addEventListener('click', () => removeAnswer(button, answer));
+                    button.addEventListener('click', () => removeAnswer(button, answer));
 
-					if ('ontouchstart' in window) {
-						addSwipeListener(button, answer);
-					}
+                    if ('ontouchstart' in window) {
+                        addSwipeListener(button, answer);
+                    }
 
-					answerSection.appendChild(button);
-				});
+                    answerSection.appendChild(button);
+                });
 
-				// Ждем загрузки всех изображений
-				await waitForImagesToLoad();
+                // Ждем загрузки всех изображений
+                await waitForImagesToLoad();
 
-				// Анимация появления нового вопроса (только для Chrome/Windows)
-				if (platform !== 'iOS/Safari') {
-					questionElement.classList.remove('fade-out');
-					answerSection.classList.remove('fade-out');
-					questionElement.classList.add('fade-in');
-					answerSection.classList.add('fade-in');
+                // Анимация появления нового вопроса (только для Chrome/Windows)
+                if (platform !== 'iOS/Safari') {
+                    questionElement.classList.remove('fade-out');
+                    answerSection.classList.remove('fade-out');
+                    questionElement.classList.add('fade-in');
+                    answerSection.classList.add('fade-in');
 
-					// Убираем классы анимации после завершения
-					setTimeout(() => {
-						questionElement.classList.remove('fade-in');
-						answerSection.classList.remove('fade-in');
-					}, 700); // Время анимации
-				}
+                    // Убираем классы анимации после завершения
+                    setTimeout(() => {
+                        questionElement.classList.remove('fade-in');
+                        answerSection.classList.remove('fade-in');
+                    }, 700); // Время анимации
+                }
 
-				// Запускаем таймер только после загрузки всех изображений
-				startTimer();
-			}, 700); // Время анимации исчезновения
-		}
+                // Запускаем таймер только после загрузки всех изображений
+                startTimer();
+            }, 700); // Время анимации исчезновения
+        }
 
         // Функция для удаления ответа
         function removeAnswer(button, answer) {
@@ -678,74 +776,74 @@
         }
 
         // Функция для проверки оставшихся ответов
-		async function checkRemainingAnswers() {
-			if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
-			isAnswerSelected = true; // Устанавливаем флаг
+        async function checkRemainingAnswers() {
+            if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
+            isAnswerSelected = true; // Устанавливаем флаг
 
-			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-			if (remainingAnswers.length === 1) {
-				const selectedAnswer = remainingAnswers[0];
-				selectedAnswer.classList.add('disabled');
+            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+            if (remainingAnswers.length === 1) {
+                const selectedAnswer = remainingAnswers[0];
+                selectedAnswer.classList.add('disabled');
 
-				const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
+                const isCorrect = selectedAnswer.querySelector('img').alt === currentQuestions[currentQuestionIndex].answers.find(a => a.correct).text;
 
-				if (isCorrect) {
-					score++;
-					selectedAnswer.classList.add('correct');
-					selectedAnswer.classList.add('correct-border');
-					await playSound('correct');
-				} else {
-					selectedAnswer.classList.add('wrong');
-					selectedAnswer.classList.add('wrong-border');
-					await playSound('wrong');
-				}
+                if (isCorrect) {
+                    score++;
+                    selectedAnswer.classList.add('correct');
+                    selectedAnswer.classList.add('correct-border');
+                    await playSound('correct');
+                } else {
+                    selectedAnswer.classList.add('wrong');
+                    selectedAnswer.classList.add('wrong-border');
+                    await playSound('wrong');
+                }
 
-				clearInterval(timer);
-				resetTimer();
+                clearInterval(timer);
+                resetTimer();
 
-				if (currentQuestionIndex === currentQuestions.length - 1) {
-					endGame();
-				} else {
-					currentQuestionIndex++;
-					await waitForSounds();
-					showQuestion();
-				}
-			}
-			isAnswerSelected = false; // Сбрасываем флаг после завершения
-		}
+                if (currentQuestionIndex === currentQuestions.length - 1) {
+                    endGame();
+                } else {
+                    currentQuestionIndex++;
+                    await waitForSounds();
+                    showQuestion();
+                }
+            }
+            isAnswerSelected = false; // Сбрасываем флаг после завершения
+        }
 
-		async function handleTimeOut() {
-			if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
-			isAnswerSelected = true; // Устанавливаем флаг
+        async function handleTimeOut() {
+            if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
+            isAnswerSelected = true; // Устанавливаем флаг
 
-			await playSound('wrong'); // Воспроизводим звук "неправильный ответ"
+            await playSound('wrong'); // Воспроизводим звук "неправильный ответ"
 
-			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-			remainingAnswers.forEach(answer => {
-				answer.classList.add('wrong');
-				answer.classList.add('wrong-border');
-				answer.classList.add('disabled');
-			});
+            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+            remainingAnswers.forEach(answer => {
+                answer.classList.add('wrong');
+                answer.classList.add('wrong-border');
+                answer.classList.add('disabled');
+            });
 
-			// Ждем завершения анимации мигания
-			await new Promise(resolve => setTimeout(resolve, 2000));
+            // Ждем завершения анимации мигания
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-			// Очищаем таймер
-			clearInterval(timer);
+            // Очищаем таймер
+            clearInterval(timer);
 
-			// Если это последний вопрос, завершаем игру
-			if (currentQuestionIndex === currentQuestions.length - 1) {
-				await waitForSounds(); // Ждем завершения всех звуков
-				endGame(); // Завершаем игру
-			} else {
-				// Переходим к следующему вопросу
-				currentQuestionIndex++;
-				await waitForSounds(); // Ждем завершения всех звуков
-				showQuestion(); // Показываем следующий вопрос
-			}
+            // Если это последний вопрос, завершаем игру
+            if (currentQuestionIndex === currentQuestions.length - 1) {
+                await waitForSounds(); // Ждем завершения всех звуков
+                endGame(); // Завершаем игру
+            } else {
+                // Переходим к следующему вопросу
+                currentQuestionIndex++;
+                await waitForSounds(); // Ждем завершения всех звуков
+                showQuestion(); // Показываем следующий вопрос
+            }
 
-			isAnswerSelected = false; // Сбрасываем флаг после завершения
-		}
+            isAnswerSelected = false; // Сбрасываем флаг после завершения
+        }
 
         // Функция для сохранения счета
         function saveScore(score) {
@@ -939,49 +1037,49 @@
             });
         }
 
-		// Инициализация для Chrome/Windows
-		function initChromeWindows() {
-			console.log("Инициализация для Chrome/Windows");
+        // Инициализация для Chrome/Windows
+        function initChromeWindows() {
+            console.log("Инициализация для Chrome/Windows");
 
-			preloadSounds();
-			setupAnimations();
+            preloadSounds();
+            setupAnimations();
 
-			startBtn.addEventListener('click', async () => {
-				isSoundUnlocked = true;
-				await playSound('click'); // Звук клика
-				startScreen.classList.add('hidden');
-				gameContainer.classList.remove('hidden');
-				await startGame(); // Запускаем игру
-			});
-		}
+            startBtn.addEventListener('click', async () => {
+                isSoundUnlocked = true;
+                await playSound('click'); // Звук клика
+                startScreen.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                await startGame(); // Запускаем игру
+            });
+        }
 
-		// Инициализация для iOS/Safari
-		function initIOSSafari() {
-			console.log("Инициализация для iOS/Safari");
+        // Инициализация для iOS/Safari
+        function initIOSSafari() {
+            console.log("Инициализация для iOS/Safari");
 
-			isSoundUnlocked = false;
+            isSoundUnlocked = false;
 
-			function setupSimplifiedAnimations() {
-				console.log("Упрощенные анимации для iOS/Safari");
-				document.querySelectorAll('.fade-in, .fade-out').forEach(element => {
-					element.style.animation = 'none';
-				});
-			}
+            function setupSimplifiedAnimations() {
+                console.log("Упрощенные анимации для iOS/Safari");
+                document.querySelectorAll('.fade-in, .fade-out').forEach(element => {
+                    element.style.animation = 'none';
+                });
+            }
 
-			setupSimplifiedAnimations();
-			startBtn.addEventListener('click', () => {
-				startScreen.classList.add('hidden');
-				gameContainer.classList.remove('hidden');
-				startGame();
-			});
-		}
+            setupSimplifiedAnimations();
+            startBtn.addEventListener('click', () => {
+                startScreen.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                startGame();
+            });
+        }
 
-		// Выбор ветки в зависимости от платформы
-		if (platform === 'iOS/Safari') {
-			initIOSSafari(); // Инициализация для iOS/Safari
-		} else {
-			initChromeWindows(); // Инициализация для Chrome/Windows (по умолчанию)
-		}
+        // Выбор ветки в зависимости от платформы
+        if (platform === 'iOS/Safari') {
+            initIOSSafari(); // Инициализация для iOS/Safari
+        } else {
+            initChromeWindows(); // Инициализация для Chrome/Windows (по умолчанию)
+        }
 
         // Обработчики событий для модального окна
         modalCloseBtn.addEventListener('click', () => {
