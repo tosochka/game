@@ -352,6 +352,7 @@
 			width: 90%;
 			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 			animation: slideIn 0.5s ease-out;
+			position: relative; /* Добавляем для корректного позиционирования */
 		}
 
 		#win-modal .modal-header {
@@ -407,14 +408,13 @@
 		/* Адаптация для альбомной ориентации на мобильных устройствах */
 		@media (max-width: 768px) and (orientation: landscape) {
 			#win-modal .modal-content {
-				transform: rotate(90deg); /* Поворачиваем окно на 90 градусов */
-				transform-origin: center; /* Центр вращения */
-				max-width: 80vh; /* Ширина окна теперь зависит от высоты экрана */
-				width: auto;
-				height: 80vw; /* Высота окна теперь зависит от ширины экрана */
-				display: flex;
-				flex-direction: column;
-				justify-content: center;
+				width: calc(100vh * 16 / 9); /* Ширина как у игрового поля */
+				height: 100vh; /* Высота как у игрового поля */
+				max-width: none; /* Убираем ограничение по максимальной ширине */
+				position: fixed; /* Фиксируем позицию */
+				top: 50%; /* Центрируем по вертикали */
+				left: 50%; /* Центрируем по горизонтали */
+				transform: translate(-50%, -50%); /* Центрируем */
 			}
 
 			#win-modal .modal-header h2 {
