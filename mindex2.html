@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Угадай бренд по слогану</title>
     <style>
-        /* Ваши текущие стили */
+        /* Общие стили */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -354,16 +354,19 @@
             animation: slideIn 0.5s ease-out;
         }
 
-        /* Стили для мобильных устройств */
-        body.mobile-device #win-modal .modal-content {
-            width: 80%; /* 80% ширины экрана */
-            height: 80vh; /* 80% высоты экрана */
-            max-width: none; /* Убираем ограничение по максимальной ширине */
-            border-radius: 20px; /* Закругленные углы */
+        /* Стили для мобильных устройств в альбомной ориентации */
+        @media (orientation: landscape) {
+            body.mobile-device #win-modal .modal-content {
+                width: 80%; /* 80% ширины экрана */
+                height: 80vh; /* 80% высоты экрана */
+                max-width: none; /* Убираем ограничение по максимальной ширине */
+                border-radius: 20px; /* Закругленные углы */
+            }
         }
 
-        /* Стили для ПК */
-        body.desktop-device #win-modal .modal-content {
+        /* Стили для ПК и портретной ориентации мобильных устройств */
+        body.desktop-device #win-modal .modal-content,
+        body.mobile-device #win-modal .modal-content {
             /* Оставляем стили по умолчанию */
         }
 
