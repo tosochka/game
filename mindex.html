@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Угадай бренд по слогану</title>
     <style>
-        /* Ваши текущие стили */
+        /* Общие стили */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -354,6 +354,33 @@
             animation: slideIn 0.5s ease-out;
         }
 
+        /* Стили для мобильных устройств в альбомной ориентации */
+        @media (orientation: landscape) {
+            body.mobile-device #win-modal .modal-content {
+                width: 60%; /* 80% ширины экрана */
+                height: 80vh; /* Уменьшаем высоту до 80% */
+                max-width: none; /* Убираем ограничение по максимальной ширине */
+                border-radius: 20px; /* Закругленные углы */
+            }
+
+            /* Уменьшаем высоту заголовка */
+            body.mobile-device #win-modal .modal-header {
+                padding: 10px; /* Уменьшаем padding */
+            }
+
+            /* Добавляем прокрутку для контента, если он не помещается */
+            body.mobile-device #win-modal .modal-body {
+                max-height: 60vh; /* Ограничиваем высоту контента */
+                overflow-y: auto; /* Добавляем прокрутку */
+            }
+        }
+
+        /* Стили для ПК и портретной ориентации мобильных устройств */
+        body.desktop-device #win-modal .modal-content,
+        body.mobile-device #win-modal .modal-content {
+            /* Оставляем стили по умолчанию */
+        }
+
         #win-modal .modal-header {
             background: #4CAF50; /* Зеленый цвет для выигрыша */
             padding: 20px;
@@ -368,7 +395,7 @@
         }
 
         #win-modal .modal-body {
-            padding: 20px;
+            padding: 5px;
             text-align: center;
         }
 
@@ -445,11 +472,7 @@
                 <h2>Вы выиграли!</h2>
             </div>
             <div class="modal-body">
-                <p>С чем вас душевно поздравляем.</p>
-                <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТАSY.</p>
-                <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
-                <p>Поторопитесь!</p>
-                <p>И не забудьте сделать скриншот.</p>
+                <!-- Текст будет обновляться динамически -->
             </div>
             <div class="modal-footer">
                 <button id="win-modal-close-btn">Закрыть</button>
@@ -463,6 +486,64 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
+        // Функция для определения типа устройства
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+            // Проверяем, является ли устройство iOS или Android
+            return /android/i.test(userAgent) || /iPad|iPhone|iPod/i.test(userAgent);
+        }
+
+        // Функция для определения ориентации экрана
+        function isLandscape() {
+            return window.matchMedia("(orientation: landscape)").matches;
+        }
+
+        // Добавляем класс к <body> в зависимости от типа устройства
+        if (isMobileDevice()) {
+            document.body.classList.add('mobile-device');
+        } else {
+            document.body.classList.add('desktop-device');
+        }
+
+        // Функция для обновления текста в модальном окне
+        function updateWinModalText() {
+            const winModalBody = document.querySelector('#win-modal .modal-body');
+            const isMobile = isMobileDevice();
+            const isLandscapeMode = isLandscape();
+
+            if (isMobile && isLandscapeMode) {
+                // Сокращенный текст для мобильных устройств в альбомной ориентации
+                winModalBody.innerHTML = `
+                    <p>С чем вас душевно поздравляем.</p>
+                    <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТASY.</p>
+                    <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
+                `;
+            } else {
+                // Полный текст для ПК и портретной ориентации
+                winModalBody.innerHTML = `
+                    <p>С чем вас душевно поздравляем.</p>
+                    <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТASY.</p>
+                    <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
+                    <p>Поторопитесь!</p>
+                    <p>И не забудьте сделать скриншот.</p>
+                `;
+            }
+        }
+
+        // Вызов функции при открытии модального окна
+        function showWinModal() {
+            updateWinModalText(); // Обновляем текст перед показом
+            winModal.style.display = 'flex';
+        }
+
+        // Обработчик изменения ориентации экрана
+        window.addEventListener('resize', () => {
+            if (winModal.style.display === 'flex') {
+                updateWinModalText(); // Обновляем текст, если модальное окно открыто
+            }
+        });
+
         // Объявление переменных
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
@@ -690,6 +771,7 @@
 
         // Функция для отображения модального окна с сообщением о выигрыше
         function showWinModal() {
+            updateWinModalText(); // Обновляем текст перед показом
             winModal.style.display = 'flex';
         }
 
