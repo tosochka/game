@@ -346,21 +346,21 @@
 		/* Стили для модального окна с выигрышем */
 		#win-modal .modal-content {
 			background: white;
-			border-radius: 20px;
+			border-radius: 20px; /* Закругленные углы */
 			overflow: hidden;
-			max-width: 400px;
-			width: 90%;
+			max-width: 400px; /* Максимальная ширина для ПК */
+			width: 90%; /* Ширина по умолчанию для мобильных устройств */
 			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 			animation: slideIn 0.5s ease-out;
 		}
 
-		/* Медиа-запрос для альбомной ориентации */
-		@media (orientation: landscape) {
+		/* Медиа-запрос для мобильных устройств в альбомной ориентации */
+		@media (orientation: landscape) and (max-width: 768px) {
 			#win-modal .modal-content {
-				width: 100%; /* Занимает всю ширину экрана */
+				width: 80%; /* 80% ширины экрана */
 				height: 80vh; /* 80% высоты экрана */
 				max-width: none; /* Убираем ограничение по максимальной ширине */
-				border-radius: 0; /* Убираем скругление углов */
+				border-radius: 20px; /* Возвращаем закругленные углы */
 			}
 		}
 
