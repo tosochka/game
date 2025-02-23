@@ -527,6 +527,16 @@
         let isSoundUnlocked = false;
         let activeSounds = [];
         let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
+		
+		function adjustWinModal() {
+			const winModalContent = document.querySelector("#win-modal .modal-content");
+			if (winModalContent) {
+				winModalContent.style.width = "100vw"; // Принудительно задаем ширину
+			}
+		}
+
+		window.addEventListener("resize", adjustWinModal);
+		adjustWinModal(); // Применяем при загрузке страницы
 
         // Функция для проверки загрузки всех изображений
         function waitForImagesToLoad() {
