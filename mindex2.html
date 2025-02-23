@@ -358,9 +358,20 @@
         @media (orientation: landscape) {
             body.mobile-device #win-modal .modal-content {
                 width: 80%; /* 80% ширины экрана */
-                height: 80vh; /* 80% высоты экрана */
+                height: 80vh; /* Увеличиваем высоту до 80% */
                 max-width: none; /* Убираем ограничение по максимальной ширине */
                 border-radius: 20px; /* Закругленные углы */
+            }
+
+            /* Уменьшаем высоту заголовка */
+            body.mobile-device #win-modal .modal-header {
+                padding: 10px; /* Уменьшаем padding */
+            }
+
+            /* Добавляем прокрутку для контента, если он не помещается */
+            body.mobile-device #win-modal .modal-body {
+                max-height: 60vh; /* Ограничиваем высоту контента */
+                overflow-y: auto; /* Добавляем прокрутку */
             }
         }
 
