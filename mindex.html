@@ -14,7 +14,7 @@
             justify-content: center;
             align-items: flex-start;
             height: 100vh;
-            background-color: #f4f4f4;
+            background-color: #f4f4f4; /* Цвет фона страницы (светло-серый) */
             overflow: hidden;
         }
 
@@ -48,9 +48,9 @@
 
         /* Анимация мигания для правильного ответа */
         @keyframes correctBlink {
-            0% { border-color: green; }
+            0% { border-color: green; /* Зеленый цвет для правильного ответа */ }
             50% { border-color: transparent; }
-            100% { border-color: green; }
+            100% { border-color: green; /* Зеленый цвет для правильного ответа */ }
         }
 
         .correct-border {
@@ -59,9 +59,9 @@
 
         /* Анимация мигания для неправильного ответа */
         @keyframes wrongBlink {
-            0% { border-color: red; }
+            0% { border-color: red; /* Красный цвет для неправильного ответа */ }
             50% { border-color: transparent; }
-            100% { border-color: red; }
+            100% { border-color: red; /* Красный цвет для неправильного ответа */ }
         }
 
         .wrong-border {
@@ -74,8 +74,8 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: white; /* Белый фон контейнера игры */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Тень контейнера (черный с прозрачностью) */
             overflow: hidden;
         }
 
@@ -127,8 +127,8 @@
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                background-color: #007bff;
-                color: white;
+                background-color: #DB3C30; /* Темно-красный цвет фона секции вопроса */
+                color: white; /* Белый цвет текста */
                 overflow: hidden; /* Скрываем текст, который не помещается */			
                 padding: 10px; /* Отступы внутри контейнера */
                 box-sizing: border-box; /* Учитываем padding в размерах */
@@ -169,13 +169,13 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            background-color: #007bff;
-            color: white;
+            background-color: #DB3C30; /* Темно-красный цвет фона секции вопроса */
+            color: white; /* Белый цвет текста */
         }
 
         #progress-bar {
             width: 100%;
-            background-color: #ffa500;
+            background-color: #444444; /* Серый металлик цвет прогресс-бара */
             transform-origin: left;
             transform: scaleX(0);
             transition: transform 0.1s linear;
@@ -191,8 +191,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #f4f4f4;
-            border: 2px solid #ddd;
+            background-color: #f4f4f4; /* Светло-серый фон ответов */
+            border: 2px solid #ddd; /* Серая рамка ответов */
             border-radius: 10px;
             cursor: pointer;
             transition: transform 0.3s, opacity 0.3s;
@@ -200,11 +200,11 @@
         }
 
         .answer.correct {
-            border-color: green;
+            border-color: green; /* Зеленый цвет рамки для правильного ответа */
         }
 
         .answer.wrong {
-            border-color: red;
+            border-color: red; /* Красный цвет рамки для неправильного ответа */
         }
 
         .answer.hide {
@@ -223,19 +223,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.7); /* Полупрозрачный черный фон модального окна */
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
 
         .modal-content {
-            background: white;
+            background: white; /* Белый фон модального окна */
             border-radius: 20px;
             overflow: hidden;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень модального окна (черный с прозрачностью) */
             animation: slideIn 0.5s ease-out;
         }
 
@@ -251,7 +251,7 @@
         }
 
         .modal-header {
-            background: #007bff;
+            background: #f44336; /* Красный цвет фона заголовка модального окна */
             padding: 20px;
             text-align: center;
         }
@@ -259,8 +259,8 @@
         .modal-header h2 {
             margin: 0;
             font-size: 30px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            color: white; /* Белый цвет текста заголовка */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Тень текста (черный с прозрачностью) */
         }
 
         .modal-body {
@@ -270,7 +270,7 @@
 
         .modal-body p {
             font-size: 18px;
-            color: #333;
+            color: #333; /* Темно-серый цвет текста */
             margin: 10px 0;
         }
 
@@ -282,26 +282,26 @@
         .modal-footer button {
             margin: 5px;
             padding: 12px 24px;
-            background: #007bff;
-            color: white;
+            background: #f44336; /* Красный цвет фона кнопки */
+            color: white; /* Белый цвет текста кнопки */
             border: none;
             border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень кнопки (черный с прозрачностью) */
             transition: all 0.3s ease;
         }
 
         .modal-footer button:hover {
-            background: #004080;
+            background: #DB3C30; /* Темно-красный цвет фона кнопки при наведении */
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Тень кнопки при наведении (черный с прозрачностью) */
         }
 
         .modal-footer button:disabled {
-            background: #ccc;
+            background: #ccc; /* Серый цвет фона кнопки, если она отключена */
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -309,7 +309,7 @@
 
         .modal-footer button:active {
             transform: translateY(0);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень кнопки при нажатии (черный с прозрачностью) */
         }
 
         #start-screen {
@@ -318,7 +318,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.8); /* Полупрозрачный черный фон начального экрана */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -328,15 +328,15 @@
         #start-btn {
             padding: 15px 30px;
             font-size: 20px;
-            background-color: #007bff;
-            color: white;
+            background-color: #DB3C30; /* Темно-красный цвет фона кнопки "Начать игру" */
+            color: white; /* Белый цвет текста кнопки */
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
 
         #start-btn:hover {
-            background-color: #0056b3;
+            background-color: #cc0000; /* Черно-красный цвет фона кнопки при наведении */
         }
 
         .hidden {
@@ -345,12 +345,12 @@
 
         /* Стили для модального окна с выигрышем */
         #win-modal .modal-content {
-            background: white;
+            background: white; /* Белый фон модального окна */
             border-radius: 20px;
             overflow: hidden;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень модального окна (черный с прозрачностью) */
             animation: slideIn 0.5s ease-out;
         }
 
@@ -382,7 +382,7 @@
         }
 
         #win-modal .modal-header {
-            background: #4CAF50; /* Зеленый цвет для выигрыша */
+            background: #DB3C30; /* Темно-красный цвет фона заголовка модального окна */
             padding: 20px;
             text-align: center;
         }
@@ -390,8 +390,8 @@
         #win-modal .modal-header h2 {
             margin: 0;
             font-size: 30px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            color: white; /* Белый цвет текста заголовка */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Тень текста (черный с прозрачностью) */
         }
 
         #win-modal .modal-body {
@@ -401,7 +401,7 @@
 
         #win-modal .modal-body p {
             font-size: 18px;
-            color: #333;
+            color: #333; /* Темно-серый цвет текста */
             margin: 10px 0;
         }
 
@@ -413,22 +413,22 @@
         #win-modal .modal-footer button {
             margin: 5px;
             padding: 12px 24px;
-            background: #4CAF50;
-            color: white;
+            background: #DB3C30; /* Темно-красный цвет фона кнопки */
+            color: white; /* Белый цвет текста кнопки */
             border: none;
             border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень кнопки (черный с прозрачностью) */
             transition: all 0.3s ease;
         }
 
         #win-modal .modal-footer button:hover {
-            background: #45a049;
+            background: #cc0000; /* Черно-красный цвет фона кнопки при наведении */
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Тень кнопки при наведении (черный с прозрачностью) */
         }
     </style>
 </head>
@@ -971,10 +971,10 @@
         // Функция для перемешивания массива
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
+                const j = Math.floor(Math.random() * (i + 1)); // Генерация случайного индекса
+                [array[i], array[j]] = [array[j], array[i]]; // Меняем местами элементы
             }
-            return array;
+            return array; // Возвращаем перемешанный массив
         }
 
         // Функция для предзагрузки звуков
@@ -1021,7 +1021,7 @@
 
             soundUrls.forEach(url => {
                 const audio = new Audio(url);
-                audio.preload = 'auto';
+                audio.preload = 'auto'; // Предзагрузка звуков
             });
         }
 
@@ -1034,7 +1034,7 @@
         function resetTimer() {
             clearInterval(timer);
             const progressBar = document.getElementById('progress-bar');
-            progressBar.style.transform = 'scaleX(0)';
+            progressBar.style.transform = 'scaleX(0)'; // Сбрасываем прогресс-бар
         }
 
         // Функция для запуска таймера
@@ -1042,19 +1042,19 @@
             let timeLeft = timeLimit;
             const progressBar = document.getElementById('progress-bar');
 
-            progressBar.style.transform = 'scaleX(1)';
+            progressBar.style.transform = 'scaleX(1)'; // Устанавливаем прогресс-бар в начальное состояние
 
             timer = setInterval(() => {
                 timeLeft--;
 
                 const progress = timeLeft / timeLimit;
-                progressBar.style.transform = `scaleX(${progress})`;
+                progressBar.style.transform = `scaleX(${progress})`; // Обновляем прогресс-бар
 
                 if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    handleTimeOut();
+                    clearInterval(timer); // Останавливаем таймер
+                    handleTimeOut(); // Обрабатываем истечение времени
                 }
-            }, 1000);
+            }, 1000); // Обновляем каждую секунду
         }
 
         // Функция для добавления обработчика свайпа
@@ -1123,14 +1123,14 @@
         function initChromeWindows() {
             console.log("Инициализация для Chrome/Windows");
 
-            preloadSounds();
-            setupAnimations();
+            preloadSounds(); // Предзагрузка звуков
+            setupAnimations(); // Настройка анимаций
 
             startBtn.addEventListener('click', async () => {
-                isSoundUnlocked = true;
-                await playSound('click'); // Звук клика
-                startScreen.classList.add('hidden');
-                gameContainer.classList.remove('hidden');
+                isSoundUnlocked = true; // Разблокируем звук
+                await playSound('click'); // Воспроизводим звук клика
+                startScreen.classList.add('hidden'); // Скрываем начальный экран
+                gameContainer.classList.remove('hidden'); // Показываем игровой контейнер
                 await startGame(); // Запускаем игру
             });
         }
@@ -1139,20 +1139,20 @@
         function initIOSSafari() {
             console.log("Инициализация для iOS/Safari");
 
-            isSoundUnlocked = false;
+            isSoundUnlocked = false; // Звук заблокирован по умолчанию
 
             function setupSimplifiedAnimations() {
                 console.log("Упрощенные анимации для iOS/Safari");
                 document.querySelectorAll('.fade-in, .fade-out').forEach(element => {
-                    element.style.animation = 'none';
+                    element.style.animation = 'none'; // Отключаем сложные анимации
                 });
             }
 
-            setupSimplifiedAnimations();
+            setupSimplifiedAnimations(); // Настройка упрощенных анимаций
             startBtn.addEventListener('click', () => {
-                startScreen.classList.add('hidden');
-                gameContainer.classList.remove('hidden');
-                startGame();
+                startScreen.classList.add('hidden'); // Скрываем начальный экран
+                gameContainer.classList.remove('hidden'); // Показываем игровой контейнер
+                startGame(); // Запускаем игру
             });
         }
 
@@ -1165,14 +1165,14 @@
 
         // Обработчики событий для модального окна
         modalCloseBtn.addEventListener('click', () => {
-            stopAndClearAllSounds();
-            closeModal();
+            stopAndClearAllSounds(); // Останавливаем все звуки
+            closeModal(); // Закрываем модальное окно
         });
 
         modalRestartBtn.addEventListener('click', async () => {
-            stopAndClearAllSounds();
-            closeModal();
-            await startGame();
+            stopAndClearAllSounds(); // Останавливаем все звуки
+            closeModal(); // Закрываем модальное окно
+            await startGame(); // Перезапускаем игру
         });
 
         // Массив всех вопросов
