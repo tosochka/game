@@ -343,74 +343,77 @@
             display: none !important;
         }
 
-		/* Стили для модального окна выигрыша */
-        #win-modal .modal-content {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            animation: slideIn 0.5s ease-out;
-        }
+		/* Стили для модального окна с выигрышем */
+		#win-modal .modal-content {
+			background: white;
+			border-radius: 20px;
+			overflow: hidden;
+			max-width: 400px;
+			width: 90%;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+			animation: slideIn 0.5s ease-out;
+		}
 
-        #win-modal .modal-header {
-            background: #4CAF50; /* Зеленый цвет для выигрыша */
-            padding: 20px;
-            text-align: center;
-        }
-
-        #win-modal .modal-header h2 {
-            margin: 0;
-            font-size: 30px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        #win-modal .modal-body {
-            padding: 20px;
-            text-align: center;
-        }
-
-        #win-modal .modal-body p {
-            font-size: 18px;
-            color: #333;
-            margin: 10px 0;
-        }
-
-        #win-modal .modal-footer {
-            padding: 20px;
-            text-align: center;
-        }
-
-        #win-modal .modal-footer button {
-            margin: 5px;
-            padding: 12px 24px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        #win-modal .modal-footer button:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
-        }
-
-		/* Адаптация для альбомной ориентации на мобильных устройствах */
-		@media (max-width: 768px) {
-			body {
-				background-color: red; /* Временно для проверки */
+		/* Медиа-запрос для альбомной ориентации */
+		@media (orientation: landscape) {
+			#win-modal .modal-content {
+				width: 100%; /* Занимает всю ширину экрана */
+				height: 80vh; /* 80% высоты экрана */
+				max-width: none; /* Убираем ограничение по максимальной ширине */
+				border-radius: 0; /* Убираем скругление углов */
 			}
 		}
-}    </style>
+
+		#win-modal .modal-header {
+			background: #4CAF50; /* Зеленый цвет для выигрыша */
+			padding: 20px;
+			text-align: center;
+		}
+
+		#win-modal .modal-header h2 {
+			margin: 0;
+			font-size: 30px;
+			color: white;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+		}
+
+		#win-modal .modal-body {
+			padding: 20px;
+			text-align: center;
+		}
+
+		#win-modal .modal-body p {
+			font-size: 18px;
+			color: #333;
+			margin: 10px 0;
+		}
+
+		#win-modal .modal-footer {
+			padding: 20px;
+			text-align: center;
+		}
+
+		#win-modal .modal-footer button {
+			margin: 5px;
+			padding: 12px 24px;
+			background: #4CAF50;
+			color: white;
+			border: none;
+			border-radius: 25px;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: bold;
+			text-transform: uppercase;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+			transition: all 0.3s ease;
+		}
+
+		#win-modal .modal-footer button:hover {
+			background: #45a049;
+			transform: translateY(-2px);
+			box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+		}
+    </style>
 </head>
 <body>
     <!-- Начальный экран -->
@@ -446,23 +449,23 @@
     </div>
 
     <!-- Модальное окно для выигрыша -->
-	<div id="win-modal" class="modal">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h2>Вы выиграли!</h2>
-			</div>
-			<div class="modal-body">
-				<p>С чем вас душевно поздравляем.</p>
-				<p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТАSY.</p>
-				<p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
-				<p>Поторопитесь!</p>
-				<p>И не забудьте сделать скриншот.</p>
-			</div>
-			<div class="modal-footer">
-				<button id="win-modal-close-btn">Закрыть</button>
-			</div>
-		</div>
-	</div>
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Вы выиграли!</h2>
+            </div>
+            <div class="modal-body">
+                <p>С чем вас душевно поздравляем.</p>
+                <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТАSY.</p>
+                <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
+                <p>Поторопитесь!</p>
+                <p>И не забудьте сделать скриншот.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="win-modal-close-btn">Закрыть</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Звуки -->
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
@@ -502,16 +505,6 @@
         let isSoundUnlocked = false;
         let activeSounds = [];
         let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
-		
-		function applyRedBackground() {
-			const width = window.innerWidth;
-			if (width <= 768) {
-				document.body.style.backgroundColor = "red"; // Временно для проверки
-			}
-		}
-
-		window.addEventListener("resize", applyRedBackground);
-		applyRedBackground(); // Применяем при загрузке страницы
 
         // Функция для проверки загрузки всех изображений
         function waitForImagesToLoad() {
@@ -1122,14 +1115,16 @@
                 ]
             },			
             {
-                question: "Цены просто о*уеть",
-                answers: [
-                    { text: "Евросеть", correct: true, image: "images/euroset.jpg" },
-                    { text: "М.Видео", correct: false, image: "images/mvideo.jpg" },
-                    { text: "Эльдорадо", correct: false, image: "images/eldorado.jpg" },
-                    { text: "Textasy", correct: false, image: "images/textasy.jpg" }
+				question: "Цены просто о*уеть",
+				answers: [
+					{ text: "Евросеть", correct: true, image: "images/euroset.jpg" },
+					{ text: "М.Видео", correct: false, image: "images/mvideo.jpg" },
+					{ text: "Эльдорадо", correct: false, image: "images/eldorado.jpg" },
+					{ text: "Textasy", correct: false, image: "images/textasy.jpg" }
                 ]
             }			
+			
+            // Добавьте больше вопросов здесь
         ];
     </script>
 </body>
