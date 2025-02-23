@@ -406,33 +406,8 @@
 
 		/* Адаптация для альбомной ориентации на мобильных устройствах */
 		@media (max-width: 768px) and (orientation: landscape) {
-			#win-modal .modal-content {
-				width: 100vw !important; /* Ширина окна равна ширине экрана */
-				height: 100vh; /* Высота окна равна высоте экрана */
-				max-width: none; /* Убираем ограничение по максимальной ширине */
-				position: fixed; /* Фиксируем позицию */
-				top: 50%; /* Центрируем по вертикали */
-				left: 50%; /* Центрируем по горизонтали */
-				transform: translate(-50%, -50%); /* Центрируем */
-				display: flex;
-				flex-direction: column;
-				justify-content: center;
-				align-items: center;
-				padding: 20px; /* Добавляем отступы */
-			}
-
-			#win-modal .modal-header h2 {
-				font-size: 24px; /* Уменьшаем размер заголовка */
-			}
-
-			#win-modal .modal-body p {
-				font-size: 16px; /* Уменьшаем размер текста */
-				margin: 10px 0; /* Добавляем отступы между параграфами */
-			}
-
-			#win-modal .modal-footer button {
-				padding: 10px 20px; /* Уменьшаем размер кнопок */
-				font-size: 14px;
+			body {
+				background-color: red; /* Временно для проверки */
 			}
 		}
     </style>
