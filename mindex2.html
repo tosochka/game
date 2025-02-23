@@ -480,8 +480,8 @@
         }
 
         #how-to-play-modal .modal-body {
-			padding: 20px 20px 5px 20px;
-			text-align: left;
+            padding: 20px;
+            text-align: left;
         }
 
         #how-to-play-modal .modal-body p {
@@ -501,7 +501,7 @@
         }
 
         #how-to-play-modal .modal-footer {
-			padding: 5px 20px 20px 20px;
+            padding: 20px;
             text-align: center;
         }
 
@@ -595,6 +595,7 @@
             </div>
             <div class="modal-footer">
                 <button id="how-to-play-close-btn">Закрыть</button>
+                <button id="how-to-play-start-btn">Начать игру</button> <!-- Новая кнопка -->
             </div>
         </div>
     </div>
@@ -632,6 +633,7 @@
             if (isMobile && isLandscapeMode) {
                 // Сокращенный текст для мобильных устройств в альбомной ориентации
                 howToPlayModalBody.innerHTML = `
+                    <p>Инструкция к игре «Угадай бренд по слогану»:</p>
                     <ol>
                         <li>Нажмите кнопку «Начать игру»</li>
                         <li>Прочитайте слоган и выберите бренд</li>
@@ -697,6 +699,7 @@
         const howToPlayBtn = document.getElementById('how-to-play-btn');
         const howToPlayModal = document.getElementById('how-to-play-modal');
         const howToPlayCloseBtn = document.getElementById('how-to-play-close-btn');
+        const howToPlayStartBtn = document.getElementById('how-to-play-start-btn'); // Новая кнопка
 
         // Обработчик открытия модального окна "Как играть"
         howToPlayBtn.addEventListener('click', () => {
@@ -707,6 +710,16 @@
         // Обработчик закрытия модального окна "Как играть" по кнопке
         howToPlayCloseBtn.addEventListener('click', () => {
             howToPlayModal.style.display = 'none';
+        });
+
+        // Обработчик для новой кнопки "Начать игру" в модальном окне "Как играть"
+        howToPlayStartBtn.addEventListener('click', async () => {
+            isSoundUnlocked = true;
+            await playSound('click');
+            howToPlayModal.style.display = 'none'; // Закрыть модальное окно
+            startScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            await startGame();
         });
 
         // Обработчик закрытия модального окна "Как играть" по клику вне окна
