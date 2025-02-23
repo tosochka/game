@@ -664,6 +664,9 @@
             const isMobile = isMobileDevice();
             const isLandscapeMode = isLandscape();
 
+            console.log("Обновление текста в модальном окне 'Вы выиграли!'"); // Отладочное сообщение
+            console.log(`isMobile: ${isMobile}, isLandscapeMode: ${isLandscapeMode}`); // Отладочное сообщение
+
             if (isMobile && isLandscapeMode) {
                 // Сокращенный текст для мобильных устройств в альбомной ориентации
                 winModalBody.innerHTML = `
@@ -686,7 +689,10 @@
         // Обработчик изменения ориентации экрана
         window.addEventListener('resize', () => {
             if (howToPlayModal.style.display === 'flex') {
-                updateHowToPlayModalText(); // Обновляем текст, если модальное окно открыто
+                updateHowToPlayModalText(); // Обновляем текст, если модальное окно "Как играть" открыто
+            }
+            if (winModal.style.display === 'flex') {
+                updateWinModalText(); // Обновляем текст, если модальное окно "Вы выиграли!" открыто
             }
         });
 
