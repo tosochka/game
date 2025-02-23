@@ -344,44 +344,94 @@
         }
 
 		/* Стили для модального окна выигрыша */
-		#win-modal .modal-content {
-			background: white;
-			border-radius: 20px;
-			overflow: hidden;
-			max-width: 400px;
-			width: 90%;
-			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-			animation: slideIn 0.5s ease-out;
-		}
+        #win-modal .modal-content {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        #win-modal .modal-header {
+            background: #4CAF50; /* Зеленый цвет для выигрыша */
+            padding: 20px;
+            text-align: center;
+        }
+
+        #win-modal .modal-header h2 {
+            margin: 0;
+            font-size: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #win-modal .modal-body {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #win-modal .modal-body p {
+            font-size: 18px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        #win-modal .modal-footer {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #win-modal .modal-footer button {
+            margin: 5px;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        #win-modal .modal-footer button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
 
 		/* Адаптация для альбомной ориентации на мобильных устройствах */
 		@media (max-width: 768px) and (orientation: landscape) {
 			#win-modal .modal-content {
-				width: calc(100vh * 16 / 9);
-				height: 100vh;
-				max-width: none;
-				position: fixed;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
+				width: 100vw; /* Ширина окна равна ширине экрана */
+				height: 100vh; /* Высота окна равна высоте экрана */
+				max-width: none; /* Убираем ограничение по максимальной ширине */
+				position: fixed; /* Фиксируем позицию */
+				top: 50%; /* Центрируем по вертикали */
+				left: 50%; /* Центрируем по горизонтали */
+				transform: translate(-50%, -50%); /* Центрируем */
 				display: flex;
 				flex-direction: column;
 				justify-content: center;
 				align-items: center;
-				padding: 20px;
+				padding: 20px; /* Добавляем отступы */
 			}
 
 			#win-modal .modal-header h2 {
-				font-size: 24px;
+				font-size: 24px; /* Уменьшаем размер заголовка */
 			}
 
 			#win-modal .modal-body p {
-				font-size: 16px;
-				margin: 10px 0;
+				font-size: 16px; /* Уменьшаем размер текста */
+				margin: 10px 0; /* Добавляем отступы между параграфами */
 			}
 
 			#win-modal .modal-footer button {
-				padding: 10px 20px;
+				padding: 10px 20px; /* Уменьшаем размер кнопок */
 				font-size: 14px;
 			}
 		}
