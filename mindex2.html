@@ -343,76 +343,79 @@
             display: none !important;
         }
 
-		/* Стили для модального окна с выигрышем */
-		#win-modal .modal-content {
-			background: white;
-			border-radius: 20px; /* Закругленные углы */
-			overflow: hidden;
-			max-width: 400px; /* Максимальная ширина для ПК */
-			width: 90%; /* Ширина по умолчанию для мобильных устройств */
-			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-			animation: slideIn 0.5s ease-out;
-		}
+        /* Стили для модального окна с выигрышем */
+        #win-modal .modal-content {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
 
-		/* Медиа-запрос для мобильных устройств в альбомной ориентации */
-		@media (orientation: landscape) and (max-width: 768px) {
-			#win-modal .modal-content {
-				width: 80%; /* 80% ширины экрана */
-				height: 80vh; /* 80% высоты экрана */
-				max-width: none; /* Убираем ограничение по максимальной ширине */
-				border-radius: 20px; /* Возвращаем закругленные углы */
-			}
-		}
+        /* Стили для мобильных устройств */
+        body.mobile-device #win-modal .modal-content {
+            width: 80%; /* 80% ширины экрана */
+            height: 80vh; /* 80% высоты экрана */
+            max-width: none; /* Убираем ограничение по максимальной ширине */
+            border-radius: 20px; /* Закругленные углы */
+        }
 
-		#win-modal .modal-header {
-			background: #4CAF50; /* Зеленый цвет для выигрыша */
-			padding: 20px;
-			text-align: center;
-		}
+        /* Стили для ПК */
+        body.desktop-device #win-modal .modal-content {
+            /* Оставляем стили по умолчанию */
+        }
 
-		#win-modal .modal-header h2 {
-			margin: 0;
-			font-size: 30px;
-			color: white;
-			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-		}
+        #win-modal .modal-header {
+            background: #4CAF50; /* Зеленый цвет для выигрыша */
+            padding: 20px;
+            text-align: center;
+        }
 
-		#win-modal .modal-body {
-			padding: 20px;
-			text-align: center;
-		}
+        #win-modal .modal-header h2 {
+            margin: 0;
+            font-size: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
 
-		#win-modal .modal-body p {
-			font-size: 18px;
-			color: #333;
-			margin: 10px 0;
-		}
+        #win-modal .modal-body {
+            padding: 20px;
+            text-align: center;
+        }
 
-		#win-modal .modal-footer {
-			padding: 20px;
-			text-align: center;
-		}
+        #win-modal .modal-body p {
+            font-size: 18px;
+            color: #333;
+            margin: 10px 0;
+        }
 
-		#win-modal .modal-footer button {
-			margin: 5px;
-			padding: 12px 24px;
-			background: #4CAF50;
-			color: white;
-			border: none;
-			border-radius: 25px;
-			cursor: pointer;
-			font-size: 16px;
-			font-weight: bold;
-			text-transform: uppercase;
-			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-			transition: all 0.3s ease;
-		}
+        #win-modal .modal-footer {
+            padding: 20px;
+            text-align: center;
+        }
 
-		#win-modal .modal-footer button:hover {
-			background: #45a049;
-			transform: translateY(-2px);
-			box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
-		}
+        #win-modal .modal-footer button {
+            margin: 5px;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        #win-modal .modal-footer button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -473,6 +476,20 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
+        // Функция для определения типа устройства
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+            // Проверяем, является ли устройство iOS или Android
+            return /android/i.test(userAgent) || /iPad|iPhone|iPod/i.test(userAgent);
+        }
+
+        // Добавляем класс к <body> в зависимости от типа устройства
+        if (isMobileDevice()) {
+            document.body.classList.add('mobile-device');
+        } else {
+            document.body.classList.add('desktop-device');
+        }
         // Объявление переменных
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
