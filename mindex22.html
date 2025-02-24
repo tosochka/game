@@ -501,12 +501,15 @@
         }
 
         #how-to-play-modal .modal-footer {
-            padding: 5px 20px 20px 20px;
+            display: flex;
+            justify-content: space-between; /* Равномерное распределение кнопок */
+            padding: 20px;
             text-align: center;
         }
 
         #how-to-play-modal .modal-footer button {
-            margin: 5px;
+            flex: 1; /* Равная ширина для кнопок */
+            margin: 0 10px; /* Отступ между кнопками */
             padding: 12px 24px;
             background: #DB3C30;
             color: white;
@@ -524,6 +527,20 @@
             background: #cc0000;
             transform: translateY(-2px);
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Убираем отступы для первой и последней кнопки, чтобы они не выходили за границы */
+        #how-to-play-modal .modal-footer button:first-child {
+            margin-left: 0;
+        }
+
+        #how-to-play-modal .modal-footer button:last-child {
+            margin-right: 0;
+        }
+
+        /* Скрываем кнопку "Начать игру" для iOS/Safari */
+        body.mobile-device.ios #how-to-play-start-btn {
+            display: none;
         }
     </style>
 </head>
@@ -620,41 +637,49 @@
         // Добавляем класс к <body> в зависимости от типа устройства
         if (isMobileDevice()) {
             document.body.classList.add('mobile-device');
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                document.body.classList.add('ios');
+            }
         } else {
             document.body.classList.add('desktop-device');
         }
 
-        // Функция для обновления текста в модальном окне "Как играть"
-        function updateHowToPlayModalText() {
-            const howToPlayModalBody = document.querySelector('#how-to-play-modal .modal-body');
-            const isMobile = isMobileDevice();
-            const isLandscapeMode = isLandscape();
+        // Получаем элементы DOM
+        const questionElement = document.getElementById('question');
+        const answerSection = document.getElementById('answer-section');
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        const gameContainer = document.querySelector('.game-container');
+        const modal = document.getElementById('modal');
+        const modalScore = document.getElementById('modal-score');
+        const modalHighScore = document.getElementById('modal-high-score');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalRestartBtn = document.getElementById('modal-restart-btn');
+        const gameCountMessage = document.getElementById('game-count-message');
+        const winModal = document.getElementById('win-modal');
+        const winModalCloseBtn = document.getElementById('win-modal-close-btn');
+        const howToPlayBtn = document.getElementById('how-to-play-btn');
+        const howToPlayModal = document.getElementById('how-to-play-modal');
+        const howToPlayCloseBtn = document.getElementById('how-to-play-close-btn');
+        const howToPlayStartBtn = document.getElementById('how-to-play-start-btn');
 
-            if (isMobile && isLandscapeMode) {
-                // Сокращенный текст для мобильных устройств в альбомной ориентации
-                howToPlayModalBody.innerHTML = `
-                    <ol>
-                        <li>Нажмите кнопку «Начать игру»</li>
-                        <li>Прочитайте слоган и выберите бренд</li>
-                        <li>Смахните неправильные ответы с экрана</li>
-                        <li>Следите за временем, у вас 3 попытки</li>
-                    </ol>
-                `;
-            } else {
-                // Полный текст для ПК и портретной ориентации
-                howToPlayModalBody.innerHTML = `
-                    <p>Инструкция к интерактивной игре «Угадай бренд по слогану»:</p>
-                    <ol>
-                        <li>Нажмите кнопку «Начать игру»</li>
-                        <li>Прочитайте слоган и выберите правильный бренд из предложенных вариантов</li>
-                        <li>Удаляйте неправильные ответы, свайпая их в сторону или кликая по ним</li>
-                        <li>Если время для ответа истекает, игра переходит к следующему вопросу</li>
-                        <li>По завершении игры отображается статистика</li>
-                    </ol>
-                    <p>У вас 3 попытки!</p>
-                `;
-            }
-        }
+        // Определение платформы
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
+
+        console.log(`Запущено на: ${platform}`);
+
+        // Глобальные переменные
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timer;
+        const timeLimit = 10;
+        const maxGameCount = 3000;
+        let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
+        let isSoundUnlocked = false;
+        let activeSounds = [];
+        let isAnswerSelected = false;
 
         // Функция для обновления текста в модальном окне "Вы выиграли!"
         function updateWinModalText() {
@@ -684,25 +709,60 @@
             }
         }
 
-        // Обработчик изменения ориентации экрана
-        window.addEventListener('resize', () => {
-            if (howToPlayModal.style.display === 'flex') {
-                updateHowToPlayModalText(); // Обновляем текст, если модальное окно "Как играть" открыто
-            }
-            if (winModal.style.display === 'flex') {
-                updateWinModalText(); // Обновляем текст, если модальное окно "Вы выиграли!" открыто
-            }
+        // Функция для отображения модального окна с сообщением о выигрыше
+        function showWinModal() {
+            updateWinModalText(); // Обновляем текст перед показом
+            winModal.style.display = 'flex'; // Показываем модальное окно
+        }
+
+        // Обработчик закрытия модального окна с выигрышем
+        winModalCloseBtn.addEventListener('click', () => {
+            winModal.style.display = 'none';
         });
 
-        // Получаем элементы DOM
-        const howToPlayBtn = document.getElementById('how-to-play-btn');
-        const howToPlayModal = document.getElementById('how-to-play-modal');
-        const howToPlayCloseBtn = document.getElementById('how-to-play-close-btn');
-        const howToPlayStartBtn = document.getElementById('how-to-play-start-btn'); // Новая кнопка
+        // Функция для обновления текста в модальном окне "Как играть"
+        function updateHowToPlayModalText() {
+            const howToPlayModalBody = document.querySelector('#how-to-play-modal .modal-body');
+            const howToPlayStartBtn = document.getElementById('how-to-play-start-btn'); // Кнопка "Начать игру"
+            const isMobile = isMobileDevice();
+            const isLandscapeMode = isLandscape();
+
+            // Скрываем кнопку "Начать игру" для iOS/Safari
+            if (platform === 'iOS/Safari') {
+                howToPlayStartBtn.style.display = 'none'; // Скрываем кнопку
+            } else {
+                howToPlayStartBtn.style.display = 'block'; // Показываем кнопку для других платформ
+            }
+
+            if (isMobile && isLandscapeMode) {
+                // Сокращенный текст для мобильных устройств в альбомной ориентации
+                howToPlayModalBody.innerHTML = `
+                    <ol>
+                        <li>Нажмите кнопку «Начать игру»</li>
+                        <li>Прочитайте слоган и выберите бренд</li>
+                        <li>Смахните неправильные ответы с экрана</li>
+                        <li>Следите за временем, у вас 3 попытки</li>
+                    </ol>
+                `;
+            } else {
+                // Полный текст для ПК и портретной ориентации
+                howToPlayModalBody.innerHTML = `
+                    <p>Инструкция к интерактивной игре «Угадай бренд по слогану»:</p>
+                    <ol>
+                        <li>Нажмите кнопку «Начать игру»</li>
+                        <li>Прочитайте слоган и выберите правильный бренд из предложенных вариантов</li>
+                        <li>Удаляйте неправильные ответы, свайпая их в сторону или кликая по ним</li>
+                        <li>Если время для ответа истекает, игра переходит к следующему вопросу</li>
+                        <li>По завершении игры отображается статистика</li>
+                    </ol>
+                    <p>У вас 3 попытки!</p>
+                `;
+            }
+        }
 
         // Обработчик открытия модального окна "Как играть"
         howToPlayBtn.addEventListener('click', () => {
-            updateHowToPlayModalText(); // Обновляем текст перед показом
+            updateHowToPlayModalText(); // Обновляем текст и скрываем/показываем кнопку
             howToPlayModal.style.display = 'flex';
         });
 
@@ -713,13 +773,6 @@
 
         // Обработчик для новой кнопки "Начать игру" в модальном окне "Как играть"
         howToPlayStartBtn.addEventListener('click', async () => {
-            // Инициализация устройства перед началом игры
-            if (platform === 'iOS/Safari') {
-                initIOSSafari(); // Инициализация для iOS/Safari
-            } else {
-                initChromeWindows(); // Инициализация для других платформ
-            }
-
             isSoundUnlocked = true;
             await playSound('click');
             howToPlayModal.style.display = 'none'; // Закрыть модальное окно
@@ -734,38 +787,6 @@
                 howToPlayModal.style.display = 'none';
             }
         });
-
-        const questionElement = document.getElementById('question');
-        const answerSection = document.getElementById('answer-section');
-        const startScreen = document.getElementById('start-screen');
-        const startBtn = document.getElementById('start-btn');
-        const gameContainer = document.querySelector('.game-container');
-        const modal = document.getElementById('modal');
-        const modalScore = document.getElementById('modal-score');
-        const modalHighScore = document.getElementById('modal-high-score');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-        const modalRestartBtn = document.getElementById('modal-restart-btn');
-        const gameCountMessage = document.getElementById('game-count-message');
-        const winModal = document.getElementById('win-modal');
-        const winModalCloseBtn = document.getElementById('win-modal-close-btn');
-
-        // Определение платформы
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
-        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
-
-        console.log(`Запущено на: ${platform}`);
-
-        // Глобальные переменные
-        let currentQuestions = [];
-        let currentQuestionIndex = 0;
-        let score = 0;
-        let timer;
-        const timeLimit = 10;
-        const maxGameCount = 3000;
-        let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
-        let isSoundUnlocked = false;
-        let activeSounds = [];
-        let isAnswerSelected = false;
 
         // Функция для проверки загрузки всех изображений
         function waitForImagesToLoad() {
@@ -950,17 +971,6 @@
                 showModal();
             }
         }
-
-        // Функция для отображения модального окна с сообщением о выигрыше
-        function showWinModal() {
-            updateWinModalText(); // Обновляем текст перед показом
-            winModal.style.display = 'flex'; // Показываем модальное окно
-        }
-
-        // Обработчик закрытия модального окна с выигрышем
-        winModalCloseBtn.addEventListener('click', () => {
-            winModal.style.display = 'none';
-        });
 
         // Функция для получения случайных вопросов
         function getRandomQuestions(count) {
