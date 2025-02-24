@@ -1089,34 +1089,36 @@
             isAnswerSelected = false;
         }
 
-        async function handleTimeOut() {
-            if (isAnswerSelected) return;
-            isAnswerSelected = true;
+		async function handleTimeOut() {
+			if (isAnswerSelected) return;
+			isAnswerSelected = true;
 
-            await playSound('wrong');
+			await playSound('wrong');
 
-            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-            remainingAnswers.forEach(answer => {
-                answer.classList.add('wrong');
-                answer.classList.add('wrong-border');
-                answer.classList.add('disabled');
-            });
+			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+			remainingAnswers.forEach(answer => {
+				answer.classList.add('wrong');
+				answer.classList.add('wrong-border');
+				answer.classList.add('disabled');
+			});
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+			// Пауза: 2 секунды для всех устройств, 4 секунды для iOS
+			const pauseDuration = isIOS ? 4000 : 2000; // Увеличиваем паузу для iOS
+			await new Promise(resolve => setTimeout(resolve, pauseDuration));
 
-            clearInterval(timer);
+			clearInterval(timer);
 
-            if (currentQuestionIndex === currentQuestions.length - 1) {
-                await waitForSounds();
-                endGame();
-            } else {
-                currentQuestionIndex++;
-                await waitForSounds();
-                showQuestion();
-            }
+			if (currentQuestionIndex === currentQuestions.length - 1) {
+				await waitForSounds();
+				endGame();
+			} else {
+				currentQuestionIndex++;
+				await waitForSounds();
+				showQuestion();
+			}
 
-            isAnswerSelected = false;
-        }
+			isAnswerSelected = false;
+		}
 
         // Функция для сохранения счета
         function saveScore(score) {
