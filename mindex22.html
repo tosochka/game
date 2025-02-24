@@ -340,7 +340,7 @@
             margin: 10px;
             padding: 15px 30px;
             font-size: 20px;
-            background-color: #DB3C30;
+            background-color: green; /* #DB3C30 */
             color: white;
             border: none;
             border-radius: 5px;
@@ -440,6 +440,11 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
         }
+		
+		/* Скрыть кнопку "Закрыть" в модальном окне "Вы выиграли" для iOS */
+		.ios-device #win-modal .modal-footer button {
+			display: none;
+		}
 
         /* Стили для модального окна "Как играть" */
         #how-to-play-modal .modal-content {
@@ -1075,7 +1080,7 @@
 				
 				// Добавляем паузу для iOS
 				if (isIOS) {
-					await new Promise(resolve => setTimeout(resolve, 4000)); // Пауза 4 секунды
+					await new Promise(resolve => setTimeout(resolve, 3000)); // Пауза 3 секунды
 				}				
 
                 if (currentQuestionIndex === currentQuestions.length - 1) {
@@ -1102,8 +1107,8 @@
 				answer.classList.add('disabled');
 			});
 
-			// Пауза: 2 секунды для всех устройств, 4 секунды для iOS
-			const pauseDuration = isIOS ? 4000 : 2000; // Увеличиваем паузу для iOS
+			// Пауза: 2 секунды для всех устройств, 3 секунды для iOS
+			const pauseDuration = isIOS ? 3000 : 2000; // Увеличиваем паузу для iOS
 			await new Promise(resolve => setTimeout(resolve, pauseDuration));
 
 			clearInterval(timer);
