@@ -78,6 +78,17 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
+		
+		/* Стили для центрирования кнопки "Начать игру" на iOS */		
+		.ios-device #start-screen {
+			flex-direction: column; /* Располагаем кнопки вертикально */
+			justify-content: center; /* Центрируем по вертикали */
+			align-items: center; /* Центрируем по горизонтали */
+		}
+
+		.ios-device #start-screen #start-btn {
+			margin: 10px 0; /* Убираем боковые отступы, оставляем только вертикальные */
+		}
 
         @media (orientation: portrait) {
             .game-container {
@@ -606,6 +617,34 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
+		// Определение платформы в самом начале
+		const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+		const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
+
+		console.log(`Запущено на: ${platform}`);
+
+		// Остальные объявления переменных
+		const questionElement = document.getElementById('question');
+		const answerSection = document.getElementById('answer-section');
+		const startScreen = document.getElementById('start-screen');
+		const startBtn = document.getElementById('start-btn');
+		const gameContainer = document.querySelector('.game-container');
+		const modal = document.getElementById('modal');
+		const modalScore = document.getElementById('modal-score');
+		const modalHighScore = document.getElementById('modal-high-score');
+		const modalCloseBtn = document.getElementById('modal-close-btn');
+		const modalRestartBtn = document.getElementById('modal-restart-btn');
+		const gameCountMessage = document.getElementById('game-count-message');
+		const winModal = document.getElementById('win-modal');
+		const winModalCloseBtn = document.getElementById('win-modal-close-btn');
+
+		// Скрыть кнопку "Как играть" для iOS
+		if (isIOS) {
+			const howToPlayBtn = document.getElementById('how-to-play-btn');
+			if (howToPlayBtn) {
+				howToPlayBtn.style.display = 'none'; // Скрываем кнопку
+			}
+		}
         // Функция для определения типа устройства
         function isMobileDevice() {
             const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -623,6 +662,9 @@
         } else {
             document.body.classList.add('desktop-device');
         }
+		if (isIOS) {
+			document.body.classList.add('ios-device');
+		}
 
         // Функция для обновления текста в модальном окне "Как играть"
         function updateHowToPlayModalText() {
@@ -727,26 +769,6 @@
                 howToPlayModal.style.display = 'none';
             }
         });
-
-        const questionElement = document.getElementById('question');
-        const answerSection = document.getElementById('answer-section');
-        const startScreen = document.getElementById('start-screen');
-        const startBtn = document.getElementById('start-btn');
-        const gameContainer = document.querySelector('.game-container');
-        const modal = document.getElementById('modal');
-        const modalScore = document.getElementById('modal-score');
-        const modalHighScore = document.getElementById('modal-high-score');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-        const modalRestartBtn = document.getElementById('modal-restart-btn');
-        const gameCountMessage = document.getElementById('game-count-message');
-        const winModal = document.getElementById('win-modal');
-        const winModalCloseBtn = document.getElementById('win-modal-close-btn');
-
-        // Определение платформы
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
-        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
-
-        console.log(`Запущено на: ${platform}`);
 
         // Глобальные переменные
         let currentQuestions = [];
