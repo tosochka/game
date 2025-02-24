@@ -14,7 +14,7 @@
             justify-content: center;
             align-items: flex-start;
             height: 100vh;
-            background-color: #f4f4f4; /* Цвет фона страницы (светло-серый) */
+            background-color: #f4f4f4;
             overflow: hidden;
         }
 
@@ -48,24 +48,24 @@
 
         /* Анимация мигания для правильного ответа */
         @keyframes correctBlink {
-            0% { border-color: green; /* Зеленый цвет для правильного ответа */ }
+            0% { border-color: green; }
             50% { border-color: transparent; }
-            100% { border-color: green; /* Зеленый цвет для правильного ответа */ }
+            100% { border-color: green; }
         }
 
         .correct-border {
-            animation: correctBlink 0.5s ease 4; /* Мигание 4 раза */
+            animation: correctBlink 0.5s ease 4;
         }
 
         /* Анимация мигания для неправильного ответа */
         @keyframes wrongBlink {
-            0% { border-color: red; /* Красный цвет для неправильного ответа */ }
+            0% { border-color: red; }
             50% { border-color: transparent; }
-            100% { border-color: red; /* Красный цвет для неправильного ответа */ }
+            100% { border-color: red; }
         }
 
         .wrong-border {
-            animation: wrongBlink 0.5s ease 4; /* Мигание 4 раза */
+            animation: wrongBlink 0.5s ease 4;
         }
 
         /* Остальные стили */
@@ -74,8 +74,8 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background: white; /* Белый фон контейнера игры */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Тень контейнера (черный с прозрачностью) */
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
 
@@ -123,24 +123,24 @@
 
             #question-section {
                 width: 100%;
-                height: 15%; /* Высота зоны вопроса */
+                height: 15%;
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                background-color: #DB3C30; /* Темно-красный цвет фона секции вопроса */
-                color: white; /* Белый цвет текста */
-                overflow: hidden; /* Скрываем текст, который не помещается */			
-                padding: 10px; /* Отступы внутри контейнера */
-                box-sizing: border-box; /* Учитываем padding в размерах */
+                background-color: #DB3C30;
+                color: white;
+                overflow: hidden;
+                padding: 10px;
+                box-sizing: border-box;
             }
 
             #question {
                 margin: 10px 15px;
                 padding: 10px 15px;
                 text-align: center;
-                transition: font-size 0.0s ease; /* Плавное изменение размера шрифта */
-                word-wrap: break-word; /* Разрешаем перенос слов */
-            }			
+                transition: font-size 0.0s ease;
+                word-wrap: break-word;
+            }
 
             #progress-bar {
                 height: 3px;
@@ -169,13 +169,13 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            background-color: #DB3C30; /* Темно-красный цвет фона секции вопроса */
-            color: white; /* Белый цвет текста */
+            background-color: #DB3C30;
+            color: white;
         }
 
         #progress-bar {
             width: 100%;
-            background-color: #444444; /* Серый металлик цвет прогресс-бара */
+            background-color: #444444;
             transform-origin: left;
             transform: scaleX(0);
             transition: transform 0.1s linear;
@@ -191,8 +191,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #f4f4f4; /* Светло-серый фон ответов */
-            border: 2px solid #ddd; /* Серая рамка ответов */
+            background-color: #f4f4f4;
+            border: 2px solid #ddd;
             border-radius: 10px;
             cursor: pointer;
             transition: transform 0.3s, opacity 0.3s;
@@ -200,11 +200,11 @@
         }
 
         .answer.correct {
-            border-color: green; /* Зеленый цвет рамки для правильного ответа */
+            border-color: green;
         }
 
         .answer.wrong {
-            border-color: red; /* Красный цвет рамки для неправильного ответа */
+            border-color: red;
         }
 
         .answer.hide {
@@ -223,19 +223,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Полупрозрачный черный фон модального окна */
+            background-color: rgba(0, 0, 0, 0.7);
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
 
         .modal-content {
-            background: white; /* Белый фон модального окна */
+            background: white;
             border-radius: 20px;
             overflow: hidden;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень модального окна (черный с прозрачностью) */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             animation: slideIn 0.5s ease-out;
         }
 
@@ -251,7 +251,7 @@
         }
 
         .modal-header {
-            background: #f44336; /* Красный цвет фона заголовка модального окна */
+            background: #f44336;
             padding: 20px;
             text-align: center;
         }
@@ -259,8 +259,8 @@
         .modal-header h2 {
             margin: 0;
             font-size: 30px;
-            color: white; /* Белый цвет текста заголовка */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Тень текста (черный с прозрачностью) */
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .modal-body {
@@ -270,7 +270,7 @@
 
         .modal-body p {
             font-size: 18px;
-            color: #333; /* Темно-серый цвет текста */
+            color: #333;
             margin: 10px 0;
         }
 
@@ -282,26 +282,26 @@
         .modal-footer button {
             margin: 5px;
             padding: 12px 24px;
-            background: #f44336; /* Красный цвет фона кнопки */
-            color: white; /* Белый цвет текста кнопки */
+            background: #f44336;
+            color: white;
             border: none;
             border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень кнопки (черный с прозрачностью) */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
         }
 
         .modal-footer button:hover {
-            background: #DB3C30; /* Темно-красный цвет фона кнопки при наведении */
+            background: #DB3C30;
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Тень кнопки при наведении (черный с прозрачностью) */
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
         }
 
         .modal-footer button:disabled {
-            background: #ccc; /* Серый цвет фона кнопки, если она отключена */
+            background: #ccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -309,7 +309,7 @@
 
         .modal-footer button:active {
             transform: translateY(0);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень кнопки при нажатии (черный с прозрачностью) */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         #start-screen {
@@ -318,25 +318,26 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8); /* Полупрозрачный черный фон начального экрана */
+            background-color: rgba(0, 0, 0, 0.8);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
 
-        #start-btn {
+        #start-screen button {
+            margin: 10px;
             padding: 15px 30px;
             font-size: 20px;
-            background-color: #DB3C30; /* Темно-красный цвет фона кнопки "Начать игру" */
-            color: white; /* Белый цвет текста кнопки */
+            background-color: #DB3C30;
+            color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
 
-        #start-btn:hover {
-            background-color: #cc0000; /* Черно-красный цвет фона кнопки при наведении */
+        #start-screen button:hover {
+            background-color: #cc0000;
         }
 
         .hidden {
@@ -345,33 +346,31 @@
 
         /* Стили для модального окна с выигрышем */
         #win-modal .modal-content {
-            background: white; /* Белый фон модального окна */
+            background: white;
             border-radius: 20px;
             overflow: hidden;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Тень модального окна (черный с прозрачностью) */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             animation: slideIn 0.5s ease-out;
         }
 
         /* Стили для мобильных устройств в альбомной ориентации */
         @media (orientation: landscape) {
             body.mobile-device #win-modal .modal-content {
-                width: 60%; /* 80% ширины экрана */
-                height: 80vh; /* Уменьшаем высоту до 80% */
-                max-width: none; /* Убираем ограничение по максимальной ширине */
-                border-radius: 20px; /* Закругленные углы */
+                width: 60%;
+                height: 80vh;
+                max-width: none;
+                border-radius: 20px;
             }
 
-            /* Уменьшаем высоту заголовка */
             body.mobile-device #win-modal .modal-header {
-                padding: 10px; /* Уменьшаем padding */
+                padding: 10px;
             }
 
-            /* Добавляем прокрутку для контента, если он не помещается */
             body.mobile-device #win-modal .modal-body {
-                max-height: 60vh; /* Ограничиваем высоту контента */
-                overflow-y: auto; /* Добавляем прокрутку */
+                max-height: 60vh;
+                overflow-y: auto;
             }
         }
 
@@ -382,7 +381,7 @@
         }
 
         #win-modal .modal-header {
-            background: #DB3C30; /* Темно-красный цвет фона заголовка модального окна */
+            background: #DB3C30;
             padding: 20px;
             text-align: center;
         }
@@ -390,8 +389,8 @@
         #win-modal .modal-header h2 {
             margin: 0;
             font-size: 30px;
-            color: white; /* Белый цвет текста заголовка */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Тень текста (черный с прозрачностью) */
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         #win-modal .modal-body {
@@ -401,7 +400,7 @@
 
         #win-modal .modal-body p {
             font-size: 18px;
-            color: #333; /* Темно-серый цвет текста */
+            color: #333;
             margin: 10px 0;
         }
 
@@ -413,22 +412,118 @@
         #win-modal .modal-footer button {
             margin: 5px;
             padding: 12px 24px;
-            background: #DB3C30; /* Темно-красный цвет фона кнопки */
-            color: white; /* Белый цвет текста кнопки */
+            background: #DB3C30;
+            color: white;
             border: none;
             border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень кнопки (черный с прозрачностью) */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
         }
 
         #win-modal .modal-footer button:hover {
-            background: #cc0000; /* Черно-красный цвет фона кнопки при наведении */
+            background: #cc0000;
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Тень кнопки при наведении (черный с прозрачностью) */
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Стили для модального окна "Как играть" */
+        #how-to-play-modal .modal-content {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* Адаптация для мобильных устройств в альбомной ориентации */
+        @media (orientation: landscape) {
+            body.mobile-device #how-to-play-modal .modal-content {
+                width: 60%;
+                height: 80vh;
+                max-width: none;
+                border-radius: 20px;
+            }
+
+            body.mobile-device #how-to-play-modal .modal-header {
+                padding: 10px;
+            }
+
+            body.mobile-device #how-to-play-modal .modal-body {
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+        }
+
+        /* Стили для ПК и портретной ориентации мобильных устройств */
+        body.desktop-device #how-to-play-modal .modal-content,
+        body.mobile-device #how-to-play-modal .modal-content {
+            /* Оставляем стили по умолчанию */
+        }
+
+        #how-to-play-modal .modal-header {
+            background: #DB3C30;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #how-to-play-modal .modal-header h2 {
+            margin: 0;
+            font-size: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #how-to-play-modal .modal-body {
+			padding: 20px 20px 5px 20px;
+			text-align: left;
+        }
+
+        #how-to-play-modal .modal-body p {
+            font-size: 18px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        #how-to-play-modal .modal-body ol {
+            padding-left: 20px;
+        }
+
+        #how-to-play-modal .modal-body li {
+            font-size: 16px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        #how-to-play-modal .modal-footer {
+			padding: 5px 20px 20px 20px;
+            text-align: center;
+        }
+
+        #how-to-play-modal .modal-footer button {
+            margin: 5px;
+            padding: 12px 24px;
+            background: #DB3C30;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        #how-to-play-modal .modal-footer button:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
@@ -436,6 +531,7 @@
     <!-- Начальный экран -->
     <div id="start-screen">
         <button id="start-btn">Начать игру</button>
+        <button id="how-to-play-btn">Как играть</button>
     </div>
 
     <!-- Игровой контейнер -->
@@ -480,6 +576,30 @@
         </div>
     </div>
 
+    <!-- Модальное окно "Как играть" -->
+    <div id="how-to-play-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Как играть</h2>
+            </div>
+            <div class="modal-body">
+                <p>Инструкция к интерактивной игре «Угадай бренд по слогану»:</p>
+                <ol>
+                    <li>Нажмите кнопку «Начать игру»</li>
+                    <li>Прочитайте слоган и выберите правильный бренд из предложенных вариантов</li>
+                    <li>Удаляйте неправильные ответы, свайпая их в сторону или кликая по ним</li>
+                    <li>Если время для ответа истекает, игра переходит к следующему вопросу</li>
+                    <li>По завершении игры отображается статистика</li>
+                </ol>
+                <p>У вас 3 попытки!</p>
+            </div>
+            <div class="modal-footer">
+                <button id="how-to-play-close-btn">Закрыть</button>
+                <button id="how-to-play-start-btn">Начать игру</button> <!-- Новая кнопка -->
+            </div>
+        </div>
+    </div>
+
     <!-- Звуки -->
     <audio id="correct-sound" src="sounds/correct.mp3"></audio>
     <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
@@ -489,8 +609,6 @@
         // Функция для определения типа устройства
         function isMobileDevice() {
             const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-
-            // Проверяем, является ли устройство iOS или Android
             return /android/i.test(userAgent) || /iPad|iPhone|iPod/i.test(userAgent);
         }
 
@@ -506,11 +624,46 @@
             document.body.classList.add('desktop-device');
         }
 
-        // Функция для обновления текста в модальном окне
+        // Функция для обновления текста в модальном окне "Как играть"
+        function updateHowToPlayModalText() {
+            const howToPlayModalBody = document.querySelector('#how-to-play-modal .modal-body');
+            const isMobile = isMobileDevice();
+            const isLandscapeMode = isLandscape();
+
+            if (isMobile && isLandscapeMode) {
+                // Сокращенный текст для мобильных устройств в альбомной ориентации
+                howToPlayModalBody.innerHTML = `
+                    <ol>
+                        <li>Нажмите кнопку «Начать игру»</li>
+                        <li>Прочитайте слоган и выберите бренд</li>
+                        <li>Смахните неправильные ответы с экрана</li>
+                        <li>Следите за временем, у вас 3 попытки</li>
+                    </ol>
+                `;
+            } else {
+                // Полный текст для ПК и портретной ориентации
+                howToPlayModalBody.innerHTML = `
+                    <p>Инструкция к интерактивной игре «Угадай бренд по слогану»:</p>
+                    <ol>
+                        <li>Нажмите кнопку «Начать игру»</li>
+                        <li>Прочитайте слоган и выберите правильный бренд из предложенных вариантов</li>
+                        <li>Удаляйте неправильные ответы, свайпая их в сторону или кликая по ним</li>
+                        <li>Если время для ответа истекает, игра переходит к следующему вопросу</li>
+                        <li>По завершении игры отображается статистика</li>
+                    </ol>
+                    <p>У вас 3 попытки!</p>
+                `;
+            }
+        }
+
+        // Функция для обновления текста в модальном окне "Вы выиграли!"
         function updateWinModalText() {
             const winModalBody = document.querySelector('#win-modal .modal-body');
             const isMobile = isMobileDevice();
             const isLandscapeMode = isLandscape();
+
+            console.log("Обновление текста в модальном окне 'Вы выиграли!'"); // Отладочное сообщение
+            console.log(`isMobile: ${isMobile}, isLandscapeMode: ${isLandscapeMode}`); // Отладочное сообщение
 
             if (isMobile && isLandscapeMode) {
                 // Сокращенный текст для мобильных устройств в альбомной ориентации
@@ -531,20 +684,50 @@
             }
         }
 
-        // Вызов функции при открытии модального окна
-        function showWinModal() {
-            updateWinModalText(); // Обновляем текст перед показом
-            winModal.style.display = 'flex';
-        }
-
         // Обработчик изменения ориентации экрана
         window.addEventListener('resize', () => {
+            if (howToPlayModal.style.display === 'flex') {
+                updateHowToPlayModalText(); // Обновляем текст, если модальное окно "Как играть" открыто
+            }
             if (winModal.style.display === 'flex') {
-                updateWinModalText(); // Обновляем текст, если модальное окно открыто
+                updateWinModalText(); // Обновляем текст, если модальное окно "Вы выиграли!" открыто
             }
         });
 
-        // Объявление переменных
+        // Получаем элементы DOM
+        const howToPlayBtn = document.getElementById('how-to-play-btn');
+        const howToPlayModal = document.getElementById('how-to-play-modal');
+        const howToPlayCloseBtn = document.getElementById('how-to-play-close-btn');
+        const howToPlayStartBtn = document.getElementById('how-to-play-start-btn'); // Новая кнопка
+
+        // Обработчик открытия модального окна "Как играть"
+        howToPlayBtn.addEventListener('click', () => {
+            updateHowToPlayModalText(); // Обновляем текст перед показом
+            howToPlayModal.style.display = 'flex';
+        });
+
+        // Обработчик закрытия модального окна "Как играть" по кнопке
+        howToPlayCloseBtn.addEventListener('click', () => {
+            howToPlayModal.style.display = 'none';
+        });
+
+        // Обработчик для новой кнопки "Начать игру" в модальном окне "Как играть"
+        howToPlayStartBtn.addEventListener('click', async () => {
+            isSoundUnlocked = true;
+            await playSound('click');
+            howToPlayModal.style.display = 'none'; // Закрыть модальное окно
+            startScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            await startGame();
+        });
+
+        // Обработчик закрытия модального окна "Как играть" по клику вне окна
+        howToPlayModal.addEventListener('click', (e) => {
+            if (e.target === howToPlayModal) {
+                howToPlayModal.style.display = 'none';
+            }
+        });
+
         const questionElement = document.getElementById('question');
         const answerSection = document.getElementById('answer-section');
         const startScreen = document.getElementById('start-screen');
@@ -561,7 +744,7 @@
 
         // Определение платформы
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
-        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows'; // По умолчанию Chrome/Windows, если не iOS/Safari
+        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
 
         console.log(`Запущено на: ${platform}`);
 
@@ -575,7 +758,7 @@
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
         let isSoundUnlocked = false;
         let activeSounds = [];
-        let isAnswerSelected = false; // Флаг для отслеживания выбора ответа
+        let isAnswerSelected = false;
 
         // Функция для проверки загрузки всех изображений
         function waitForImagesToLoad() {
@@ -583,44 +766,39 @@
             const promises = [];
 
             images.forEach(img => {
-                if (!img.complete) { // Проверяем, загружено ли изображение
+                if (!img.complete) {
                     const promise = new Promise((resolve) => {
-                        img.addEventListener('load', resolve); // Ждем загрузки
-                        img.addEventListener('error', resolve); // На случай ошибки
+                        img.addEventListener('load', resolve);
+                        img.addEventListener('error', resolve);
                     });
                     promises.push(promise);
                 }
             });
 
-            return Promise.all(promises); // Ждем загрузки всех изображений
+            return Promise.all(promises);
         }
 
+        // Функция для настройки размера шрифта
         function adjustFontSize() {
             const questionSection = document.getElementById('question-section');
-
-            const maxFontSize = 34; // Максимальный размер шрифта
-            const minFontSize = 16; // Минимальный размер шрифта
+            const maxFontSize = 34;
+            const minFontSize = 16;
             let fontSize = maxFontSize;
 
-            // Устанавливаем начальный размер шрифта
             questionElement.style.fontSize = `${fontSize}px`;
 
-            // Проверяем, помещается ли текст в контейнер
             while (
                 questionElement.scrollWidth > questionSection.offsetWidth ||
                 questionElement.scrollHeight > questionSection.offsetHeight
             ) {
-                // Уменьшаем размер шрифта, если текст не помещается
                 fontSize -= 1;
                 questionElement.style.fontSize = `${fontSize}px`;
 
-                // Если размер шрифта достиг минимума, останавливаем
                 if (fontSize <= minFontSize) {
                     break;
                 }
             }
 
-            // Если текст слишком короткий, увеличиваем размер шрифта
             while (
                 fontSize < maxFontSize &&
                 questionElement.scrollWidth < questionSection.offsetWidth &&
@@ -631,13 +809,13 @@
             }
         }
 
-        // Вызываем функцию при загрузке страницы и изменении размера окна
+        // Вызов функции при загрузке страницы и изменении размера окна
         window.addEventListener('load', adjustFontSize);
         window.addEventListener('resize', adjustFontSize);
 
-        // Вызываем функцию при изменении текста вопроса
+        // Вызов функции при изменении текста вопроса
         new MutationObserver(adjustFontSize).observe(questionElement, {
-            childList: true, // Отслеживаем изменения текста
+            childList: true,
         });
 
         // Функция для воспроизведения звука
@@ -680,7 +858,6 @@
                         return;
                 }
 
-                // Воспроизведение базового звука
                 if (baseSound) {
                     console.log(`Воспроизведение базового звука: ${type}`);
                     baseSound.currentTime = 0;
@@ -696,13 +873,12 @@
                         })
                         .catch(error => {
                             console.error("Ошибка воспроизведения звука:", error);
-                            resolve(); // Разрешаем Promise даже при ошибке
+                            resolve();
                         });
                 } else {
-                    resolve(); // Разрешаем Promise, если базовый звук не найден
+                    resolve();
                 }
 
-                // Воспроизведение случайного звука из папки
                 if (soundFolder && soundFiles.length > 0) {
                     const randomSoundFile = soundFiles[Math.floor(Math.random() * soundFiles.length)];
                     const randomSound = new Audio(soundFolder + randomSoundFile);
@@ -722,7 +898,7 @@
                             .catch(error => {
                                 console.error("Ошибка воспроизведения случайного звука:", error);
                             });
-                    }, baseSound ? baseSound.duration * 1000 : 0); // Ждем завершения базового звука
+                    }, baseSound ? baseSound.duration * 1000 : 0);
                 }
             });
         }
@@ -736,7 +912,7 @@
 
         // Функция для начала игры
         async function startGame() {
-            console.log("Запуск игры..."); // Лог для отладки
+            console.log("Запуск игры...");
             if (gameCount >= maxGameCount) {
                 alert("Вы достигли лимита игр (3 раза).");
                 return;
@@ -746,8 +922,8 @@
             currentQuestionIndex = 0;
             score = 0;
 
-            await playSound('start'); // Ждем завершения звука начала игры
-            showQuestion(); // Показываем первый вопрос
+            await playSound('start');
+            showQuestion();
         }
 
         // Функция для завершения игры
@@ -756,23 +932,22 @@
             localStorage.setItem('gameCount', gameCount);
             saveScore(score);
 
-            await waitForSounds(); // Ждем завершения всех звуков
-            await playSound('end'); // Воспроизводим звук завершения игры
+            await waitForSounds();
+            await playSound('end');
 
-            await waitForSounds(); // Ждем завершения звука завершения игры
+            await waitForSounds();
 
-            // Проверяем, набрал ли игрок 15 или более правильных ответов
             if (score >= 1) {
-                showWinModal(); // Показываем модальное окно с сообщением о выигрыше
+                showWinModal();
             } else {
-                showModal(); // Показываем стандартное модальное окно с статистикой
+                showModal();
             }
         }
 
         // Функция для отображения модального окна с сообщением о выигрыше
         function showWinModal() {
             updateWinModalText(); // Обновляем текст перед показом
-            winModal.style.display = 'flex';
+            winModal.style.display = 'flex'; // Показываем модальное окно
         }
 
         // Обработчик закрытия модального окна с выигрышем
@@ -801,15 +976,12 @@
             const questionElement = document.getElementById('question');
             const answerSection = document.getElementById('answer-section');
 
-            // Анимация исчезновения предыдущего вопроса (только для Chrome/Windows)
             if (platform !== 'iOS/Safari') {
                 questionElement.classList.add('fade-out');
                 answerSection.classList.add('fade-out');
             }
 
-            // Ждем завершения анимации исчезновения
             setTimeout(async () => {
-                // Обновляем текст вопроса и ответы
                 questionElement.innerText = question.question;
                 answerSection.innerHTML = '';
 
@@ -828,26 +1000,22 @@
                     answerSection.appendChild(button);
                 });
 
-                // Ждем загрузки всех изображений
                 await waitForImagesToLoad();
 
-                // Анимация появления нового вопроса (только для Chrome/Windows)
                 if (platform !== 'iOS/Safari') {
                     questionElement.classList.remove('fade-out');
                     answerSection.classList.remove('fade-out');
                     questionElement.classList.add('fade-in');
                     answerSection.classList.add('fade-in');
 
-                    // Убираем классы анимации после завершения
                     setTimeout(() => {
                         questionElement.classList.remove('fade-in');
                         answerSection.classList.remove('fade-in');
-                    }, 700); // Время анимации
+                    }, 700);
                 }
 
-                // Запускаем таймер только после загрузки всех изображений
                 startTimer();
-            }, 700); // Время анимации исчезновения
+            }, 700);
         }
 
         // Функция для удаления ответа
@@ -859,8 +1027,8 @@
 
         // Функция для проверки оставшихся ответов
         async function checkRemainingAnswers() {
-            if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
-            isAnswerSelected = true; // Устанавливаем флаг
+            if (isAnswerSelected) return;
+            isAnswerSelected = true;
 
             const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
             if (remainingAnswers.length === 1) {
@@ -891,14 +1059,14 @@
                     showQuestion();
                 }
             }
-            isAnswerSelected = false; // Сбрасываем флаг после завершения
+            isAnswerSelected = false;
         }
 
         async function handleTimeOut() {
-            if (isAnswerSelected) return; // Если ответ уже выбран, ничего не делаем
-            isAnswerSelected = true; // Устанавливаем флаг
+            if (isAnswerSelected) return;
+            isAnswerSelected = true;
 
-            await playSound('wrong'); // Воспроизводим звук "неправильный ответ"
+            await playSound('wrong');
 
             const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
             remainingAnswers.forEach(answer => {
@@ -907,24 +1075,20 @@
                 answer.classList.add('disabled');
             });
 
-            // Ждем завершения анимации мигания
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Очищаем таймер
             clearInterval(timer);
 
-            // Если это последний вопрос, завершаем игру
             if (currentQuestionIndex === currentQuestions.length - 1) {
-                await waitForSounds(); // Ждем завершения всех звуков
-                endGame(); // Завершаем игру
+                await waitForSounds();
+                endGame();
             } else {
-                // Переходим к следующему вопросу
                 currentQuestionIndex++;
-                await waitForSounds(); // Ждем завершения всех звуков
-                showQuestion(); // Показываем следующий вопрос
+                await waitForSounds();
+                showQuestion();
             }
 
-            isAnswerSelected = false; // Сбрасываем флаг после завершения
+            isAnswerSelected = false;
         }
 
         // Функция для сохранения счета
@@ -971,10 +1135,10 @@
         // Функция для перемешивания массива
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1)); // Генерация случайного индекса
-                [array[i], array[j]] = [array[j], array[i]]; // Меняем местами элементы
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
-            return array; // Возвращаем перемешанный массив
+            return array;
         }
 
         // Функция для предзагрузки звуков
@@ -1021,7 +1185,7 @@
 
             soundUrls.forEach(url => {
                 const audio = new Audio(url);
-                audio.preload = 'auto'; // Предзагрузка звуков
+                audio.preload = 'auto';
             });
         }
 
@@ -1034,7 +1198,7 @@
         function resetTimer() {
             clearInterval(timer);
             const progressBar = document.getElementById('progress-bar');
-            progressBar.style.transform = 'scaleX(0)'; // Сбрасываем прогресс-бар
+            progressBar.style.transform = 'scaleX(0)';
         }
 
         // Функция для запуска таймера
@@ -1042,19 +1206,19 @@
             let timeLeft = timeLimit;
             const progressBar = document.getElementById('progress-bar');
 
-            progressBar.style.transform = 'scaleX(1)'; // Устанавливаем прогресс-бар в начальное состояние
+            progressBar.style.transform = 'scaleX(1)';
 
             timer = setInterval(() => {
                 timeLeft--;
 
                 const progress = timeLeft / timeLimit;
-                progressBar.style.transform = `scaleX(${progress})`; // Обновляем прогресс-бар
+                progressBar.style.transform = `scaleX(${progress})`;
 
                 if (timeLeft <= 0) {
-                    clearInterval(timer); // Останавливаем таймер
-                    handleTimeOut(); // Обрабатываем истечение времени
+                    clearInterval(timer);
+                    handleTimeOut();
                 }
-            }, 1000); // Обновляем каждую секунду
+            }, 1000);
         }
 
         // Функция для добавления обработчика свайпа
@@ -1123,15 +1287,15 @@
         function initChromeWindows() {
             console.log("Инициализация для Chrome/Windows");
 
-            preloadSounds(); // Предзагрузка звуков
-            setupAnimations(); // Настройка анимаций
+            preloadSounds();
+            setupAnimations();
 
             startBtn.addEventListener('click', async () => {
-                isSoundUnlocked = true; // Разблокируем звук
-                await playSound('click'); // Воспроизводим звук клика
-                startScreen.classList.add('hidden'); // Скрываем начальный экран
-                gameContainer.classList.remove('hidden'); // Показываем игровой контейнер
-                await startGame(); // Запускаем игру
+                isSoundUnlocked = true;
+                await playSound('click');
+                startScreen.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                await startGame();
             });
         }
 
@@ -1139,40 +1303,40 @@
         function initIOSSafari() {
             console.log("Инициализация для iOS/Safari");
 
-            isSoundUnlocked = false; // Звук заблокирован по умолчанию
+            isSoundUnlocked = false;
 
             function setupSimplifiedAnimations() {
                 console.log("Упрощенные анимации для iOS/Safari");
                 document.querySelectorAll('.fade-in, .fade-out').forEach(element => {
-                    element.style.animation = 'none'; // Отключаем сложные анимации
+                    element.style.animation = 'none';
                 });
             }
 
-            setupSimplifiedAnimations(); // Настройка упрощенных анимаций
+            setupSimplifiedAnimations();
             startBtn.addEventListener('click', () => {
-                startScreen.classList.add('hidden'); // Скрываем начальный экран
-                gameContainer.classList.remove('hidden'); // Показываем игровой контейнер
-                startGame(); // Запускаем игру
+                startScreen.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                startGame();
             });
         }
 
         // Выбор ветки в зависимости от платформы
         if (platform === 'iOS/Safari') {
-            initIOSSafari(); // Инициализация для iOS/Safari
+            initIOSSafari();
         } else {
-            initChromeWindows(); // Инициализация для Chrome/Windows (по умолчанию)
+            initChromeWindows();
         }
 
         // Обработчики событий для модального окна
         modalCloseBtn.addEventListener('click', () => {
-            stopAndClearAllSounds(); // Останавливаем все звуки
-            closeModal(); // Закрываем модальное окно
+            stopAndClearAllSounds();
+            closeModal();
         });
 
         modalRestartBtn.addEventListener('click', async () => {
-            stopAndClearAllSounds(); // Останавливаем все звуки
-            closeModal(); // Закрываем модальное окно
-            await startGame(); // Перезапускаем игру
+            stopAndClearAllSounds();
+            closeModal();
+            await startGame();
         });
 
         // Массив всех вопросов
