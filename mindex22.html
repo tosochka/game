@@ -1072,6 +1072,11 @@
 
                 clearInterval(timer);
                 resetTimer();
+				
+				// Добавляем паузу для iOS
+				if (isIOS) {
+					await new Promise(resolve => setTimeout(resolve, 2000)); // Пауза 2 секунды
+				}				
 
                 if (currentQuestionIndex === currentQuestions.length - 1) {
                     endGame();
