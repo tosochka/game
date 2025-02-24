@@ -713,6 +713,13 @@
 
         // Обработчик для новой кнопки "Начать игру" в модальном окне "Как играть"
         howToPlayStartBtn.addEventListener('click', async () => {
+            // Инициализация устройства перед началом игры
+            if (platform === 'iOS/Safari') {
+                initIOSSafari(); // Инициализация для iOS/Safari
+            } else {
+                initChromeWindows(); // Инициализация для других платформ
+            }
+
             isSoundUnlocked = true;
             await playSound('click');
             howToPlayModal.style.display = 'none'; // Закрыть модальное окно
