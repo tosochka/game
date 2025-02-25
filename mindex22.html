@@ -1386,6 +1386,11 @@
                     const touch = e.touches[0];
                     const deltaX = touch.clientX - startX;
                     const deltaY = touch.clientY - startY;
+					
+					// Если горизонтальный свайп больше вертикального, предотвращаем прокрутку
+					if (Math.abs(deltaX) > Math.abs(deltaY)) {
+						e.preventDefault(); // Запрещаем прокрутку страницы
+					}
 
                     if (Math.abs(deltaX) > 50 || Math.abs(deltaY) > 50) {
                         isSwiped = true;
