@@ -78,6 +78,17 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
+		
+		/* Стили для центрирования кнопки "Начать игру" на iOS */		
+		.ios-device #start-screen {
+			flex-direction: column; /* Располагаем кнопки вертикально */
+			justify-content: center; /* Центрируем по вертикали */
+			align-items: center; /* Центрируем по горизонтали */
+		}
+
+		.ios-device #start-screen #start-btn {
+			margin: 10px 0; /* Убираем боковые отступы, оставляем только вертикальные */
+		}
 
         @media (orientation: portrait) {
             .game-container {
@@ -429,6 +440,11 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
         }
+		
+		/* Скрыть кнопку "Закрыть" в модальном окне "Вы выиграли" для iOS */
+		.ios-device #win-modal .modal-footer button {
+			display: none;
+		}
 
         /* Стили для модального окна "Как играть" */
         #how-to-play-modal .modal-content {
@@ -480,8 +496,8 @@
         }
 
         #how-to-play-modal .modal-body {
-			padding: 20px 20px 5px 20px;
-			text-align: left;
+            padding: 20px 20px 5px 20px;
+            text-align: left;
         }
 
         #how-to-play-modal .modal-body p {
@@ -501,7 +517,7 @@
         }
 
         #how-to-play-modal .modal-footer {
-			padding: 5px 20px 20px 20px;
+            padding: 5px 20px 20px 20px;
             text-align: center;
         }
 
@@ -606,6 +622,34 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
+		// Определение платформы в самом начале
+		const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+		const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
+
+		console.log(`Запущено на: ${platform}`);
+
+		// Остальные объявления переменных
+		const questionElement = document.getElementById('question');
+		const answerSection = document.getElementById('answer-section');
+		const startScreen = document.getElementById('start-screen');
+		const startBtn = document.getElementById('start-btn');
+		const gameContainer = document.querySelector('.game-container');
+		const modal = document.getElementById('modal');
+		const modalScore = document.getElementById('modal-score');
+		const modalHighScore = document.getElementById('modal-high-score');
+		const modalCloseBtn = document.getElementById('modal-close-btn');
+		const modalRestartBtn = document.getElementById('modal-restart-btn');
+		const gameCountMessage = document.getElementById('game-count-message');
+		const winModal = document.getElementById('win-modal');
+		const winModalCloseBtn = document.getElementById('win-modal-close-btn');
+
+		// Скрыть кнопку "Как играть" для iOS
+		if (isIOS) {
+			const howToPlayBtn = document.getElementById('how-to-play-btn');
+			if (howToPlayBtn) {
+				howToPlayBtn.style.display = 'none'; // Скрываем кнопку
+			}
+		}
         // Функция для определения типа устройства
         function isMobileDevice() {
             const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -623,6 +667,9 @@
         } else {
             document.body.classList.add('desktop-device');
         }
+		if (isIOS) {
+			document.body.classList.add('ios-device');
+		}
 
         // Функция для обновления текста в модальном окне "Как играть"
         function updateHowToPlayModalText() {
@@ -636,7 +683,7 @@
                     <ol>
                         <li>Нажмите кнопку «Начать игру»</li>
                         <li>Прочитайте слоган и выберите бренд</li>
-                        <li>Смахните неправильные ответы с экрана</li>
+                        <li>Смахните или тапните неправильные ответы</li>
                         <li>Следите за временем, у вас 3 попытки</li>
                     </ol>
                 `;
@@ -661,6 +708,7 @@
             const winModalBody = document.querySelector('#win-modal .modal-body');
             const isMobile = isMobileDevice();
             const isLandscapeMode = isLandscape();
+			const isIOS = document.body.classList.contains('ios-device'); // Проверка на iOS
 
             console.log("Обновление текста в модальном окне 'Вы выиграли!'"); // Отладочное сообщение
             console.log(`isMobile: ${isMobile}, isLandscapeMode: ${isLandscapeMode}`); // Отладочное сообщение
@@ -672,6 +720,13 @@
                     <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТASY.</p>
                     <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
                 `;
+				// Добавляем дополнительные предложения для iOS в альбомной ориентации
+				if (isIOS) {
+					winModalBody.innerHTML += `
+						<p>Поторопитесь!</p>
+						<p>И не забудьте сделать скриншот.</p>
+					`;				
+				}
             } else {
                 // Полный текст для ПК и портретной ориентации
                 winModalBody.innerHTML = `
@@ -728,33 +783,13 @@
             }
         });
 
-        const questionElement = document.getElementById('question');
-        const answerSection = document.getElementById('answer-section');
-        const startScreen = document.getElementById('start-screen');
-        const startBtn = document.getElementById('start-btn');
-        const gameContainer = document.querySelector('.game-container');
-        const modal = document.getElementById('modal');
-        const modalScore = document.getElementById('modal-score');
-        const modalHighScore = document.getElementById('modal-high-score');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-        const modalRestartBtn = document.getElementById('modal-restart-btn');
-        const gameCountMessage = document.getElementById('game-count-message');
-        const winModal = document.getElementById('win-modal');
-        const winModalCloseBtn = document.getElementById('win-modal-close-btn');
-
-        // Определение платформы
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
-        const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
-
-        console.log(`Запущено на: ${platform}`);
-
         // Глобальные переменные
         let currentQuestions = [];
         let currentQuestionIndex = 0;
         let score = 0;
         let timer;
-        const timeLimit = 10;
-        const maxGameCount = 3000;
+        const timeLimit = 32; // Время ответа на вопрос
+        const maxGameCount = 3000;  // Максимальное число попыток
         let gameCount = localStorage.getItem('gameCount') ? parseInt(localStorage.getItem('gameCount')) : 0;
         let isSoundUnlocked = false;
         let activeSounds = [];
@@ -778,45 +813,39 @@
             return Promise.all(promises);
         }
 
-        // Функция для настройки размера шрифта
-        function adjustFontSize() {
-            const questionSection = document.getElementById('question-section');
-            const maxFontSize = 34;
-            const minFontSize = 16;
-            let fontSize = maxFontSize;
+		// Функция для настройки размера шрифта
+		function adjustFontSize() {
+			const questionElement = document.getElementById('question');
+			const questionSection = document.getElementById('question-section');
+			const maxFontSize = 34; // Максимальный размер шрифта
+			const minFontSize = 16; // Минимальный размер шрифта
+			let fontSize = maxFontSize;
 
-            questionElement.style.fontSize = `${fontSize}px`;
+			questionElement.style.fontSize = `${fontSize}px`;
 
-            while (
-                questionElement.scrollWidth > questionSection.offsetWidth ||
-                questionElement.scrollHeight > questionSection.offsetHeight
-            ) {
-                fontSize -= 1;
-                questionElement.style.fontSize = `${fontSize}px`;
+			// Проверяем, выходит ли текст за границы контейнера
+			while (
+				questionElement.scrollWidth > questionSection.offsetWidth ||
+				questionElement.scrollHeight > questionSection.offsetHeight
+			) {
+				fontSize -= 2; // Уменьшаем размер шрифта на 2 единицы
+				questionElement.style.fontSize = `${fontSize}px`;
 
-                if (fontSize <= minFontSize) {
-                    break;
-                }
-            }
+				// Если размер шрифта достиг минимального значения, прекращаем уменьшение
+				if (fontSize <= minFontSize) {
+					break;
+				}
+			}
+		}
 
-            while (
-                fontSize < maxFontSize &&
-                questionElement.scrollWidth < questionSection.offsetWidth &&
-                questionElement.scrollHeight < questionSection.offsetHeight
-            ) {
-                fontSize += 1;
-                questionElement.style.fontSize = `${fontSize}px`;
-            }
-        }
+		// Вызов функции при загрузке страницы и изменении размера окна
+		window.addEventListener('load', adjustFontSize);
+		window.addEventListener('resize', adjustFontSize);
 
-        // Вызов функции при загрузке страницы и изменении размера окна
-        window.addEventListener('load', adjustFontSize);
-        window.addEventListener('resize', adjustFontSize);
-
-        // Вызов функции при изменении текста вопроса
-        new MutationObserver(adjustFontSize).observe(questionElement, {
-            childList: true,
-        });
+		// Вызов функции при изменении текста вопроса
+		new MutationObserver(adjustFontSize).observe(questionElement, {
+			childList: true,
+		});
 
         // Функция для воспроизведения звука
         function playSound(type) {
@@ -937,7 +966,7 @@
 
             await waitForSounds();
 
-            if (score >= 1) {
+            if (score >= 15) {  // Минимальное число правильных ответов
                 showWinModal();
             } else {
                 showModal();
@@ -1050,6 +1079,11 @@
 
                 clearInterval(timer);
                 resetTimer();
+				
+				// Добавляем паузу для iOS
+				if (isIOS) {
+					await new Promise(resolve => setTimeout(resolve, 3000)); // Пауза 3 секунды
+				}				
 
                 if (currentQuestionIndex === currentQuestions.length - 1) {
                     endGame();
@@ -1062,34 +1096,36 @@
             isAnswerSelected = false;
         }
 
-        async function handleTimeOut() {
-            if (isAnswerSelected) return;
-            isAnswerSelected = true;
+		async function handleTimeOut() {
+			if (isAnswerSelected) return;
+			isAnswerSelected = true;
 
-            await playSound('wrong');
+			await playSound('wrong');
 
-            const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
-            remainingAnswers.forEach(answer => {
-                answer.classList.add('wrong');
-                answer.classList.add('wrong-border');
-                answer.classList.add('disabled');
-            });
+			const remainingAnswers = document.querySelectorAll('.answer:not(.hide)');
+			remainingAnswers.forEach(answer => {
+				answer.classList.add('wrong');
+				answer.classList.add('wrong-border');
+				answer.classList.add('disabled');
+			});
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+			// Пауза: 2 секунды для всех устройств, 3 секунды для iOS
+			const pauseDuration = isIOS ? 3000 : 2000; // Увеличиваем паузу для iOS
+			await new Promise(resolve => setTimeout(resolve, pauseDuration));
 
-            clearInterval(timer);
+			clearInterval(timer);
 
-            if (currentQuestionIndex === currentQuestions.length - 1) {
-                await waitForSounds();
-                endGame();
-            } else {
-                currentQuestionIndex++;
-                await waitForSounds();
-                showQuestion();
-            }
+			if (currentQuestionIndex === currentQuestions.length - 1) {
+				await waitForSounds();
+				endGame();
+			} else {
+				currentQuestionIndex++;
+				await waitForSounds();
+				showQuestion();
+			}
 
-            isAnswerSelected = false;
-        }
+			isAnswerSelected = false;
+		}
 
         // Функция для сохранения счета
         function saveScore(score) {
@@ -1317,6 +1353,81 @@
                 startScreen.classList.add('hidden');
                 gameContainer.classList.remove('hidden');
                 startGame();
+            });
+
+            // Убираем обработчик клика для ответов
+            const answers = document.querySelectorAll('.answer');
+            answers.forEach(answer => {
+                answer.removeEventListener('click', removeAnswer);
+            });
+
+            // Оставляем только свайп
+            function addSwipeListener(button, answer) {
+                let startX = 0;
+                let startY = 0;
+                let isSwiped = false;
+
+                button.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    startX = touch.clientX;
+                    startY = touch.clientY;
+                    isSwiped = false;
+                });
+
+                button.addEventListener('touchmove', (e) => {
+                    if (isSwiped) return;
+
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - startX;
+                    const deltaY = touch.clientY - startY;
+
+                    if (Math.abs(deltaX) > 50 || Math.abs(deltaY) > 50) {
+                        isSwiped = true;
+
+                        const direction = Math.abs(deltaX) > Math.abs(deltaY) ? (deltaX > 0 ? 'right' : 'left') : (deltaY > 0 ? 'down' : 'up');
+
+                        button.style.transition = 'transform 0.3s, opacity 0.3s';
+                        if (direction === 'left' || direction === 'right') {
+                            button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
+                        } else {
+                            button.style.transform = `translateY(${deltaY > 0 ? 100 : -100}%)`;
+                        }
+                        button.style.opacity = '0';
+
+                        setTimeout(() => {
+                            removeAnswer(button, answer);
+                        }, 300);
+                    }
+                });
+
+                button.addEventListener('touchend', (e) => {
+                    if (!isSwiped) {
+                        const deltaX = e.changedTouches[0].clientX - startX;
+                        const deltaY = e.changedTouches[0].clientY - startY;
+
+                        const speedX = Math.abs(deltaX) / (e.timeStamp - startTime);
+                        if (speedX < 0.5) {
+                            button.style.transition = 'transform 0.2s, opacity 0.2s';
+                            button.style.transform = 'translateX(0) translateY(0)';
+                            button.style.opacity = '1';
+                        } else {
+                            isSwiped = true;
+                            button.style.transition = 'transform 0.3s, opacity 0.3s';
+                            button.style.transform = `translateX(${deltaX > 0 ? 100 : -100}%)`;
+                            button.style.opacity = '0';
+                            setTimeout(() => {
+                                removeAnswer(button, answer);
+                            }, 300);
+                        }
+                    }
+                });
+            }
+
+            // Добавляем свайп для всех ответов
+            const answerButtons = document.querySelectorAll('.answer');
+            answerButtons.forEach(button => {
+                const answer = button.querySelector('img').alt;
+                addSwipeListener(button, answer);
             });
         }
 
@@ -1756,6 +1867,15 @@
                 ]
             },
             {
+                question: "CD и слушай",
+                answers: [
+                    { text: "Sony", correct: true, image: "images/sony3.jpg" },				
+                    { text: "Panasonic", correct: false, image: "images/panasonic3.jpg" },
+                    { text: "Philips", correct: false, image: "images/philips3.jpg" },
+                    { text: "Samsung", correct: false, image: "images/samsung3.jpg" }
+                ]
+            },
+            {
                 question: "Крутящие землю",
                 answers: [
                     { text: "Ralf Ringer", correct: true, image: "images/ralf.jpg" },
@@ -2058,15 +2178,6 @@
                     { text: "Philips", correct: true, image: "images/philips3.jpg" },				
                     { text: "Panasonic", correct: false, image: "images/panasonic3.jpg" },
                     { text: "Bosch", correct: false, image: "images/bosch3.jpg" },
-                    { text: "Samsung", correct: false, image: "images/samsung3.jpg" }
-                ]
-            },
-            {
-                question: "CD и слушай",
-                answers: [
-                    { text: "Sony", correct: true, image: "images/sony3.jpg" },				
-                    { text: "Panasonic", correct: false, image: "images/panasonic3.jpg" },
-                    { text: "Philips", correct: false, image: "images/philips3.jpg" },
                     { text: "Samsung", correct: false, image: "images/samsung3.jpg" }
                 ]
             },
