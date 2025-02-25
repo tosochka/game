@@ -17,16 +17,16 @@
             background-color: #f4f4f4;
             overflow: hidden;
         }
-		
-		/* Запрет "отскока" страницы при свайпе */
 		html, body {
-			overscroll-behavior: none;
-		}
-		
-		/* Запрет прокрутки страницы */
-		body {
-			overflow: hidden;
-			touch-action: none; /* Отключаем стандартное поведение касаний */
+			overscroll-behavior: none; /* Запрет "подпрыгивания" */
+			overflow: hidden; /* Запрет прокрутки */
+			height: 100%; /* Фиксированная высота */
+			position: fixed; /* Фиксированное положение */
+			width: 100%; /* Фиксированная ширина */
+		}		
+
+		html, body {
+			overscroll-behavior: contain; /* Запрет "подпрыгивания" */
 		}		
 
         /* Анимация для исчезновения */
@@ -633,31 +633,9 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
-		// Функция для предотвращения прокрутки страницы
-		function preventScrollOnSwipe() {
-			let startX = 0;
-			let startY = 0;
-
-			document.addEventListener('touchstart', (e) => {
-				// Запоминаем начальные координаты касания
-				startX = e.touches[0].clientX;
-				startY = e.touches[0].clientY;
-			});
-
-			document.addEventListener('touchmove', (e) => {
-				// Вычисляем разницу между начальными и текущими координатами
-				const deltaX = Math.abs(e.touches[0].clientX - startX);
-				const deltaY = Math.abs(e.touches[0].clientY - startY);
-
-				// Если горизонтальный свайп больше вертикального, предотвращаем прокрутку
-				if (deltaX > deltaY) {
-					e.preventDefault();
-				}
-			}, { passive: false }); // Указываем, что событие не пассивное
-		}
-
-		// Вызов функции при загрузке страницы
-		preventScrollOnSwipe();
+		document.addEventListener('touchmove', function (e) {
+			e.preventDefault(); // Запрещаем стандартное поведение прокрутки
+		}, { passive: false }); // Указываем, что событие не пассивное
 
 		// Определение платформы в самом начале
 		const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
