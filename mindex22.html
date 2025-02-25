@@ -708,6 +708,7 @@
             const winModalBody = document.querySelector('#win-modal .modal-body');
             const isMobile = isMobileDevice();
             const isLandscapeMode = isLandscape();
+			const isIOS = document.body.classList.contains('ios-device'); // Проверка на iOS
 
             console.log("Обновление текста в модальном окне 'Вы выиграли!'"); // Отладочное сообщение
             console.log(`isMobile: ${isMobile}, isLandscapeMode: ${isLandscapeMode}`); // Отладочное сообщение
@@ -719,6 +720,13 @@
                     <p>Вы получаете 15% скидку на любые услуги контент-ателье ТЕХТASY.</p>
                     <p>Скидка действительна при предъявлении скриншота этого сообщения в течение 30 дней.</p>
                 `;
+				// Добавляем дополнительные предложения для iOS в альбомной ориентации
+				if (isIOS) {
+					winModalBody.innerHTML += `
+						<p>Поторопитесь!</p>
+						<p>И не забудьте сделать скриншот.</p>
+					`;				
+				}
             } else {
                 // Полный текст для ПК и портретной ориентации
                 winModalBody.innerHTML = `
