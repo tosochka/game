@@ -813,45 +813,39 @@
             return Promise.all(promises);
         }
 
-        // Функция для настройки размера шрифта
-        function adjustFontSize() {
-            const questionSection = document.getElementById('question-section');
-            const maxFontSize = 34;
-            const minFontSize = 16;
-            let fontSize = maxFontSize;
+		// Функция для настройки размера шрифта
+		function adjustFontSize() {
+			const questionElement = document.getElementById('question');
+			const questionSection = document.getElementById('question-section');
+			const maxFontSize = 34; // Максимальный размер шрифта
+			const minFontSize = 16; // Минимальный размер шрифта
+			let fontSize = maxFontSize;
 
-            questionElement.style.fontSize = `${fontSize}px`;
+			questionElement.style.fontSize = `${fontSize}px`;
 
-            while (
-                questionElement.scrollWidth > questionSection.offsetWidth ||
-                questionElement.scrollHeight > questionSection.offsetHeight
-            ) {
-                fontSize -= 1;
-                questionElement.style.fontSize = `${fontSize}px`;
+			// Проверяем, выходит ли текст за границы контейнера
+			while (
+				questionElement.scrollWidth > questionSection.offsetWidth ||
+				questionElement.scrollHeight > questionSection.offsetHeight
+			) {
+				fontSize -= 2; // Уменьшаем размер шрифта на 2 единицы
+				questionElement.style.fontSize = `${fontSize}px`;
 
-                if (fontSize <= minFontSize) {
-                    break;
-                }
-            }
+				// Если размер шрифта достиг минимального значения, прекращаем уменьшение
+				if (fontSize <= minFontSize) {
+					break;
+				}
+			}
+		}
 
-            while (
-                fontSize < maxFontSize &&
-                questionElement.scrollWidth < questionSection.offsetWidth &&
-                questionElement.scrollHeight < questionSection.offsetHeight
-            ) {
-                fontSize += 1;
-                questionElement.style.fontSize = `${fontSize}px`;
-            }
-        }
+		// Вызов функции при загрузке страницы и изменении размера окна
+		window.addEventListener('load', adjustFontSize);
+		window.addEventListener('resize', adjustFontSize);
 
-        // Вызов функции при загрузке страницы и изменении размера окна
-        window.addEventListener('load', adjustFontSize);
-        window.addEventListener('resize', adjustFontSize);
-
-        // Вызов функции при изменении текста вопроса
-        new MutationObserver(adjustFontSize).observe(questionElement, {
-            childList: true,
-        });
+		// Вызов функции при изменении текста вопроса
+		new MutationObserver(adjustFontSize).observe(questionElement, {
+			childList: true,
+		});
 
         // Функция для воспроизведения звука
         function playSound(type) {
