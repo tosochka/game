@@ -622,6 +622,32 @@
     <audio id="click-sound" src="sounds/click.mp3"></audio>
 
     <script>
+		// Функция для предотвращения прокрутки страницы
+		function preventScrollOnSwipe() {
+			let startX = 0;
+			let startY = 0;
+
+			document.addEventListener('touchstart', (e) => {
+				// Запоминаем начальные координаты касания
+				startX = e.touches[0].clientX;
+				startY = e.touches[0].clientY;
+			});
+
+			document.addEventListener('touchmove', (e) => {
+				// Вычисляем разницу между начальными и текущими координатами
+				const deltaX = Math.abs(e.touches[0].clientX - startX);
+				const deltaY = Math.abs(e.touches[0].clientY - startY);
+
+				// Если горизонтальный свайп больше вертикального, предотвращаем прокрутку
+				if (deltaX > deltaY) {
+					e.preventDefault();
+				}
+			}, { passive: false }); // Указываем, что событие не пассивное
+		}
+
+		// Вызов функции при загрузке страницы
+		preventScrollOnSwipe();
+
 		// Определение платформы в самом начале
 		const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
 		const platform = isIOS ? 'iOS/Safari' : 'Chrome/Windows';
