@@ -17,6 +17,17 @@
             background-color: #f4f4f4;
             overflow: hidden;
         }
+		
+		/* Запрет "отскока" страницы при свайпе */
+		html, body {
+			overscroll-behavior: none;
+		}
+		
+		/* Запрет прокрутки страницы */
+		body {
+			overflow: hidden;
+			touch-action: none; /* Отключаем стандартное поведение касаний */
+		}		
 
         /* Анимация для исчезновения */
         .fade-out {
