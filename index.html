@@ -38,6 +38,14 @@
             z-index: 1000;
             touch-action: none;
         }
+        /* Скрываем touchpad на ПК */
+        body.pc #touchpad {
+            display: none;
+        }
+        /* Стили для ПК */
+        body.pc canvas {
+            top: 20px !important; /* Отступ 20 пикселей от верхней границы */
+        }
         #scoreModal {
             display: none; /* ранее flex */
             position: fixed;
@@ -141,18 +149,19 @@
         }
     </style>
 </head>
-<body>  <!-- Заставка в iframe -->
-		<iframe id="splashFrame" src="splash.html" style="width: 100%; height: 100%; border: none; position: fixed; top: 0; left: 0; z-index: 1999;"></iframe>
-		<script>
-			// Удаляем iframe с заставкой через 8 секунд и показываем меню
-			setTimeout(() => {
-				const splashFrame = document.getElementById('splashFrame');
-				if (splashFrame) {
-					splashFrame.remove(); // Удаляем iframe
-				}
-				document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
-			}, 8000);
-		</script>
+<body>
+    <!-- Заставка в iframe -->
+    <iframe id="splashFrame" src="splash.html" style="width: 100%; height: 100%; border: none; position: fixed; top: 0; left: 0; z-index: 1999;"></iframe>
+    <script>
+        // Удаляем iframe с заставкой через 8 секунд и показываем меню
+        setTimeout(() => {
+            const splashFrame = document.getElementById('splashFrame');
+            if (splashFrame) {
+                splashFrame.remove(); // Удаляем iframe
+            }
+            document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
+        }, 8000);
+    </script>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
     </div>
@@ -224,6 +233,34 @@
     <audio id="defeatSound" src="soundtrack/defeat.ogg"></audio>
 
     <script>
+        // Определение платформы
+        function detectPlatform() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                return 'iOS';
+            }
+
+            if (/android/i.test(userAgent)) {
+                return 'Android';
+            }
+
+            return 'PC';
+        }
+
+        const platform = detectPlatform();
+        console.log(`Platform detected: ${platform}`);
+
+        // Скрываем touchpad на ПК
+        if (platform === 'PC') {
+            document.getElementById('touchpad').style.display = 'none';
+        }
+
+        // Добавляем класс к body в зависимости от платформы
+        if (platform === 'PC') {
+            document.body.classList.add('pc');
+        }
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -467,6 +504,41 @@
                 togglePause(); // Ставим игру на паузу или снимаем с паузы
             }
         });
+
+        // Управление на ПК
+        document.addEventListener('keydown', (e) => {
+            if (platform === 'PC') {
+                if (e.key === 'ArrowLeft') {
+                    player.x = Math.max(0, player.x - player.speed);
+                } else if (e.key === 'ArrowRight') {
+                    player.x = Math.min(canvas.width - player.width, player.x + player.speed);
+                } else if (e.key === ' ' && !isSpacePressed) { // Обработка пробела
+                    isSpacePressed = true;
+                    shoot();
+                } else if (e.key === 'p' || e.key === 'Enter') {
+                    togglePause();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (platform === 'PC' && e.key === ' ') {
+                isSpacePressed = false; // Сбрасываем флаг при отпускании пробела
+            }
+        });
+
+        // Управление мышью на ПК
+        if (platform === 'PC') {
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                player.x = Math.max(0, Math.min(mouseX - player.width / 2, canvas.width - player.width));
+            });
+
+            canvas.addEventListener('click', () => {
+                shoot();
+            });
+        }
 
         function getRandomEnemyType() {
             const random = Math.random();
@@ -1009,7 +1081,13 @@
             canvas.style.position = 'absolute';
             canvas.style.left = '50%'; // Центрируем по горизонтали
             canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
-            canvas.style.top = '0';
+
+            // Добавляем отступ сверху только для ПК
+            if (platform === 'PC') {
+                canvas.style.top = '20px'; // Отступ 20 пикселей от верхней границы
+            } else {
+                canvas.style.top = '0'; // Для мобильных устройств отступ не нужен
+            }
 
             // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
             document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
@@ -1020,6 +1098,16 @@
         }
 
         function checkOrientation() {
+            // Если устройство определено как ПК, пропускаем проверку ориентации
+            if (platform === 'PC') {
+                isPaused = false; // Снимаем паузу, если она была
+                startBackgroundMusic(); // Включаем фоновую музыку
+                hideOrientationWarning(); // Скрываем предупреждение (если оно было показано)
+                resizeCanvas(); // Обновляем размеры холста
+                return; // Выходим из функции
+            }
+
+            // Для мобильных устройств проверяем ориентацию
             const isPortrait = window.innerHeight > window.innerWidth;
 
             if (!isPortrait) {
@@ -1027,7 +1115,7 @@
                 stopBackgroundMusic(); // Останавливаем фоновую музыку
                 showOrientationWarning(); // Показываем предупреждение
             } else {
-                isPaused = false; // Снимаем с паузы, если ориентация правильная
+                isPaused = false; // Снимаем паузу, если ориентация правильная
                 startBackgroundMusic(); // Возобновляем фоновую музыку
                 hideOrientationWarning(); // Скрываем предупреждение
                 resizeCanvas(); // Обновляем размеры холста
