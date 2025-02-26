@@ -147,9 +147,62 @@
         #instructionModalContent li {
             margin-bottom: 5px;
         }
+        /* Стили для модального окна iOS */
+        #iosWarningModal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 3000; /* Выше всех элементов */
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #iosWarningModalContent {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+        #iosWarningModalContent h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        #iosWarningModalContent p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        #iosWarningModalContent button {
+            width: 100%;
+            padding: 10px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        #iosWarningModalContent button:hover {
+            background-color: #666;
+        }
     </style>
 </head>
 <body>
+    <!-- Модальное окно для iOS -->
+    <div id="iosWarningModal">
+        <div id="iosWarningModalContent">
+            <h2>Внимание!</h2>
+            <p>Ваша операционная система в настоящее время не поддерживается.</p>
+            <button id="closeIosWarningButton">Закрыть</button>
+        </div>
+    </div>
+
     <!-- Заставка в iframe -->
     <iframe id="splashFrame" src="splash.html" style="width: 100%; height: 100%; border: none; position: fixed; top: 0; left: 0; z-index: 1999;"></iframe>
     <script>
@@ -250,6 +303,21 @@
 
         const platform = detectPlatform();
         console.log(`Platform detected: ${platform}`);
+
+        // Показываем модальное окно для iOS
+        if (platform === 'iOS') {
+            const iosWarningModal = document.getElementById('iosWarningModal');
+            iosWarningModal.style.display = 'flex'; // Показываем модальное окно
+
+            // Закрытие модального окна при нажатии на кнопку
+            const closeIosWarningButton = document.getElementById('closeIosWarningButton');
+            closeIosWarningButton.addEventListener('click', () => {
+                iosWarningModal.style.display = 'none'; // Скрываем модальное окно
+            });
+
+            // Останавливаем выполнение кода игры для iOS
+            throw new Error('iOS is not supported');
+        }
 
         // Скрываем touchpad на ПК
         if (platform === 'PC') {
