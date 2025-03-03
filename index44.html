@@ -470,7 +470,7 @@
 		console.log(`Platform: ${platform}`);
 		
 		// Устанавливаем джойстик по умолчанию для мобильных устройств
-		let controlType = localStorage.getItem('controlType') || (platform === 'PC' ? 'touchpad' : 'joystick');
+		let controlType = localStorage.getItem('controlType') || 'joystick';
 		
 		// Применяем сохраненный выбор при загрузке игры
 		applyControlType();
