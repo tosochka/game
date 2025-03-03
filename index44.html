@@ -271,27 +271,28 @@
             color: rgba(255, 255, 255, 0.7);
         }
 
-        #joystick {
-            position: absolute;
-            bottom: 20px;
-            right: 20px; /* Джойстик справа */
-            width: 80px;
-            height: 80px;
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: auto; /* Включаем обработку событий для джойстика */
-        }
+		#joystick {
+			position: absolute;
+			bottom: 20px; /* Отступ снизу */
+			right: 50px; /* Уменьшаем отступ от правого края */
+			width: 80px;
+			height: 80px;
+			background-color: rgba(255, 255, 255, 0.3);
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			pointer-events: auto; /* Включаем обработку событий для джойстика */
+		}
 
-        #joystickHandle {
-            width: 40px;
-            height: 40px;
-            background-color: rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            pointer-events: none; /* Handle не должен перехватывать события */
-        }
+		#joystickHandle {
+			width: 40px;
+			height: 40px;
+			background-color: rgba(255, 255, 255, 0.7);
+			border-radius: 50%;
+			pointer-events: none; /* Handle не должен перехватывать события */
+			transform: translate(0, 0); /* Начальное положение */
+		}
 		
 		#controlTypeSelector {
 			margin: 10px 0;
@@ -777,9 +778,15 @@
 			// Перемещаем handle джойстика
 			joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
 
-			// Перемещаем игрока напрямую в соответствии с положением джойстика
-			const playerX = joystickCenterX + handleX - player.width / 2;
-			player.x = Math.max(0, Math.min(playerX, canvas.width - player.width));
+			// Нормализуем смещение джойстика (от -1 до 1)
+			const normalizedDeltaX = handleX / radius;
+
+			// Перемещаем игрока на основе нормализованного смещения
+			const playerSpeed = 5; // Скорость перемещения игрока
+			player.x += normalizedDeltaX * playerSpeed;
+
+			// Ограничиваем позицию игрока в пределах игрового поля
+			player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
 		});
 
 		// Обработка окончания касания для джойстика
