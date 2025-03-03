@@ -431,14 +431,16 @@
     <audio id="rocketExplosionSound" src="soundtrack/rocket_explosion.ogg"></audio>
 
     <!-- Мобильные элементы управления -->
-    <div id="mobileControls">
-        <div id="shootButton"></div> <!-- Кнопка стрельбы слева -->
-        <div id="joystick"> <!-- Джойстик справа -->
-            <div id="joystickHandle"></div>
-        </div>
-    </div>
+	<div id="mobileControls" style="display: none;">
+		<div id="shootButton"></div> <!-- Кнопка стрельбы слева -->
+		<div id="joystick"> <!-- Джойстик справа -->
+			<div id="joystickHandle"></div>
+		</div>
+	</div>
 
-    <script>
+	<script>
+    document.addEventListener('DOMContentLoaded', () => {
+	
         // Определение платформы
         function detectPlatform() {
             const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -455,8 +457,14 @@
         }
 
         const platform = detectPlatform();
-        console.log(`Platform detected: ${platform}`);
+		console.log(`Platform: ${platform}`);
 		
+		// Скрываем мобильные элементы управления на ПК
+		if (platform === 'PC') {
+			document.getElementById('mobileControls').style.display = 'none';
+		}
+
+				
 		// Показываем переключатель управления только на мобильных устройствах
 		if (platform === 'Android' || platform === 'iOS') {
 			document.getElementById('controlTypeSelector').style.display = 'block';
@@ -486,7 +494,7 @@
         if (platform === 'PC') {
             document.body.classList.add('pc');
         }
-
+		
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -602,11 +610,11 @@
 		// Функция для применения выбранного управления
 		function applyControlType() {
 			if (controlType === 'touchpad') {
-				document.getElementById('touchpad').style.display = 'block';
-				document.getElementById('mobileControls').style.display = 'none';
+				document.getElementById('touchpad').style.display = 'block'; // Показываем тачпад
+				document.getElementById('mobileControls').style.display = 'none'; // Скрываем джойстик
 			} else if (controlType === 'joystick') {
-				document.getElementById('touchpad').style.display = 'none';
-				document.getElementById('mobileControls').style.display = 'flex';
+				document.getElementById('touchpad').style.display = 'none'; // Скрываем тачпад
+				document.getElementById('mobileControls').style.display = 'flex'; // Показываем джойстик
 			}
 		}
 		
@@ -754,7 +762,7 @@
             joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
 
             // Передаем смещение в управление игроком
-            const sensitivity = 2; // Чувствительность управления
+            const sensitivity = 4; // Чувствительность управления
             player.x += handleX / radius * sensitivity;
             player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
         });
@@ -2119,6 +2127,7 @@
 		console.log('Canvas top offset:', canvas.offsetTop);
 		console.log('Canvas padding top:', window.getComputedStyle(canvas).paddingTop);
 
-    </script>
+		});
+	</script>
 </body>
 </html>
