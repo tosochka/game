@@ -1916,13 +1916,13 @@
 					const ammoBarLeft = ammoBar.offsetLeft;
 					const availableWidth = ammoBarLeft - healthBarRight;
 
-					// Увеличиваем отступы между индикаторами и панелью иконок
+					// Добавляем отступы между индикаторами и панелью иконок
 					const padding = 20; // Отступ в 20 пикселей с каждой стороны
-					const panelWidth = availableWidth - 2 * padding; // Уменьшаем ширину панели на отступы
+					const panelWidth = availableWidth + 2 * padding; // Увеличиваем ширину панели на отступы
 
-					// Устанавливаем ширину панели иконок в пределах доступного пространства
+					// Устанавливаем ширину панели иконок
 					iconsPanel.style.width = `${panelWidth}px`;
-					iconsPanel.style.left = `${healthBarRight + padding + (panelWidth / 2)}px`;
+					iconsPanel.style.left = `${healthBarRight - padding + (panelWidth / 2)}px`;
 				}
 			}
 		}		
