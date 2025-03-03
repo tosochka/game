@@ -217,29 +217,51 @@
             background-color: #666;
         }
 
-		#iconsPanel {
+		/* Индикатор здоровья */
+		#healthBar {
 			position: absolute;
-			top: 30px; /* 10px (отступ индикаторов) + 20px (отступ холста) */
-			left: 50%; /* Центрирование по горизонтали */
-			transform: translateX(-50%);
-			display: flex;
-			gap: 10px; /* Расстояние между иконками */
-			background-color: rgba(255, 255, 255, 0.0); /* Полупрозрачный белый фон */
-			padding: 0px;
-			border-radius: 0px;
-			z-index: 500; /* Меньше, чем у окна паузы */
-			height: 30px; /* Высота панели, как у индикаторов */
-			align-items: center; /* Выравниваем иконки по центру по вертикали */
-			user-select: none; /* Запрет выделения текста и элементов */
-			-webkit-user-select: none; /* Для Safari */
-			-moz-user-select: none; /* Для Firefox */
-			-ms-user-select: none; /* Для старых версий IE/Edge */
+			top: 10px;
+			left: 10px;
+			width: 120px; /* Фиксированная ширина для ПК */
+			height: 24px;
+			background-color: rgba(255, 0, 0, 0.3);
+			border: 1px solid white;
+			z-index: 100;
 		}
 
+		/* Индикатор боекомплекта */
+		#ammoBar {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			width: 120px; /* Фиксированная ширина для ПК */
+			height: 24px;
+			background-color: rgba(0, 0, 0, 0.3);
+			border: 1px solid white;
+			z-index: 100;
+		}
+
+		/* Панель иконок */
+		#iconsPanel {
+			position: absolute;
+			top: 10px;
+			left: 50%; /* Центрируем по горизонтали */
+			transform: translateX(-50%); /* Смещаем на половину ширины панели */
+			width: auto; /* Ширина будет рассчитываться динамически */
+			height: 30px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 5px; /* Уменьшаем отступы между иконками */
+			background-color: rgba(255, 255, 255, 0.0);
+			z-index: 100;
+		}
+
+		/* Иконки на панели */
 		#iconsPanel img {
-			width: 26px; /* Уменьшенный размер иконок */
+			width: 26px;
 			height: 26px;
-			pointer-events: none; /* Запрет взаимодействия с иконками */
+			pointer-events: none;
 		}
 
 		#iconsPanel.hidden {
@@ -1801,37 +1823,59 @@
 			requestAnimationFrame(gameLoop);
 		}
 
-        function resizeCanvas() {
-            const maxWidth = 400; // Максимальная ширина игрового поля
-            const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
+		function resizeCanvas() {
+			const maxWidth = 400; // Максимальная ширина игрового поля
+			const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
 
-            // Рассчитываем ширину и высоту холста
-            gameWidth = Math.min(window.innerWidth - 40, maxWidth);
-            gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
+			// Рассчитываем ширину и высоту холста
+			gameWidth = Math.min(window.innerWidth - 40, maxWidth);
+			gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
 
-            // Устанавливаем размеры холста
-            canvas.width = gameWidth;
-            canvas.height = gameHeight;
+			// Устанавливаем размеры холста
+			canvas.width = gameWidth;
+			canvas.height = gameHeight;
 
-            // Позиционируем холст по центру горизонтально и вверху вертикально
-            canvas.style.position = 'absolute';
-            canvas.style.left = '50%'; // Центрируем по горизонтали
-            canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+			// Позиционируем холст по центру горизонтально и вверху вертикально
+			canvas.style.position = 'absolute';
+			canvas.style.left = '50%'; // Центрируем по горизонтали
+			canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
 
-            // Добавляем отступ сверху только для ПК
-            if (platform === 'PC') {
-                canvas.style.top = '20px'; // Отступ 20 пикселей от верхней границы
-            } else {
-                canvas.style.top = '0'; // Для мобильных устройств отступ не нужен
-            }
+			// Добавляем отступ сверху только для ПК
+			if (platform === 'PC') {
+				canvas.style.top = '20px'; // Отступ 20 пикселей от верхней границы
+			} else {
+				canvas.style.top = '0'; // Для мобильных устройств отступ не нужен
+			}
 
-            // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
-            document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+			// Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
+			document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
 
-            // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
-            player.x = canvas.width / 2 - player.width / 2;
-            player.y = canvas.height - 40;
-        }
+			// Пересчитываем позицию игрока, чтобы он оставался по центру внизу
+			player.x = canvas.width / 2 - player.width / 2;
+			player.y = canvas.height - 40;
+
+			// Обновляем позицию панели иконок
+			updateIconsPanelPosition();
+		}
+		
+		function updateIconsPanelPosition() {
+			const iconsPanel = document.getElementById('iconsPanel');
+			if (iconsPanel) {
+				// Рассчитываем доступное пространство между индикаторами
+				const healthBar = document.getElementById('healthBar');
+				const ammoBar = document.getElementById('ammoBar');
+
+				if (healthBar && ammoBar) {
+					const healthBarRight = healthBar.offsetLeft + healthBar.offsetWidth;
+					const ammoBarLeft = ammoBar.offsetLeft;
+					const availableWidth = ammoBarLeft - healthBarRight;
+
+					// Устанавливаем ширину панели иконок в пределах доступного пространства
+					iconsPanel.style.width = `${availableWidth}px`;
+					iconsPanel.style.left = `${healthBarRight + (availableWidth / 2)}px`;
+				}
+			}
+		}		
 
         function checkOrientation() {
             // Если устройство определено как ПК, пропускаем проверку ориентации
