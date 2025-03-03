@@ -44,6 +44,16 @@
 		body.pc #touchpad {
 			display: none;
 		}
+		
+		/* Скрываем тачпад по умолчанию на мобильных устройствах */
+		#touchpad {
+			display: none;
+		}
+
+		/* Скрываем джойстик по умолчанию на мобильных устройствах */
+		#mobileControls {
+			display: none;
+		}
         
         #touchpad {
             position: fixed;
@@ -629,7 +639,6 @@
         let isInfantryStopped = false; // Остановлена ли пехота
         let isGameOver = false; // Флаг для отслеживания состояния игры
 		
-		// Функция для применения выбранного управления
 		function applyControlType() {
 			if (controlType === 'touchpad') {
 				document.getElementById('touchpad').style.display = 'block'; // Показываем тачпад
@@ -639,7 +648,7 @@
 				document.getElementById('mobileControls').style.display = 'flex'; // Показываем джойстик
 			}
 		}
-		
+				
 		// Обработчик изменения выбора управления
 		document.querySelectorAll('input[name="controlType"]').forEach((input) => {
 			input.addEventListener('change', (e) => {
