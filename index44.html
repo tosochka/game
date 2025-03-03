@@ -34,6 +34,16 @@
             margin: 0; /* Убираем отступы */
             padding: 0; /* Убираем padding */
         }
+		
+		/* Скрываем мобильные элементы управления на ПК */
+		body.pc #mobileControls {
+			display: none !important;
+		}
+
+		/* Скрываем touchpad на ПК */
+		body.pc #touchpad {
+			display: none;
+		}
         
         #touchpad {
             position: fixed;
@@ -462,6 +472,9 @@
 		// Скрываем мобильные элементы управления на ПК
 		if (platform === 'PC') {
 			document.getElementById('mobileControls').style.display = 'none';
+			document.body.classList.add('pc');
+		} else {
+			document.getElementById('mobileControls').style.display = 'flex';
 		}
 
 				
