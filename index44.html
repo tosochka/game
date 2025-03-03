@@ -1466,7 +1466,48 @@
         }
 		
 		// Обработчик для события изменения видимости страницы
-		document.addEventListener('visibilitychange', handleVisibilityChange);
+		// document.addEventListener('visibilitychange', handleVisibilityChange);
+		
+		let wasPausedBeforeHide = false; // Флаг для хранения состояния паузы до сворачивания
+
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) {
+				// Страница скрыта (свернута или переключена на другую вкладку)
+				wasPausedBeforeHide = isPaused; // Сохраняем состояние паузы
+				if (!isPaused) {
+					pauseGame(); // Ставим игру на паузу, если она не была на паузе
+				}
+			} else {
+				// Страница снова видима
+				if (wasPausedBeforeHide) {
+					// Если игра была на паузе до сворачивания, оставляем ее на паузе
+					pauseGame();
+				} else {
+					// Если игра не была на паузе до сворачивания, продолжаем игру
+					resumeGame();
+				}
+			}
+		});
+
+		function pauseGame() {
+			if (!isPaused) {
+				isPaused = true;
+				console.log('Игра на паузе: страница скрыта.');
+				stopBackgroundMusic(); // Останавливаем фоновую музыку
+				clearInterval(enemySpawnInterval); // Останавливаем спавн врагов
+				document.getElementById('iconsPanel').classList.add('hidden'); // Скрываем панель иконок
+			}
+		}
+
+		function resumeGame() {
+			if (isPaused) {
+				isPaused = false;
+				console.log('Игра возобновлена: страница снова видима.');
+				startBackgroundMusic(); // Возобновляем фоновую музыку
+				enemySpawnInterval = setInterval(spawnEnemy, 1000); // Возобновляем спавн врагов
+				document.getElementById('iconsPanel').classList.remove('hidden'); // Показываем панель иконок
+			}
+		}		
 
 		// Обработчик для события скрытия страницы (для некоторых браузеров)
 		window.addEventListener('pagehide', handlePageHide);
@@ -1875,9 +1916,13 @@
 					const ammoBarLeft = ammoBar.offsetLeft;
 					const availableWidth = ammoBarLeft - healthBarRight;
 
+					// Увеличиваем отступы между индикаторами и панелью иконок
+					const padding = 20; // Отступ в 20 пикселей с каждой стороны
+					const panelWidth = availableWidth - 2 * padding; // Уменьшаем ширину панели на отступы
+
 					// Устанавливаем ширину панели иконок в пределах доступного пространства
-					iconsPanel.style.width = `${availableWidth}px`;
-					iconsPanel.style.left = `${healthBarRight + (availableWidth / 2)}px`;
+					iconsPanel.style.width = `${panelWidth}px`;
+					iconsPanel.style.left = `${healthBarRight + padding + (panelWidth / 2)}px`;
 				}
 			}
 		}		
