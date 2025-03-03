@@ -1545,95 +1545,47 @@
             }
         }
 
-		function drawHealthBar() {
+        function drawHealthBar() {
 			if (isGameOver) return;
+		
+            const barWidth = 120; // Ширина индикатора
+            const barHeight = 24; // Высота индикатора
+            const x = 10; // Левый верхний угол с отступом 10px
+            const y = 10; // Отступ сверху
 
-			const iconsPanel = document.getElementById('iconsPanel');
-			const iconsPanelRect = iconsPanel.getBoundingClientRect();
+            // Фон индикатора
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(x, y, barWidth, barHeight);
 
-			// Максимальная ширина индикатора здоровья
-			const maxHealthBarWidth = 120;
-			// Отступ от левого края экрана до индикатора здоровья
-			const healthBarLeftMargin = 10;
-			// Расстояние от правого края индикатора здоровья до панели иконок
-			const healthBarRightMargin = 20;
+            // Красный индикатор здоровья
+            ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+            ctx.fillRect(x, y, (player.health / 100) * barWidth, barHeight);
 
-			// Рассчитываем доступную ширину для индикатора здоровья
-			const availableHealthBarWidth = iconsPanelRect.left - healthBarLeftMargin - healthBarRightMargin;
-
-			// Ограничиваем ширину индикатора здоровья
-			const healthBarWidth = Math.min(maxHealthBarWidth, availableHealthBarWidth);
-
-			// Если доступная ширина меньше минимальной, уменьшаем индикатор
-			if (availableHealthBarWidth < maxHealthBarWidth) {
-				healthBarWidth = Math.max(0, availableHealthBarWidth);
-			}
-
-			// Высота индикатора
-			const healthBarHeight = 24;
-			// Позиция индикатора здоровья
-			const healthBarX = healthBarLeftMargin;
-			const healthBarY = 10;
-
-			// Фон индикатора здоровья
-			ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-			ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-
-			// Красный индикатор здоровья
-			ctx.fillStyle = 'rgba(255, 0, 0, 1)';
-			ctx.fillRect(healthBarX, healthBarY, (player.health / 100) * healthBarWidth, healthBarHeight);
-
-			// Рамка индикатора здоровья
-			ctx.strokeStyle = 'white';
-			ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-		}
+            // Рамка индикатора
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(x, y, barWidth, barHeight);
+        }
 
 		function drawAmmoBar() {
 			if (isGameOver) return;
+			
+			const barWidth = 120; // Ширина индикатора
+			const barHeight = 24; // Высота индикатора
+			const x = canvas.width - barWidth - 10; // Правый верхний угол с отступом 10px
+			const y = 10; // Отступ сверху
 
-			const iconsPanel = document.getElementById('iconsPanel');
-			const iconsPanelRect = iconsPanel.getBoundingClientRect();
-
-			// Максимальная ширина индикатора боекомплекта
-			const maxAmmoBarWidth = 120;
-			// Отступ от правого края экрана до индикатора боекомплекта
-			const ammoBarRightMargin = 10;
-			// Минимальное расстояние от правого края панели иконок до левого края индикатора боекомплекта
-			const minDistanceToIconsPanel = 20;
-
-			// Рассчитываем доступную ширину для индикатора боекомплекта
-			const availableAmmoBarWidth = canvas.width - (iconsPanelRect.right - canvas.offsetLeft) - ammoBarRightMargin;
-
-			// Объявляем переменную ammoBarWidth до блока if
-			let ammoBarWidth;
-
-			// Если расстояние от правого края панели иконок до левого края индикатора меньше 20px, уменьшаем индикатор
-			if (availableAmmoBarWidth < minDistanceToIconsPanel) {
-				// Уменьшаем ширину индикатора на величину разницы
-				ammoBarWidth = Math.max(0, availableAmmoBarWidth);
-			} else {
-				// Используем максимальную ширину, если расстояние достаточно
-				ammoBarWidth = maxAmmoBarWidth;
-			}
-
-			// Высота индикатора
-			const ammoBarHeight = 24;
-			// Позиция индикатора боекомплекта
-			const ammoBarX = canvas.width - ammoBarWidth - ammoBarRightMargin;
-			const ammoBarY = 10;
-
-			// Фон индикатора боекомплекта
+			// Фон индикатора
 			ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-			ctx.fillRect(ammoBarX, ammoBarY, ammoBarWidth, ammoBarHeight);
+			ctx.fillRect(x, y, barWidth, barHeight);
 
-			// Зеленый индикатор боекомплекта
+			// Зеленый индикатор боекомплекта (уменьшение слева направо)
 			ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-			const ammoWidth = (ammo / maxAmmo) * ammoBarWidth;
-			ctx.fillRect(ammoBarX + ammoBarWidth - ammoWidth, ammoBarY, ammoWidth, ammoBarHeight);
+			const ammoWidth = (ammo / maxAmmo) * barWidth; // Ширина заполненной части
+			ctx.fillRect(x + barWidth - ammoWidth, y, ammoWidth, barHeight); // Начинаем с правого края
 
-			// Рамка индикатора боекомплекта
+			// Рамка индикатора
 			ctx.strokeStyle = 'white';
-			ctx.strokeRect(ammoBarX, ammoBarY, ammoBarWidth, ammoBarHeight);
+			ctx.strokeRect(x, y, barWidth, barHeight);
 		}
 
         function updateHighScore() {
