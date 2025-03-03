@@ -645,6 +645,13 @@
 			}
 		}
 		
+		function restoreIconsPanel() {
+			const iconsPanel = document.getElementById('iconsPanel');
+			if (!isPaused && platform !== 'PC') {
+				iconsPanel.classList.remove('hidden'); // Показываем панель, если пауза снята
+			}
+		}		
+		
 		function checkIconCollisions() {
 			for (const type in icons) {
 				const icon = icons[type];
@@ -1844,12 +1851,15 @@
                 isPaused = true; // Ставим игру на паузу
                 stopBackgroundMusic(); // Останавливаем фоновую музыку
                 showOrientationWarning(); // Показываем предупреждение
+				document.getElementById('iconsPanel').classList.add('hidden'); // Скрываем панель иконо
             } else {
                 isPaused = false; // Снимаем паузу, если ориентация правильная
                 startBackgroundMusic(); // Возобновляем фоновую музыку
                 hideOrientationWarning(); // Скрываем предупреждение
-                resizeCanvas(); // Обновляем размеры холста
+				restoreIconsPanel(); // Восстанавливаем панель иконок
             }
+			
+			resizeCanvas(); // Обновляем размеры холста			
         }
 
         function showOrientationWarning() {
