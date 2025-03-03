@@ -469,6 +469,15 @@
         const platform = detectPlatform();
 		console.log(`Platform: ${platform}`);
 		
+		// Устанавливаем джойстик по умолчанию для мобильных устройств
+		let controlType = localStorage.getItem('controlType') || (platform === 'PC' ? 'touchpad' : 'joystick');
+		
+		// Применяем сохраненный выбор при загрузке игры
+		applyControlType();
+
+		// Устанавливаем выбранный тип управления в переключателе
+		document.querySelector(`input[name="controlType"][value="${controlType}"]`).checked = true;
+		
 		// Скрываем мобильные элементы управления на ПК
 		if (platform === 'PC') {
 			document.getElementById('mobileControls').style.display = 'none';
@@ -618,7 +627,6 @@
         let enemySpawnInterval;
         let isInfantryStopped = false; // Остановлена ли пехота
         let isGameOver = false; // Флаг для отслеживания состояния игры
-		let controlType = localStorage.getItem('controlType') || 'touchpad'; // По умолчанию тачпад
 		
 		// Функция для применения выбранного управления
 		function applyControlType() {
@@ -639,12 +647,6 @@
 				applyControlType(); // Применяем изменения
 			});
 		});
-
-		// Применяем сохраненный выбор при загрузке игры
-		applyControlType();
-
-		// Устанавливаем выбранный тип управления в переключателе
-		document.querySelector(`input[name="controlType"][value="${controlType}"]`).checked = true;
 
         function playSound(soundId) {
             const sound = document.getElementById(soundId);
