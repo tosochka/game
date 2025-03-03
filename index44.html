@@ -282,6 +282,21 @@
             border-radius: 50%;
             pointer-events: none; /* Handle не должен перехватывать события */
         }
+		
+		#controlTypeSelector {
+			margin: 10px 0;
+			font-size: 16px;
+		}
+
+		#controlTypeSelector label {
+			margin-right: 10px;
+			cursor: pointer;
+		}
+
+		#controlTypeSelector input {
+			margin-right: 5px;
+		}		
+				
     </style>
 </head>
 <body>
@@ -319,22 +334,33 @@
     <div id="touchpad"></div>
 
     <!-- Модальное окно для боевой сводки -->
-    <div id="scoreModal">
-        <div id="scoreModalContent">
-            <h3>Боевая сводка</h3>
-            <div>Очки: <span id="modalTotalScore">0</span></div>
-            <div>Рекорд: <span id="modalHighScoreDisplay">0</span></div>
-            <div>Пехота: <span id="modalInfantryCount">0</span></div>
-            <div>Танки: <span id="modalTankCount">0</span></div>
-            <div>РСЗО: <span id="modalRocketLauncherCount">0</span></div>
-            <div>Уровень: <span id="modalLevel">1</span></div>
-            <div>Сложность: <span id="modalDifficultyLevel">0</span></div>
-            <div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
-            <!-- Новая кнопка "Инструкция по выживанию" -->
-            <button id="instructionButton">Инструкция по выживанию</button>
-            <button id="restartButton">Начать игру</button>
-        </div>
-    </div>
+	<div id="scoreModal">
+		<div id="scoreModalContent">
+			<h3>Боевая сводка</h3>
+			<div>Очки: <span id="modalTotalScore">0</span></div>
+			<div>Рекорд: <span id="modalHighScoreDisplay">0</span></div>
+			<div>Пехота: <span id="modalInfantryCount">0</span></div>
+			<div>Танки: <span id="modalTankCount">0</span></div>
+			<div>РСЗО: <span id="modalRocketLauncherCount">0</span></div>
+			<div>Уровень: <span id="modalLevel">1</span></div>
+			<div>Сложность: <span id="modalDifficultyLevel">0</span></div>
+			<div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
+
+			<!-- Переключатель управления (только для мобильных устройств) -->
+			<div id="controlTypeSelector" style="display: none;">
+				<label>
+					<input type="radio" name="controlType" value="touchpad" checked> Тачпад
+				</label>
+				<label>
+					<input type="radio" name="controlType" value="joystick"> Джойстик
+				</label>
+			</div>
+
+			<!-- Кнопки меню -->
+			<button id="instructionButton">Инструкция по выживанию</button>
+			<button id="restartButton">Начать игру</button>
+		</div>
+	</div>
 
     <!-- Модальное окно для инструкции -->
     <div id="instructionModal">
@@ -430,6 +456,11 @@
 
         const platform = detectPlatform();
         console.log(`Platform detected: ${platform}`);
+		
+		// Показываем переключатель управления только на мобильных устройствах
+		if (platform === 'Android' || platform === 'iOS') {
+			document.getElementById('controlTypeSelector').style.display = 'block';
+		}
 
         // Показываем модальное окно для iOS
         if (platform === 'iOS') {
@@ -554,25 +585,46 @@
         const levelThresholds = [100, 300, 600, 1000];
         let isPaused = false;
         let highScore = localStorage.getItem('highScore') || 0;
-        
         let ammoEffectActive = false;
         let rocketEffectActive = false;
-        
         let ammoEffectEndTime = 0;
         let rocketEffectEndTime = 0;
-        
         let originalEnemyShootingParams = {}; // Храним оригинальные параметры стрельбы врагов
-
         let infantryCount = 0;
         let tankCount = 0;
         let rocketLauncherCount = 0;
         let infantryHitCounter = 0;
-
         let enemySpawnInterval;
         let isInfantryStopped = false; // Остановлена ли пехота
-        
         let isGameOver = false; // Флаг для отслеживания состояния игры
-        
+		let controlType = localStorage.getItem('controlType') || 'touchpad'; // По умолчанию тачпад
+		
+		// Функция для применения выбранного управления
+		function applyControlType() {
+			if (controlType === 'touchpad') {
+				document.getElementById('touchpad').style.display = 'block';
+				document.getElementById('mobileControls').style.display = 'none';
+			} else if (controlType === 'joystick') {
+				document.getElementById('touchpad').style.display = 'none';
+				document.getElementById('mobileControls').style.display = 'flex';
+			}
+		}
+		
+		// Обработчик изменения выбора управления
+		document.querySelectorAll('input[name="controlType"]').forEach((input) => {
+			input.addEventListener('change', (e) => {
+				controlType = e.target.value;
+				localStorage.setItem('controlType', controlType); // Сохраняем выбор
+				applyControlType(); // Применяем изменения
+			});
+		});
+
+		// Применяем сохраненный выбор при загрузке игры
+		applyControlType();
+
+		// Устанавливаем выбранный тип управления в переключателе
+		document.querySelector(`input[name="controlType"][value="${controlType}"]`).checked = true;
+
         function playSound(soundId) {
             const sound = document.getElementById(soundId);
             if (sound) {
