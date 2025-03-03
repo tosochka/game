@@ -746,47 +746,47 @@
             joystickCenterY = rect.top + rect.height / 2;
         }
 
-        // Обработка начала касания для джойстика
-        joystick.addEventListener('touchstart', (e) => {
-            isJoystickActive = true;
-            joystickStartX = e.touches[0].clientX;
-            joystickStartY = e.touches[0].clientY;
-            initJoystick();
-        });
+		// Обработка начала касания для джойстика
+		joystick.addEventListener('touchstart', (e) => {
+			isJoystickActive = true;
+			joystickStartX = e.touches[0].clientX;
+			joystickStartY = e.touches[0].clientY;
+			initJoystick();
+		});
 
-        // Обработка движения пальца для джойстика
-        joystick.addEventListener('touchmove', (e) => {
-            if (!isJoystickActive) return;
 
-            const touchX = e.touches[0].clientX;
-            const touchY = e.touches[0].clientY;
+		// Обработка движения пальца для джойстика
+		joystick.addEventListener('touchmove', (e) => {
+			if (!isJoystickActive) return;
 
-            // Вычисляем смещение относительно центра джойстика
-            const deltaX = touchX - joystickCenterX;
-            const deltaY = touchY - joystickCenterY;
+			const touchX = e.touches[0].clientX;
+			const touchY = e.touches[0].clientY;
 
-            // Ограничиваем смещение радиусом джойстика
-            const radius = joystick.offsetWidth / 2;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            const scale = Math.min(1, distance / radius);
+			// Вычисляем смещение относительно центра джойстика
+			const deltaX = touchX - joystickCenterX;
+			const deltaY = touchY - joystickCenterY;
 
-            const handleX = deltaX * scale;
-            const handleY = deltaY * scale;
+			// Ограничиваем смещение радиусом джойстика
+			const radius = joystick.offsetWidth / 2;
+			const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+			const scale = Math.min(1, distance / radius);
 
-            // Перемещаем handle джойстика
-            joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
+			const handleX = deltaX * scale;
+			const handleY = deltaY * scale;
 
-            // Передаем смещение в управление игроком
-            const sensitivity = 4; // Чувствительность управления
-            player.x += handleX / radius * sensitivity;
-            player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
-        });
+			// Перемещаем handle джойстика
+			joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
 
-        // Обработка окончания касания для джойстика
-        joystick.addEventListener('touchend', () => {
-            isJoystickActive = false;
-            joystickHandle.style.transform = 'translate(0, 0)'; // Возвращаем handle в центр
-        });
+			// Перемещаем игрока напрямую в соответствии с положением джойстика
+			const playerX = joystickCenterX + handleX - player.width / 2;
+			player.x = Math.max(0, Math.min(playerX, canvas.width - player.width));
+		});
+
+		// Обработка окончания касания для джойстика
+		joystick.addEventListener('touchend', () => {
+			isJoystickActive = false;
+			joystickHandle.style.transform = 'translate(0, 0)'; // Возвращаем handle в центр
+		});
 
         // Обработка касания для кнопки стрельбы
         shootButton.addEventListener('touchstart', (e) => {
