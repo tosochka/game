@@ -405,6 +405,49 @@
 	<audio id="rocketExplosionSound" src="soundtrack/rocket_explosion.ogg"></audio>
 
     <script>
+		const loadImage = (src) => new Promise((resolve, reject) => {
+			const img = new Image();
+			img.src = src;
+			img.onload = resolve;
+			img.onerror = reject;
+		});
+
+		const loadAudio = (src) => new Promise((resolve, reject) => {
+			const audio = new Audio();
+			audio.src = src;
+			audio.oncanplaythrough = resolve;
+			audio.onerror = reject;
+		});
+		
+		Promise.all([
+			loadImage('pic/topographic-map.jpg'),
+			loadImage('pic/player.png'),
+			loadImage('pic/infantry.png'),
+			loadImage('pic/tank.png'),
+			loadImage('pic/rocket_launcher.png'),
+			loadImage('icons/medkit_temp.png'),
+			loadImage('icons/ammo_temp.png'),
+			loadImage('icons/rocket_temp.png'),
+			loadAudio('soundtrack/shoot.ogg'),
+			loadAudio('soundtrack/explosion.ogg'),
+			loadAudio('soundtrack/background.ogg'),
+			loadAudio('soundtrack/hit.ogg'),
+			loadAudio('soundtrack/infantry_hit1.ogg'),
+			loadAudio('soundtrack/infantry_hit2.ogg'),
+			loadAudio('soundtrack/infantry_hit3.ogg'),
+			loadAudio('soundtrack/defeat.ogg'),
+			loadAudio('soundtrack/effect_activate.ogg'),
+			loadAudio('soundtrack/effect_deactivate.ogg'),
+			loadAudio('soundtrack/hit_immune.ogg'),
+			loadAudio('soundtrack/rocket_explosion.ogg')
+		]).then(() => {
+			console.log('Все ресурсы загружены');
+			resizeCanvas();
+			document.getElementById('scoreModal').style.display = 'flex';
+		}).catch((error) => {
+			console.error('Ошибка загрузки ресурсов:', error);
+		});		
+	
         // Определение платформы
         function detectPlatform() {
             const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -1849,69 +1892,72 @@
 				}
 			}
 		}
+		
+		
 
-        function gameLoop() {
-            if (gameOver || player.health <= 0) {
-                if (!defeatHandled) {
-                    handleDefeat();
-                }
-                return;
-            }
+		function gameLoop() {
+			if (gameOver || player.health <= 0) {
+				if (!defeatHandled) {
+					handleDefeat();
+				}
+				return;
+			}
 
-            if (isPaused) {
-                drawPauseMenu();
-                requestAnimationFrame(gameLoop);
-                return;
-            }			
+			if (isPaused) {
+				drawPauseMenu();
+				requestAnimationFrame(gameLoop);
+				return;
+			}
 			
-			// Проверяем время действия эффектов
-			checkEffects();
-			
-			// Обновляем позиции врагов
-			updateEnemies();
-			
-			// Проверяем условия для появления иконок
-			checkIconSpawnConditions();			
+			function cleanUpArrays() {
+				enemies = enemies.filter(enemy => enemy.y < canvas.height);
+				enemyMissiles = enemyMissiles.filter(missile => missile.y < canvas.height);
+				explosions = explosions.filter(explosion => explosion.alpha > 0);
+			}			
 
+			// Обновление состояния игры
+			updateGameState();
+			
             // Восстановление боекомплекта
             const currentTime = Date.now();
             if (currentTime - lastShotTimeAmmo >= 1000) { // Если прошла 1 секунда с последнего выстрела
                 ammo = Math.min(maxAmmo, ammo + 5); // Восстанавливаем 5 единиц боекомплекта
                 lastShotTimeAmmo = currentTime; // Обновляем время последнего восстановления
-            }
-			
+            }			
+
 			// Очистка холста
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			// Отрисовка фона
-			drawBackground();
+			// Отрисовка всех элементов
+			drawGameElements();
 
-			// Обновление позиций иконок
+			requestAnimationFrame(gameLoop);
+		}
+
+		function updateGameState() {
+			updateEnemies();
+			checkIconSpawnConditions();
+			checkEffects();
 			updateIcons();
-			
-			// Проверка столкновений игрока с иконками
-			checkIconCollisions();			
-
-			// Отрисовка остальных элементов
-			drawMissiles();
-			drawEnemies();
-			drawEnemyMissiles();
-			drawExplosions();
+			checkIconCollisions();
 			avoidCollisions();
 			checkPlayerCollision();
 			checkCollisionsWithMissiles();
 			checkEnemyMissileCollisions();
 			enemyShoot();
 			updateLevel();
+		}
 
-			// Отрисовка иконок
+		function drawGameElements() {
+			drawBackground();
+			drawMissiles();
+			drawEnemies();
+			drawEnemyMissiles();
+			drawExplosions();
 			drawIcons();
-			
 			drawPlayer();
 			drawHealthBar();
 			drawAmmoBar();
-
-			requestAnimationFrame(gameLoop);
 		}
 
 		function resizeCanvas() {
