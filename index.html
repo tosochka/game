@@ -15,29 +15,54 @@
             height: 100vh;
             font-family: Arial, sans-serif;
             color: white;
+			user-select: none; /* Запрет выделения текста и элементов */
+			-webkit-user-select: none; /* Для Safari */
+			-moz-user-select: none; /* Для Firefox */
+			-ms-user-select: none; /* Для старых версий IE/Edge */
         }
-        #gameContainer {
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
-            margin-bottom: 15vh; /* Отступ снизу для сенсорной зоны */
-        }
-        canvas {
-            border: 2px solid white;
-            cursor: none;
-        }
-        #touchpad {
-            position: fixed;
-            bottom: -10px; /* Сенсорная зона на 10px ниже нижней границы холста */
-            left: 50%; /* Центрируем по горизонтали */
-            transform: translateX(-50%); /* Смещаем на половину ширины */
-            width: calc(var(--game-width) + 8px); /* Ширина сенсорной зоны равна ширине холста + 8px (рамка) */
-            height: 15vh; /* Высота сенсорной зоны */
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 10px; /* Закругленные углы */
-            z-index: 1000;
-            touch-action: none;
-        }
+		#gameContainer {
+			display: flex;
+			align-items: flex-start;
+			gap: 20px;
+			margin-bottom: 15vh; /* Отступ снизу для сенсорной зоны */
+		}
+
+		canvas {
+			border: 2px solid white;
+			cursor: none;
+			position: relative; /* Добавляем это */
+			margin: 0; /* Убираем отступы */
+			padding: 0; /* Убираем padding */
+		}
+		
+		/* Анимация glow */
+		@keyframes glow {
+			0% {
+				background-color: rgba(255, 255, 255, 0.1); /* Начальный цвет */
+				box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); /* Слабая тень */
+			}
+			100% {
+				background-color: rgba(255, 255, 255, 0.2); /* Конечный цвет */
+				box-shadow: 0 0 20px rgba(255, 255, 255, 0.4); /* Более яркая тень */
+			}
+		}
+
+		/* Стили для тачпада */
+		#touchpad {
+			position: fixed;
+			bottom: -10px;
+			left: 50%;
+			transform: translateX(-50%);
+			width: calc(var(--game-width) + 8px);
+			height: 15vh;
+			background-color: rgba(255, 255, 255, 0.1); /* Более яркий фон */
+			border-radius: 10px;
+			z-index: 1000;
+			touch-action: none;
+			animation: glow 2s infinite alternate; /* Анимация свечения */
+
+		}
+		
         /* Скрываем touchpad на ПК */
         body.pc #touchpad {
             display: none;
@@ -46,18 +71,18 @@
         body.pc canvas {
             top: 20px !important; /* Отступ 20 пикселей от верхней границы */
         }
-        #scoreModal {
-            display: none; /* ранее flex */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-        }
+		#scoreModal {
+			display: none; /* ранее flex */
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.8);
+			justify-content: center;
+			align-items: center;
+			z-index: 1001; /* Выше, чем у панели иконок */
+		}
         #scoreModalContent {
             background-color: #222;
             padding: 20px;
@@ -191,6 +216,62 @@
         #iosWarningModalContent button:hover {
             background-color: #666;
         }
+
+		/* Индикатор здоровья */
+		#healthBar {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			width: 120px; /* Фиксированная ширина для ПК */
+			height: 24px;
+			background-color: rgba(255, 0, 0, 0.3);
+			border: 1px solid white;
+			z-index: 100;
+		}
+
+		/* Индикатор боекомплекта */
+		#ammoBar {
+			position: absolute;
+			top: 10px;
+			right:10px;
+			width: 120px; /* Фиксированная ширина для ПК */
+			height: 24px;
+			background-color: rgba(0, 0, 0, 0.3);
+			border: 1px solid white;
+			z-index: 100;
+		}
+
+		/* Панель иконок */
+		#iconsPanel {
+			position: absolute;
+			top: 10px;
+			left: 50%; /* Центрируем по горизонтали */
+			transform: translateX(-50%); /* Смещаем на половину ширины панели */
+			width: auto; /* Ширина будет рассчитываться динамически */
+			height: 30px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 5px; /* Уменьшаем отступы между иконками */
+			background-color: rgba(255, 255, 255, 0.0);
+			z-index: 100;
+		}
+		
+		/* Для ПК добавляем дополнительный отступ сверху */
+		body.pc #iconsPanel {
+			top: 30px; /* 10px (отступ индикаторов) + 20px (отступ холста) */
+		}
+
+		/* Иконки на панели */
+		#iconsPanel img {
+			width: 26px;
+			height: 26px;
+			pointer-events: none;
+		}
+
+		#iconsPanel.hidden {
+			display: none; /* Скрывает панель */		
+		
     </style>
 </head>
 <body>
@@ -215,10 +296,15 @@
             document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
         }, 8000);
     </script>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-    </div>
-
+	<div id="gameContainer">
+		<div id="iconsPanel">
+			<img id="ammoIcon" src="icons/ammo_gray.png" alt="Ящик со снарядами">
+			<img id="medkitIcon" src="icons/medkit_gray.png" alt="Аптечка">
+			<img id="rocketIcon" src="icons/rocket_gray.png" alt="Орешник">
+		</div>
+		<canvas id="gameCanvas"></canvas>
+	</div>
+	
     <!-- Сенсорный ползунок -->
     <div id="touchpad"></div>
 
@@ -242,37 +328,56 @@
 
     <!-- Модальное окно для инструкции -->
     <div id="instructionModal">
-        <div id="instructionModalContent">
-            <h2>Инструкция по выживанию</h2>
-            <h3>Игра: Тосочка, Z.O.V.</h3>
-            <p><strong>Описание:</strong></p>
-            <p>
-                Вы — командир артиллерийского расчета, задача которого — защитить свои позиции от наступающих вражеских сил. 
-                Враги атакуют волнами: пехота, танки, реактивные системы залпового огня (РСЗО) стремятся прорвать вашу оборону. 
-                Ваша задача — уничтожать врагов, набирать очки и не допустить их прорыва. 
-                С каждым уровнем сложность игры увеличивается: враги становятся быстрее и опаснее.
-                Используйте свою артиллерию, чтобы остановить их и установить новый рекорд!
-            </p>
-            <p><strong>Особенности:</strong></p>
-            <ul>
-                <li>Вражеская пехота, танки и РСЗО — каждый, имеет свои характеристики и поведение.</li>
-                <li>Вы стреляете залпами снарядов, которые взрываются на различных дистанциях, в зависимости от погодных условий и рельефа местности.</li>
-                <li>У вас есть показатель живучести батареи, который снижается при попадании вражеских снарядов. Но за каждые полученные 100 очков, уровень живучести увеличивается на 1%.</li>
-                <li>Результаты лучших игр сохраняются, так что вы можете соревноваться не только с самим собой.</li>
-            </ul>
-            <p><strong>Управление:</strong></p>
-            <ul>
-                <li>Перемещайте позицию своей артиллерии, касаясь и двигая пальцем по сенсорной зоне внизу экрана.</li>
-                <li>Чтобы стрелять, просто коснитесь (тапните) в любом месте сенсорной зоны.</li>
-                <li>Нажмите на экран в любой области игрового поля, чтобы поставить или снять паузу.</li>
-            </ul>
-            <p><strong>Советы для игроков:</strong></p>
-            <ul>
-                <li>Следите за уровнем живучести: не допускайте, чтобы вражеские снаряды попадали в вас. Помните, танки и РСЗО наносят больше урона, чем пехота противника.</li>
-                <li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
-                <li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
-            </ul>
-        </div>
+		<div id="instructionModalContent">
+			<h2>Инструкция по выживанию</h2>
+			<h3>Игра: Тосочка, Z.O.V.</h3>
+			<p><strong>Описание:</strong></p>
+			<p>
+				Вы — командир артиллерийского расчета, задача которого — защитить свои позиции от наступающих вражеских сил. 
+				Враги атакуют волнами: пехота, танки, реактивные системы залпового огня (РСЗО) стремятся прорвать вашу оборону. 
+				Ваша задача — уничтожать врагов, набирать очки и не допустить их прорыва. 
+				С каждым уровнем сложность игры увеличивается: враги становятся быстрее и опаснее.
+				Используйте свою артиллерию, чтобы остановить их и установить новый рекорд!
+			</p>
+			<p><strong>Особенности:</strong></p>
+			<ul>
+				<li>Вражеская пехота, танки и РСЗО — каждый, имеет свои характеристики и поведение.</li>
+				<li>Вы стреляете залпами снарядов, которые взрываются на различных дистанциях, в зависимости от погодных условий и рельефа местности.</li>
+				<li>У вас есть показатель живучести батареи, который снижается при попадании вражеских снарядов. Но за каждые полученные 100 очков, уровень живучести увеличивается на 1%.</li>
+				<li>Результаты лучших игр сохраняются, так что вы можете соревноваться не только с самим собой.</li>
+				<li><strong>Бонусы:</strong>
+					<ul>
+						<li><strong>Аптечка:</strong> Восстанавливает здоровье до 100% и дает временный иммунитет к урону.</li>
+						<li><strong>Зарядный ящик:</strong> Дает неограниченное число выстрелов в течение одной минуты.</li>
+						<li><strong>Орешник:</strong> Уничтожает всех врагов на поле боя, но провоцирует временное увеличение интенсивности срельбы с их стороны.</li>
+					</ul>
+				</li>
+			</ul>
+			<p><strong>Управление:</strong></p>
+			<ul>
+				<li><strong>На мобильных устройствах:</strong>
+					<ul>
+						<li>Перемещайте позицию своей артиллерии, касаясь и двигая пальцем по сенсорной зоне внизу экрана.</li>
+						<li>Чтобы стрелять, просто коснитесь (тапните) в любом месте сенсорной зоны.</li>
+						<li>Нажмите на экран в любой области игрового поля, чтобы поставить или снять паузу.</li>
+					</ul>
+				</li>
+				<li><strong>На ПК:</strong>
+					<ul>
+						<li>Используйте стрелки влево и вправо для перемещения.</li>
+						<li>Нажмите пробел для стрельбы.</li>
+						<li>Нажмите "P" или "Enter" для паузы.</li>
+					</ul>
+				</li>
+			</ul>
+			<p><strong>Советы для игроков:</strong></p>
+			<ul>
+				<li>Следите за уровнем живучести: не допускайте, чтобы вражеские снаряды попадали в вас. Помните, танки и РСЗО наносят больше урона, чем пехота противника.</li>
+				<li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
+				<li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
+				<li>Используйте бонусы: аптечки, ящики со снарядами и "Орешник" помогут вам выжить в трудных ситуациях.</li>
+			</ul>
+		</div>
     </div>
 
     <!-- Звуковые эффекты (только OGG) -->
@@ -284,6 +389,10 @@
     <audio id="infantryHitSound2" src="soundtrack/infantry_hit2.ogg"></audio>
     <audio id="infantryHitSound3" src="soundtrack/infantry_hit3.ogg"></audio>
     <audio id="defeatSound" src="soundtrack/defeat.ogg"></audio>
+	<audio id="effectActivateSound" src="soundtrack/effect_activate.ogg"></audio>
+	<audio id="effectDeactivateSound" src="soundtrack/effect_deactivate.ogg"></audio>
+	<audio id="hitImmuneSound" src="soundtrack/hit_immune.ogg"></audio>
+	<audio id="rocketExplosionSound" src="soundtrack/rocket_explosion.ogg"></audio>
 
     <script>
         // Определение платформы
@@ -362,7 +471,56 @@
             health: 100
         };
 
-        const enemies = [];
+		const icons = {
+			medkit: {
+				image: new Image(),
+				width: 32,
+				height: 32,
+				speed: 2, // Скорость падения иконки
+				active: false, // Активна ли иконка на поле
+				x: 0, // Позиция по X
+				y: 0, // Позиция по Y
+				timer: 0 // Таймер для отслеживания времени активности
+			},
+			ammo: {
+				image: new Image(),
+				width: 32,
+				height: 32,
+				speed: 2,
+				active: false,
+				x: 0,
+				y: 0,
+				timer: 0
+			},
+			rocket: {
+				image: new Image(),
+				width: 32,
+				height: 32,
+				speed: 2,
+				active: false,
+				x: 0,
+				y: 0,
+				timer: 0
+			}
+		};
+
+		// Загрузка изображений для иконок
+		icons.medkit.image.src = 'icons/medkit_temp.png';
+		icons.medkit.image.onload = () => console.log('Медкит загружен');
+		icons.ammo.image.src = 'icons/ammo_temp.png';
+		icons.ammo.image.onload = () => console.log('Ящик со снарядами загружен');
+		icons.rocket.image.src = 'icons/rocket_temp.png';
+		icons.rocket.image.onload = () => console.log('Орешник загружен');
+
+		let enemies = []; // Вместо const enemies = [];
+		let isGameStarted = false; // Добавляем переменную для отслеживания состояния игры
+		let isInfantryExploding = false; // Флаг для отслеживания взрывов вокруг пехоты
+		let medkitEffectActive = false; // Активен ли эффект аптечки
+		let medkitEffectEndTime = 0; // Время окончания эффекта
+		let infantryKilled = 0; // Количество уничтоженных пехотинцев
+		let tanksKilled = 0; // Количество уничтоженных танков
+		let rocketLaunchersKilled = 0; // Количество уничтоженных РСЗО
+		let enemiesCrossedThreshold = false; // Флаг для проверки, преодолели ли враги 60% поля		
         const enemyMissiles = [];
         const explosions = [];
         const baseMissileSpeed = 7;
@@ -378,6 +536,14 @@
         const levelThresholds = [100, 300, 600, 1000];
         let isPaused = false;
         let highScore = localStorage.getItem('highScore') || 0;
+		
+		let ammoEffectActive = false;
+		let rocketEffectActive = false;
+		
+		let ammoEffectEndTime = 0;
+		let rocketEffectEndTime = 0;
+		
+		let originalEnemyShootingParams = {}; // Храним оригинальные параметры стрельбы врагов
 
         let infantryCount = 0;
         let tankCount = 0;
@@ -385,26 +551,61 @@
         let infantryHitCounter = 0;
 
         let enemySpawnInterval;
+		let isInfantryStopped = false; // Остановлена ли пехота
+		
+		let isGameOver = false; // Флаг для отслеживания состояния игры
+		
+		function playSound(soundId) {
+			const sound = document.getElementById(soundId);
+			if (sound) {
+				sound.currentTime = 0; // Перематываем звук на начало
+				sound.play();
+			}
+		}
+		
+		function setIconActive(iconId, isActive) {
+			const icon = document.getElementById(iconId);
+			if (!icon) {
+				console.error(`Иконка с ID ${iconId} не найдена!`);
+				return;
+			}
+			console.log(`Изменение иконки ${iconId}: isActive=${isActive}`);
+			if (isActive) {
+				// Меняем src на цветное изображение (убираем "_gray", если он есть)
+				icon.src = icon.src.replace('_gray', '');
+				console.log(`Иконка ${iconId} активирована. Новый src: ${icon.src}`);
+			} else {
+				// Возвращаем серое изображение (добавляем "_gray", если его нет)
+				if (!icon.src.includes('_gray')) {
+					icon.src = icon.src.replace('.png', '_gray.png');
+				}
+				console.log(`Иконка ${iconId} деактивирована. Новый src: ${icon.src}`);
+			}
+		}
 
         const enemyTypes = [
-            { type: 'пехота', width: 10, height: 11, baseSpeed: 0.11, color: 'blue', score: 10, probability: 0.6 },
-            { type: 'танк', width: 20, height: 25, baseSpeed: 0.33, color: 'black', score: 20, probability: 0.3 },
-            { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.06, color: 'orange', score: 30, probability: 0.1 }
+            // { type: 'пехота', width: 10, height: 11, baseSpeed: 0.06, color: 'blue', score: 10, probability: 0.6 },
+            // { type: 'танк', width: 20, height: 25, baseSpeed: 0.11, color: 'black', score: 20, probability: 0.3 },
+            // { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.03, color: 'orange', score: 30, probability: 0.1 }
+			
+            { type: 'пехота', width: 10, height: 11, baseSpeed: 0.06, color: 'blue', score: 10, probability: 0.6 },
+            { type: 'танк', width: 20, height: 25, baseSpeed: 0.11, color: 'black', score: 20, probability: 0.3 },
+            { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.03, color: 'orange', score: 30, probability: 0.1 }			
         ];
 
         const enemyShootingParams = {
             пехота: {
-                cooldown: 15000,
+                cooldown: 7000, // было 15000
                 bulletSize: { width: 3, height: 6 },
                 type: 'single'
             },
             танк: {
-                cooldown: 60000,
+                cooldown: 30000, // было 60000
                 bulletSize: { width: 5, height: 10 },
                 type: 'single'
             },
             РСЗО: {
-                cooldown: 30000,
+                cooldown: 20000, // было 30000
                 bulletSize: { width: 5, height: 10 },
                 type: 'burst',
                 burstCount: 5
@@ -427,20 +628,116 @@
         let isPlayerBlinking = false;
         let blinkAnimationFrame;
 
-        function createRandomExplosionsAroundPlayer() {
-            const explosionCount = 5; // Количество взрывов за один вызов
-            for (let i = 0; i < explosionCount; i++) {
-                const angle = Math.random() * Math.PI * 2; // Случайный угол
-                const distance = Math.random() * 50 + 30; // Случайное расстояние от игрока (30-80 пикселей)
-                const x = player.x + player.width / 2 + Math.cos(angle) * distance;
-                const y = player.y + player.height / 2 + Math.sin(angle) * distance;
+        // Переменные для боекомплекта
+        let ammo = 50; // Текущий запас боекомплекта (от 0 до 50)
+        const maxAmmo = 50; // Максимальный запас боекомплекта
+        let lastShotTimeAmmo = Date.now(); // Время последнего выстрела для восстановления боекомплекта
 
-                createExplosion(x, y);
-            }
-        }
+		function createRandomExplosionsAroundPlayer() {
+			const playerCenterX = player.x + player.width / 2;
+			const playerCenterY = player.y + player.height / 2;
+			createRandomExplosions(playerCenterX, playerCenterY);
+		}
+		
+		function spawnIcon(type) {
+			const icon = icons[type];
+			if (!icon.active) {
+				icon.x = Math.random() * (canvas.width - icon.width); // Случайная позиция по X
+				icon.y = -icon.height; // Начинаем сверху за пределами поля
+				icon.active = true; // Делаем иконку активной
+			}
+		}
+		
+		function updateIcons() {
+			for (const type in icons) {
+				const icon = icons[type];
+				if (icon.active) {
+					icon.y += icon.speed; // Двигаем иконку вниз
+
+					// Если иконка вышла за пределы поля
+					if (icon.y > canvas.height) {
+						icon.active = false; // Делаем иконку неактивной
+					}
+				}
+			}
+		}
+		
+		function drawIcons() {
+			for (const type in icons) {
+				const icon = icons[type];
+				if (icon.active && icon.image.complete) {
+					ctx.drawImage(icon.image, icon.x, icon.y, icon.width, icon.height);
+				}
+			}
+		}
+		
+		function restoreIconsPanel() {
+			const iconsPanel = document.getElementById('iconsPanel');
+			if (!isPaused && platform !== 'PC') {
+				iconsPanel.classList.remove('hidden'); // Показываем панель, если пауза снята
+			}
+		}		
+		
+		function checkIconCollisions() {
+			for (const type in icons) {
+				const icon = icons[type];
+				if (icon.active && checkCollision(player, icon)) {
+					console.log(`Игрок поймал иконку типа: ${type}`);
+					icon.active = false; // Удаляем иконку с поля
+					activateIconEffect(type); // Активируем эффект иконки
+				}
+			}
+		}
+		
+		function activateIconEffect(type) {
+			const effectDuration = 60000; // 60 секунд
+			playSound('effectActivateSound'); // Звук активации эффекта
+
+			switch (type) {
+				case 'medkit':
+					player.health = 100;
+					medkitEffectActive = true;
+					medkitEffectEndTime = Date.now() + 60000;
+					setIconActive('medkitIcon', true);
+					console.log('Эффект аптечки активирован: иммунитет и снижение урона на 60 секунд.');
+					break;
+
+				case 'ammo':
+					ammo = maxAmmo; // Восстанавливаем боекомплект до 100%
+					ammoEffectActive = true; // Активируем эффект
+					ammoEffectEndTime = Date.now() + 60000; // Эффект длится 60 секунд
+					setIconActive('ammoIcon', true); // Активируем иконку на панели
+					console.log('Эффект ящика со снарядами активирован: неограниченные выстрелы на 60 секунд.');
+					break;
+
+				case 'rocket':
+					// Уничтожаем всех врагов
+					destroyAllEnemies();
+					rocketEffectActive = true; // Активируем эффект
+					rocketEffectEndTime = Date.now() + 60000; // Эффект длится 60 секунд
+					setIconActive('rocketIcon', true); // Активируем иконку на панели
+
+					// Сохраняем оригинальные параметры стрельбы врагов
+					originalEnemyShootingParams = {
+						пехота: { ...enemyShootingParams.пехота },
+						танк: { ...enemyShootingParams.танк },
+						РСЗО: { ...enemyShootingParams.РСЗО }
+					};
+
+					// Увеличиваем интенсивность выстрелов в N раза
+					enemyShootingParams.пехота.cooldown /= 3; // Уменьшаем время перезарядки
+					enemyShootingParams.танк.cooldown /= 3;
+					enemyShootingParams.РСЗО.cooldown /= 2;
+
+					console.log('Эффект Орешника активирован: интенсивность выстрелов врагов увеличена в 2 раза на 60 секунд.');
+					break;
+			}
+		}
 
         function handleDefeat() {
             defeatHandled = true;
+			isGameOver = true;
+			isGameStarted = false; // Игра завершена
 
             // Останавливаем игровой цикл
             cancelAnimationFrame(gameLoop);
@@ -580,7 +877,7 @@
                     player.x = Math.max(0, player.x - player.speed);
                 } else if (e.key === 'ArrowRight') {
                     player.x = Math.min(canvas.width - player.width, player.x + player.speed);
-                } else if (e.key === ' ' && !isSpacePressed) { // Обработка пробела
+				} else if (e.key === ' ' && !isSpacePressed && isGameStarted) { // Добавляем проверку isGameStarted
                     isSpacePressed = true;
                     shoot();
                 } else if (e.key === 'p' || e.key === 'Enter') {
@@ -588,6 +885,17 @@
                 }
             }
         });
+		
+		// Временно: Создаем иконки для тестирования
+		// document.addEventListener('keydown', (e) => {
+		//	if (e.key === '1') {
+		//		spawnIcon('medkit');
+		//	} else if (e.key === '2') {
+		//		spawnIcon('ammo');
+		//	} else if (e.key === '3') {
+		//		spawnIcon('rocket');
+		//	}
+		// });
 
         document.addEventListener('keyup', (e) => {
             if (platform === 'PC' && e.key === ' ') {
@@ -794,54 +1102,116 @@
             }
         }
 
-        function checkEnemyMissileCollisions() {
-            enemyMissiles.forEach((missile, index) => {
-                if (checkCollision(player, missile)) {
-                    const hitSound = document.getElementById('hitSound');
-                    hitSound.currentTime = 0;
-                    hitSound.play();
+		function checkEnemyMissileCollisions() {
+			enemyMissiles.forEach((missile, index) => {
+				if (checkCollision(player, missile)) {
+					let damage = 0;
 
-                    if (missile.source) {
-                        switch (missile.source) {
-                            case 'пехота':
-                                player.health -= 10;
-                                break;
-                            case 'танк':
-                                player.health -= 50;
-                                break;
-                            case 'РСЗО':
-                                player.health = 0;
-                                break;
-                        }
-                    } else if (missile.type === 'burst') {
-                        player.health = 0;
-                    }
+					if (medkitEffectActive) {
+						// Если эффект аптечки активен, снижаем урон
+						switch (missile.source) {
+							case 'пехота':
+								damage = 0; // Иммунитет к пехоте
+								playSound('hitImmuneSound'); // Звук попадания во время эффекта
+								break;
+							case 'танк':
+								damage = 10; // Урон от танка снижен на 75% (вместо 40)
+								playSound('hitImmuneSound'); // Звук попадания во время эффекта
+								break;
+							case 'РСЗО':
+								damage = 25; // Урон от РСЗО снижен на 50% (вместо 50)
+								playSound('hitImmuneSound'); // Звук попадания во время эффекта
+								break;
+						}
+					} else {
+						// Если эффект аптечки не активен, применяем стандартный урон
+						switch (missile.source) {
+							case 'пехота':
+								damage = 10;
+								playSound('hitSound'); // Стандартный звук попадания
+								break;
+							case 'танк':
+								damage = 40;
+								playSound('hitSound'); // Стандартный звук попадания
+								break;
+							case 'РСЗО':
+								damage = 100;
+								playSound('hitSound'); // Стандартный звук попадания
+								break;
+						}
+					}
 
-                    if (player.health < 0) {
-                        player.health = 0;
-                    }
+					player.health -= damage;
 
-                    enemyMissiles.splice(index, 1);
+					if (player.health < 0) {
+						player.health = 0;
+					}
 
-                    if (player.health <= 0) {
-                        gameOver = true;
-                    }
+					enemyMissiles.splice(index, 1);
 
-                    updateScoreboard();
-                }
-            });
-        }
+					if (player.health <= 0) {
+						gameOver = true;
+					}
 
-        function createExplosion(x, y) {
-            explosions.push({
-                x,
-                y,
-                radius: 5,
-                maxRadius: 20,
-                alpha: 1,
-                duration: 20
-            });
-        }
+					updateScoreboard();
+				}
+			});
+		}
+
+		function createExplosion(x, y, duration, radius) {
+			explosions.push({
+				x,
+				y,
+				radius: 5,
+				maxRadius: radius,
+				alpha: 1,
+				duration: duration
+			});
+
+			// Проверяем столкновения с врагами
+			checkExplosionCollisions(x, y, radius);
+		}
+		
+		function checkExplosionCollisions(explosionX, explosionY, explosionRadius) {
+			enemies.forEach((enemy, index) => {
+				const enemyCenterX = enemy.x + enemy.width / 2;
+				const enemyCenterY = enemy.y + enemy.height / 2;
+
+				// Рассчитываем расстояние между центром взрыва и центром врага
+				const distance = Math.sqrt(
+					Math.pow(explosionX - enemyCenterX, 2) +
+					Math.pow(explosionY - enemyCenterY, 2)
+				);
+
+				// Если враг в зоне взрыва, удаляем его
+				if (distance <= explosionRadius) {
+					console.log('Враг уничтожен взрывом:', enemy.type); // Отладочное сообщение
+					enemies.splice(index, 1);
+				}
+			});
+		}
+		
+		function createRandomExplosions(centerX, centerY, count = 10, maxRadius = 50, duration = 20) {
+			for (let i = 0; i < count; i++) {
+				const angle = Math.random() * Math.PI * 2; // Случайный угол
+				const distance = Math.random() * maxRadius; // Случайное расстояние от центра
+				const x = centerX + Math.cos(angle) * distance;
+				const y = centerY + Math.sin(angle) * distance;
+
+				createExplosion(x, y, duration, maxRadius);
+			}
+		}
+		
+		function createSpecialExplosion(x, y) {
+			explosions.push({
+				x,
+				y,
+				radius: 5,
+				maxRadius: 40, // Большой радиус
+				alpha: 1,
+				duration: 40  // Долгая длительность
+			});
+		}
 
         function drawExplosions() {
             explosions.forEach((explosion, index) => {
@@ -945,6 +1315,20 @@
                             }
                         }
 
+						// Обновляем счетчики уничтоженных врагов
+						switch (enemy.type) {
+							case 'пехота':
+								infantryKilled++;
+								break;
+							case 'танк':
+								tanksKilled++;
+								break;
+							case 'РСЗО':
+								rocketLaunchersKilled++;
+								break;
+						}
+
+
                         player.missiles.splice(mIndex, 1);
                         enemies.splice(eIndex, 1);
                         score += enemy.score;
@@ -963,6 +1347,100 @@
                 });
             });
         }
+		
+		function updateEnemies() {
+			enemies.forEach((enemy) => {
+				if (enemy.type === 'пехота' && isInfantryExploding) {
+					return; // Останавливаем пехоту во время взрывов
+				}
+
+				enemy.y += enemy.speed;
+				
+				// Ограничиваем движение врага по горизонтали
+				enemy.x = Math.max(0, Math.min(enemy.x, canvas.width - enemy.width));
+
+				if (enemy.y > canvas.height) {
+					gameOver = true;
+				}
+			});
+		}
+						
+		function destroyAllEnemiesWithSequentialExplosions() {
+			// Останавливаем только пехоту
+			isPaused = true;
+			console.log('Движение пехоты остановлено.');
+			// Сохраняем текущие позиции пехоты
+			const infantryPositions = enemies
+				.filter(enemy => enemy.type === 'пехота')
+				.map(enemy => ({
+					x: enemy.x + enemy.width / 2,
+					y: enemy.y + enemy.height / 2
+				}));
+
+			// Останавливаем только пехоту
+			isPaused = true;
+
+			// Создаем взрывы вокруг каждой пехоты с задержкой
+			infantryPositions.forEach((position, index) => {
+				const explosionCount = 5; // Количество взрывов для каждого врага
+
+				for (let i = 0; i < explosionCount; i++) {
+					setTimeout(() => {
+						createExplosion(
+							position.x + Math.random() * 40 - 20,
+							position.y + Math.random() * 40 - 20,
+							40, // Длительность взрыва
+							40  // Максимальный радиус взрыва
+						);
+					}, i * 300); // Задержка между взрывами
+				}
+
+				// Удаляем пехоту из массива после завершения всех ее взрывов
+				setTimeout(() => {
+					const infantryIndex = enemies.findIndex(enemy => enemy.type === 'пехота');
+					if (infantryIndex !== -1) {
+						enemies.splice(infantryIndex, 1);
+					}
+				}, explosionCount * 300); // Задержка перед удалением пехоты
+			});
+
+			// Возобновляем движение пехоты после завершения всех взрывов
+			setTimeout(() => {
+				isPaused = false;
+			}, infantryPositions.length * explosionCount * 300);
+		}
+		
+		function destroyAllEnemies() {
+			console.log('Уничтожение всех врагов. Количество врагов до:', enemies.length); // Отладочное сообщение
+
+			// Создаем взрывы для всех врагов
+			enemies.forEach((enemy) => {
+				const enemyCenterX = enemy.x + enemy.width / 2;
+				const enemyCenterY = enemy.y + enemy.height / 2;
+
+				for (let i = 0; i < 10; i++) { // 10 взрывов для каждого врага
+					setTimeout(() => {
+						createExplosion(
+							enemyCenterX + Math.random() * 20 - 10, // Случайное смещение по X
+							enemyCenterY + Math.random() * 20 - 10, // Случайное смещение по Y
+							40, // Длительность взрыва
+							40  // Радиус взрыва
+						);
+						
+						// Воспроизводим звук взрыва
+						playSound('rocketExplosionSound'); // Используем новый звук
+						// Или, если используем существующий звук:
+						// playSound('explosionSound');						
+						
+					}, i * 150); // Задержка между взрывами (150 мс)
+				}
+			});
+
+			// Устанавливаем флаг, что пехота находится в процессе уничтожения
+			isInfantryExploding = true;
+
+			console.log('Количество врагов после:', enemies.length); // Отладочное сообщение
+		}
 
         function playShootSound() {
             const shootSound = document.getElementById('shootSound');
@@ -986,10 +1464,98 @@
             backgroundMusic.pause();
             backgroundMusic.currentTime = 0;
         }
+		
+		// Обработчик для события изменения видимости страницы
+		// document.addEventListener('visibilitychange', handleVisibilityChange);
+		
+		let wasPausedBeforeHide = false; // Флаг для хранения состояния паузы до сворачивания
+
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) {
+				// Страница скрыта (свернута или переключена на другую вкладку)
+				wasPausedBeforeHide = isPaused; // Сохраняем состояние паузы
+				if (!isPaused) {
+					pauseGame(); // Ставим игру на паузу, если она не была на паузе
+				}
+			} else {
+				// Страница снова видима
+				if (wasPausedBeforeHide) {
+					// Если игра была на паузе до сворачивания, оставляем ее на паузе
+					pauseGame();
+				} else {
+					// Если игра не была на паузе до сворачивания, продолжаем игру
+					resumeGame();
+				}
+			}
+		});
+
+		function pauseGame() {
+			if (!isPaused) {
+				isPaused = true;
+				console.log('Игра на паузе: страница скрыта.');
+				stopBackgroundMusic(); // Останавливаем фоновую музыку
+				clearInterval(enemySpawnInterval); // Останавливаем спавн врагов
+				document.getElementById('iconsPanel').classList.add('hidden'); // Скрываем панель иконок
+			}
+		}
+
+		function resumeGame() {
+			if (isPaused) {
+				isPaused = false;
+				console.log('Игра возобновлена: страница снова видима.');
+				startBackgroundMusic(); // Возобновляем фоновую музыку
+				enemySpawnInterval = setInterval(spawnEnemy, 1000); // Возобновляем спавн врагов
+				document.getElementById('iconsPanel').classList.remove('hidden'); // Показываем панель иконок
+			}
+		}		
+
+		// Обработчик для события скрытия страницы (для некоторых браузеров)
+		window.addEventListener('pagehide', handlePageHide);
+
+		// Обработчик для события показа страницы (для некоторых браузеров)
+		window.addEventListener('pageshow', handlePageShow);
+
+		function handleVisibilityChange() {
+			if (document.hidden) {
+				// Страница скрыта (свернута или переключена на другую вкладку)
+				pauseGame();
+			} else {
+				// Страница снова видима
+				resumeGame();
+			}
+		}
+
+		function handlePageHide() {
+			// Страница скрыта (например, при переходе на другую вкладку)
+			pauseGame();
+		}
+
+		function handlePageShow() {
+			// Страница снова видима
+			resumeGame();
+		}
+		
+		function pauseGame() {
+			if (!isPaused) {
+				isPaused = true;
+				console.log('Игра на паузе: страница скрыта.');
+				stopBackgroundMusic(); // Останавливаем фоновую музыку
+			}
+		}
+
+		function resumeGame() {
+			if (isPaused) {
+				isPaused = false;
+				console.log('Игра возобновлена: страница снова видима.');
+				startBackgroundMusic(); // Возобновляем фоновую музыку
+			}
+		}
 
         function restartGame() {
+			isGameStarted = true; // Игра началась
             gameOver = false;
             defeatHandled = false;
+			isGameOver = false;
             clearInterval(explosionInterval);
             stopBlinking(); // Останавливаем моргание
             document.getElementById('scoreModal').style.display = 'none';
@@ -999,16 +1565,38 @@
             rocketLauncherCount = 0;
             level = 1;
             speedMultiplier = 1;
+			console.log(`Уровень игры сброшен: ${level}`);
+			console.log(`Множитель скорости сброшен: ${speedMultiplier}`);			
             lastRszShotTime = 0;
             player.health = 100;
             lastHealthIncreaseScore = 0;
             infantryHitCounter = 0;
+            ammo = maxAmmo; // Сбрасываем боекомплект
+            lastShotTimeAmmo = Date.now(); // Сбрасываем время последнего выстрела/
+
+			// Сбрасываем состояние эффектов иконок
+			medkitEffectActive = false;
+			ammoEffectActive = false;
+			rocketEffectActive = false;
+			medkitEffectEndTime = 0;
+			ammoEffectEndTime = 0;
+			rocketEffectEndTime = 0;
+
+			// Деактивируем иконки на панели
+			setIconActive('medkitIcon', false);
+			setIconActive('ammoIcon', false);
+			setIconActive('rocketIcon', false);
+
             updateScoreboard();
             player.missiles = [];
             enemies.length = 0;
             enemyMissiles.length = 0;
             explosions.length = 0;
-            startBackgroundMusic();
+			
+			// Сбрасываем состояние иконок
+			resetIcons();
+
+			startBackgroundMusic();
 
             clearInterval(enemySpawnInterval);
             enemySpawnInterval = setInterval(spawnEnemy, 1000);
@@ -1026,20 +1614,47 @@
         }
 
         function drawHealthBar() {
-            const barWidth = 200;
-            const barHeight = 20;
-            const x = 10;
-            const y = 10;
+			if (isGameOver) return;
+		
+            const barWidth = canvas.width * 0.3; // Ширина индикатора
+            const barHeight = 24; // Высота индикатора
+            const x = 10; // Левый верхний угол с отступом 10px
+            const y = 10; // Отступ сверху
 
+            // Фон индикатора
             ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
             ctx.fillRect(x, y, barWidth, barHeight);
 
+            // Красный индикатор здоровья
             ctx.fillStyle = 'rgba(255, 0, 0, 1)';
             ctx.fillRect(x, y, (player.health / 100) * barWidth, barHeight);
 
+            // Рамка индикатора
             ctx.strokeStyle = 'white';
             ctx.strokeRect(x, y, barWidth, barHeight);
         }
+
+		function drawAmmoBar() {
+			if (isGameOver) return;
+			
+			const barWidth = canvas.width * 0.3; // Ширина индикатора
+			const barHeight = 24; // Высота индикатора
+			const x = canvas.width - barWidth - 10; // Правый верхний угол с отступом 10px
+			const y = 10; // Отступ сверху
+
+			// Фон индикатора
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+			ctx.fillRect(x, y, barWidth, barHeight);
+
+			// Зеленый индикатор боекомплекта (уменьшение слева направо)
+			ctx.fillStyle = 'rgba(0, 255, 0, 1)';
+			const ammoWidth = (ammo / maxAmmo) * barWidth; // Ширина заполненной части
+			ctx.fillRect(x + barWidth - ammoWidth, y, ammoWidth, barHeight); // Начинаем с правого края
+
+			// Рамка индикатора
+			ctx.strokeStyle = 'white';
+			ctx.strokeRect(x, y, barWidth, barHeight);
+		}
 
         function updateHighScore() {
             if (score > highScore) {
@@ -1049,16 +1664,20 @@
             }
         }
 
-        function togglePause() {
-            isPaused = !isPaused;
-            if (isPaused) {
-                clearInterval(enemySpawnInterval);
-                stopBackgroundMusic();
-            } else {
-                enemySpawnInterval = setInterval(spawnEnemy, 1000);
-                startBackgroundMusic();
-            }
-        }
+		function togglePause() {
+			isPaused = !isPaused;
+			const iconsPanel = document.getElementById('iconsPanel');
+
+			if (isPaused) {
+				iconsPanel.classList.add('hidden'); // Скрываем панель при паузе
+				clearInterval(enemySpawnInterval);
+				stopBackgroundMusic();
+			} else {
+				iconsPanel.classList.remove('hidden'); // Показываем панель при снятии паузы
+				enemySpawnInterval = setInterval(spawnEnemy, 1000);
+				startBackgroundMusic();
+			}
+		}
 
         function drawPauseMenu() {
             if (isPaused) {
@@ -1073,9 +1692,21 @@
 
         function shoot() {
             const currentTime = Date.now();
-            if (currentTime - lastShotTime < 1000 / maxShotsPerSecond) return;
-            lastShotTime = currentTime;
+			
+			// Если эффект ящика со снарядами активен, игнорируем проверку боекомплекта
+			if (!ammoEffectActive && (currentTime - lastShotTime < 1000 / maxShotsPerSecond || ammo <= 0)) {
+				return; // Не стреляем, если нет боекомплекта или слишком часто
+			}
 
+			lastShotTime = currentTime;
+			lastShotTimeAmmo = currentTime;
+
+			// Если эффект ящика со снарядами не активен, уменьшаем боекомплект
+			if (!ammoEffectActive) {
+				ammo = Math.max(0, ammo - 1);
+			}
+
+            // Остальная логика выстрела
             for (let i = 0; i < missileCount; i++) {
                 const angle = -missileSpreadAngle * (missileCount - 1) / 2 + i * missileSpreadAngle;
                 const speedVariation = baseMissileSpeed * (0.9 + Math.random() * 0.2);
@@ -1100,6 +1731,79 @@
 
             playShootSound();
         }
+		
+		function checkEffects() {
+			const currentTime = Date.now();
+
+			// Проверяем эффект аптечки
+			if (medkitEffectActive && currentTime >= medkitEffectEndTime) {
+				medkitEffectActive = false;
+				setIconActive('medkitIcon', false);
+				playSound('effectDeactivateSound'); // Звук деактивации эффекта
+				console.log('Эффект аптечки закончился.');
+			}
+
+			// Проверяем эффект ящика со снарядами
+			if (ammoEffectActive && currentTime >= ammoEffectEndTime) {
+				ammoEffectActive = false;
+				setIconActive('ammoIcon', false);
+				playSound('effectDeactivateSound'); // Звук деактивации эффекта
+				console.log('Эффект ящика со снарядами закончился.');
+			}
+
+			// Проверяем эффект орешника
+			if (rocketEffectActive && currentTime >= rocketEffectEndTime) {
+				rocketEffectActive = false;
+				isInfantryExploding = false; // Сбрасываем флаг
+				setIconActive('rocketIcon', false); // Деактивируем иконку на панели
+				playSound('effectDeactivateSound'); // Звук деактивации эффекта
+				
+				// Восстанавливаем оригинальные параметры стрельбы врагов
+				enemyShootingParams.пехота.cooldown = originalEnemyShootingParams.пехота.cooldown;
+				enemyShootingParams.танк.cooldown = originalEnemyShootingParams.танк.cooldown;
+				enemyShootingParams.РСЗО.cooldown = originalEnemyShootingParams.РСЗО.cooldown;
+
+				console.log('Эффект Орешника закончился: интенсивность выстрелов врагов восстановлена.');
+			}
+		}
+		
+		function activateRocketEffect() {
+			rocketEffectActive = true;
+			rocketEffectEndTime = Date.now() + 60000;
+			console.log('Орешник активирован. Пехота должна остановиться.');
+			destroyAllEnemies();
+			setIconActive('rocketIcon', true);
+		}
+		
+		function checkIconSpawnConditions() {
+			// Условие для аптечки: здоровье игрока < 65% и уничтожено 15 врагов
+			if (player.health < 80 && infantryKilled + tanksKilled + rocketLaunchersKilled >= 15 && !medkitEffectActive) {
+				spawnIcon('medkit');
+				infantryKilled = 0; // Сбрасываем счетчики после появления иконки
+				tanksKilled = 0;
+				rocketLaunchersKilled = 0;
+			}
+
+			// Условие для ящика со снарядами: уничтожено 25 пехотинцев
+			if (infantryKilled >= 25 && !ammoEffectActive) {
+				spawnIcon('ammo');
+				infantryKilled = 0; // Сбрасываем счетчик после появления иконки
+			}
+
+			// Условие для Орешника: враг преодолел 60% поля и уничтожено 25 пехотинцев, 10 танков или 5 РСЗО
+			if (!rocketEffectActive) {
+				// Проверяем, преодолел ли враг 60% поля
+				const threshold = canvas.height * 0.6;
+				const enemyCrossed = enemies.some(enemy => enemy.y >= threshold);
+
+				if (enemyCrossed && (infantryKilled >= 25 || tanksKilled >= 10 || rocketLaunchersKilled >= 5)) {
+					spawnIcon('rocket');
+					infantryKilled = 0; // Сбрасываем счетчики после появления иконки
+					tanksKilled = 0;
+					rocketLaunchersKilled = 0;
+				}
+			}
+		}
 
         function gameLoop() {
             if (gameOver || player.health <= 0) {
@@ -1113,57 +1817,115 @@
                 drawPauseMenu();
                 requestAnimationFrame(gameLoop);
                 return;
+            }			
+			
+			// Проверяем время действия эффектов
+			checkEffects();
+			
+			// Обновляем позиции врагов
+			updateEnemies();
+			
+			// Проверяем условия для появления иконок
+			checkIconSpawnConditions();			
+
+            // Восстановление боекомплекта
+            const currentTime = Date.now();
+            if (currentTime - lastShotTimeAmmo >= 1000) { // Если прошла 1 секунда с последнего выстрела
+                ammo = Math.min(maxAmmo, ammo + 5); // Восстанавливаем 5 единиц боекомплекта
+                lastShotTimeAmmo = currentTime; // Обновляем время последнего восстановления
             }
+			
+			// Очистка холста
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBackground();
-            drawPlayer();
-            drawMissiles();
-            drawEnemies();
-            drawEnemyMissiles();
-            drawExplosions();
-            drawHealthBar();
-            avoidCollisions();
-            checkPlayerCollision();
-            checkCollisionsWithMissiles();
-            checkEnemyMissileCollisions();
-            enemyShoot();
-            updateLevel();
+			// Отрисовка фона
+			drawBackground();
 
-            requestAnimationFrame(gameLoop);
-        }
+			// Обновление позиций иконок
+			updateIcons();
+			
+			// Проверка столкновений игрока с иконками
+			checkIconCollisions();			
 
-        function resizeCanvas() {
-            const maxWidth = 400; // Максимальная ширина игрового поля
-            const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
+			// Отрисовка остальных элементов
+			drawMissiles();
+			drawEnemies();
+			drawEnemyMissiles();
+			drawExplosions();
+			avoidCollisions();
+			checkPlayerCollision();
+			checkCollisionsWithMissiles();
+			checkEnemyMissileCollisions();
+			enemyShoot();
+			updateLevel();
 
-            // Рассчитываем ширину и высоту холста
-            gameWidth = Math.min(window.innerWidth - 40, maxWidth);
-            gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
+			// Отрисовка иконок
+			drawIcons();
+			
+			drawPlayer();
+			drawHealthBar();
+			drawAmmoBar();
 
-            // Устанавливаем размеры холста
-            canvas.width = gameWidth;
-            canvas.height = gameHeight;
+			requestAnimationFrame(gameLoop);
+		}
 
-            // Позиционируем холст по центру горизонтально и вверху вертикально
-            canvas.style.position = 'absolute';
-            canvas.style.left = '50%'; // Центрируем по горизонтали
-            canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+		function resizeCanvas() {
+			const maxWidth = 400; // Максимальная ширина игрового поля
+			const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
 
-            // Добавляем отступ сверху только для ПК
-            if (platform === 'PC') {
-                canvas.style.top = '20px'; // Отступ 20 пикселей от верхней границы
-            } else {
-                canvas.style.top = '0'; // Для мобильных устройств отступ не нужен
-            }
+			// Рассчитываем ширину и высоту холста
+			gameWidth = Math.min(window.innerWidth - 40, maxWidth);
+			gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
 
-            // Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
-            document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+			// Устанавливаем размеры холста
+			canvas.width = gameWidth;
+			canvas.height = gameHeight;
 
-            // Пересчитываем позицию игрока, чтобы он оставался по центру внизу
-            player.x = canvas.width / 2 - player.width / 2;
-            player.y = canvas.height - 40;
-        }
+			// Позиционируем холст по центру горизонтально и вверху вертикально
+			canvas.style.position = 'absolute';
+			canvas.style.left = '50%'; // Центрируем по горизонтали
+			canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+
+			// Добавляем отступ сверху только для ПК
+			if (platform === 'PC') {
+				canvas.style.top = '20px'; // Отступ 20 пикселей от верхней границы
+			} else {
+				canvas.style.top = '0'; // Для мобильных устройств отступ не нужен
+			}
+
+			// Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
+			document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+
+			// Пересчитываем позицию игрока, чтобы он оставался по центру внизу
+			player.x = canvas.width / 2 - player.width / 2;
+			player.y = canvas.height - 40;
+
+			// Обновляем позицию панели иконок
+			updateIconsPanelPosition();
+		}
+		
+		function updateIconsPanelPosition() {
+			const iconsPanel = document.getElementById('iconsPanel');
+			if (iconsPanel) {
+				// Рассчитываем доступное пространство между индикаторами
+				const healthBar = document.getElementById('healthBar');
+				const ammoBar = document.getElementById('ammoBar');
+
+				if (healthBar && ammoBar) {
+					const healthBarRight = healthBar.offsetLeft + healthBar.offsetWidth;
+					const ammoBarLeft = ammoBar.offsetLeft;
+					const availableWidth = ammoBarLeft - healthBarRight;
+
+					// Добавляем отступы между индикаторами и панелью иконок
+					const padding = 20; // Отступ в 20 пикселей с каждой стороны
+					const panelWidth = availableWidth - 2 * padding; // Уменьшаем ширину панели на отступы
+
+					// Устанавливаем ширину панели иконок в пределах доступного пространства
+					iconsPanel.style.width = `${panelWidth}px`;
+					iconsPanel.style.left = `${healthBarRight + padding + (panelWidth / 2)}px`;
+				}
+			}
+		}		
 
         function checkOrientation() {
             // Если устройство определено как ПК, пропускаем проверку ориентации
@@ -1182,12 +1944,15 @@
                 isPaused = true; // Ставим игру на паузу
                 stopBackgroundMusic(); // Останавливаем фоновую музыку
                 showOrientationWarning(); // Показываем предупреждение
+				document.getElementById('iconsPanel').classList.add('hidden'); // Скрываем панель иконо
             } else {
                 isPaused = false; // Снимаем паузу, если ориентация правильная
                 startBackgroundMusic(); // Возобновляем фоновую музыку
                 hideOrientationWarning(); // Скрываем предупреждение
-                resizeCanvas(); // Обновляем размеры холста
+				restoreIconsPanel(); // Восстанавливаем панель иконок
             }
+			
+			resizeCanvas(); // Обновляем размеры холста			
         }
 
         function showOrientationWarning() {
@@ -1218,6 +1983,17 @@
                 warning.remove();
             }
         }
+		
+		function resetIcons() {
+			for (const type in icons) {
+				const icon = icons[type];
+				icon.active = false; // Делаем иконку неактивной
+				icon.x = 0; // Сбрасываем позицию по X
+				icon.y = 0; // Сбрасываем позицию по Y
+				icon.timer = 0; // Сбрасываем таймер
+			}
+			console.log('Состояние иконок сброшено');
+		}
 
         // Проверка ориентации при загрузке страницы и изменении размера окна
         checkOrientation();
@@ -1276,6 +2052,10 @@
 
             startY = currentY; // Обновляем начальную позицию
         });
+		
+		console.log('Canvas top offset:', canvas.offsetTop);
+		console.log('Canvas padding top:', window.getComputedStyle(canvas).paddingTop);
+
     </script>
 </body>
 </html>
