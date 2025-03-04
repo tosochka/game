@@ -42,8 +42,8 @@
 				box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); /* Слабая тень */
 			}
 			100% {
-				background-color: rgba(255, 255, 255, 0.2); /* Конечный цвет */
-				box-shadow: 0 0 20px rgba(255, 255, 255, 0.4); /* Более яркая тень */
+				background-color: rgba(255, 255, 255, 0.1); /* Конечный цвет */
+				box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); /* Более яркая тень */
 			}
 		}
 
@@ -568,7 +568,7 @@
 		const touchpadIcon = document.getElementById('touchpadIcon');
         const touchpad = document.getElementById('touchpad');		
 
-		// let isTouching = false;
+		let isTouching = false;
 
 		touchpad.addEventListener('touchstart', () => {
 			isTouching = true;
@@ -849,7 +849,7 @@
         }
 
         // Логика для сенсорного ползунка
-        let isTouching = false;
+        // let isTouching = false;
         let touchStartX = 0;
         let playerStartX = 0;
         let isTap = false;
