@@ -570,15 +570,27 @@
 
 		let isTouching = false;
 
+		// Обработчик начала касания
 		touchpad.addEventListener('touchstart', () => {
-			isTouching = true;
-			touchpadIcon.style.opacity = '0'; // Плавно скрываем иконку
+			isTouching = true; // Тачпад активен
+			touchpadIcon.style.opacity = '0'; // Скрываем иконку
 		});
 
+		// Обработчик движения пальца по тачпаду
+		touchpad.addEventListener('touchmove', () => {
+			isTouching = true; // Тачпад всё ещё активен
+			touchpadIcon.style.opacity = '0'; // Иконка остаётся скрытой
+		});
+
+		// Обработчик окончания касания
 		touchpad.addEventListener('touchend', () => {
-			isTouching = false;
+			isTouching = false; // Тачпад больше не активен
+
+			// Показываем иконку через 1 секунду после завершения взаимодействия
 			setTimeout(() => {
-				touchpadIcon.style.opacity = '1'; // Плавно показываем иконку через 1 секунду
+				if (!isTouching) { // Проверяем, что тачпад всё ещё неактивен
+					touchpadIcon.style.opacity = '1'; // Показываем иконку
+				}
 			}, 1000);
 		});		
 		
