@@ -270,7 +270,36 @@
 		}
 
 		#iconsPanel.hidden {
-			display: none; /* Скрывает панель */		
+			display: none; /* Скрывает панель */
+
+		#joystickHint {
+		  position: absolute;
+		  width: 50px;
+		  height: 50px;
+		  background-color: rgba(255, 255, 255, 0.3); /* Полупрозрачный белый */
+		  border-radius: 50%; /* Круглая форма */
+		  border: 2px solid rgba(255, 255, 255, 0.5); /* Белая рамка */
+		  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); /* Свечение */
+		  opacity: 0; /* Начальная прозрачность */
+		  transition: opacity 0.3s ease, transform 0.2s ease; /* Плавные переходы */
+		  pointer-events: none; /* Элемент не должен блокировать касания */
+		  animation: pulse 2s infinite; /* Анимация мигания */
+		}
+
+		@keyframes pulse {
+		  0% {
+			transform: scale(1);
+			opacity: 0.5;
+		  }
+		  50% {
+			transform: scale(1.1);
+			opacity: 0.8;
+		  }
+		  100% {
+			transform: scale(1);
+			opacity: 0.5;
+		  }
+		}			
 		
     </style>
 </head>
@@ -306,7 +335,9 @@
 	</div>
 	
     <!-- Сенсорный ползунок -->
-    <div id="touchpad"></div>
+	<div id="touchpad">
+	  <div id="joystickHint"></div> <!-- Добавьте эту строку -->
+	</div>
 
     <!-- Модальное окно для боевой сводки -->
     <div id="scoreModal">
@@ -554,6 +585,49 @@
 		let isInfantryStopped = false; // Остановлена ли пехота
 		
 		let isGameOver = false; // Флаг для отслеживания состояния игры
+		
+		// Элементы джойстика и тачпада
+		const touchpad = document.getElementById('touchpad');
+		const joystickHint = document.getElementById('joystickHint');
+
+		let isTouching = false;
+
+		// Показываем джойстик при касании
+		touchpad.addEventListener('touchstart', (e) => {
+		  isTouching = true;
+		  joystickHint.style.opacity = '0.5'; // Показываем элемент
+		  updateJoystickPosition(e.touches[0]); // Обновляем позицию
+		});
+
+		// Перемещаем джойстик за пальцем
+		touchpad.addEventListener('touchmove', (e) => {
+		  if (isTouching) {
+			updateJoystickPosition(e.touches[0]);
+		  }
+		});
+
+		// Скрываем джойстик при отпускании
+		touchpad.addEventListener('touchend', () => {
+		  isTouching = false;
+		  joystickHint.style.opacity = '0'; // Скрываем элемент
+		});
+
+		// Функция для обновления позиции джойстика
+		function updateJoystickPosition(touch) {
+		  const touchpadRect = touchpad.getBoundingClientRect();
+		  const touchX = touch.clientX - touchpadRect.left; // Позиция касания относительно тачпада
+		  const touchY = touch.clientY - touchpadRect.top;
+
+		  // Ограничиваем позицию джойстика в пределах тачпада
+		  const joystickSize = 50; // Размер джойстика
+		  const maxX = touchpadRect.width - joystickSize;
+		  const maxY = touchpadRect.height - joystickSize;
+
+		  const x = Math.max(0, Math.min(touchX - joystickSize / 2, maxX));
+		  const y = Math.max(0, Math.min(touchY - joystickSize / 2, maxY));
+
+		  joystickHint.style.transform = `translate(${x}px, ${y}px)`; // Перемещаем джойстик
+		}		
 		
 		function playSound(soundId) {
 			const sound = document.getElementById(soundId);
@@ -822,11 +896,11 @@
         }
 
         // Логика для сенсорного ползунка
-        const touchpad = document.getElementById('touchpad');
-        let isTouching = false;
-        let touchStartX = 0;
-        let playerStartX = 0;
-        let isTap = false;
+        // const touchpad = document.getElementById('touchpad');
+        // let isTouching = false;
+        // let touchStartX = 0;
+        // let playerStartX = 0;
+        // let isTap = false;
 
         touchpad.addEventListener('touchstart', (e) => {
             isTouching = true;
