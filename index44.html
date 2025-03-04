@@ -613,6 +613,16 @@
 
 		let isTouching = false;
 		let timeoutId = null; // Идентификатор таймера
+		
+		// Отключаем контекстное меню для иконки
+		touchpadIcon.addEventListener('contextmenu', (event) => {
+			event.preventDefault(); // Запрещаем стандартное поведение
+		});
+
+		// Отключаем долгое нажатие на иконку
+		touchpadIcon.addEventListener('touchstart', (event) => {
+			event.preventDefault(); // Запрещаем стандартное поведение
+		});		
 
 		// Обработчик начала касания
 		touchpad.addEventListener('touchstart', () => {
