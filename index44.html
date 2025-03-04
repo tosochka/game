@@ -35,21 +35,32 @@
 
         #virtualJoystick {
             position: absolute;
-            width: 50px;
-            height: 50px;
-            background-color: rgba(255, 255, 255, 0.3);
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-            animation: glow 2s infinite alternate;
             display: none;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        @keyframes glow {
+        #joystickInner {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            transition: transform 0.1s ease-out;
+        }
+
+        @keyframes fadeIn {
             0% {
-                opacity: 0.3;
+                opacity: 0;
+                transform: scale(0.5);
             }
             100% {
-                opacity: 0.7;
+                opacity: 1;
+                transform: scale(1);
             }
         }
     </style>
@@ -57,24 +68,29 @@
 <body>
     <!-- Сенсорный ползунок -->
     <div id="touchpad">
-        <div id="virtualJoystick"></div>
+        <div id="virtualJoystick">
+            <div id="joystickInner"></div>
+        </div>
     </div>
 
     <script>
         const touchpad = document.getElementById('touchpad');
         const virtualJoystick = document.getElementById('virtualJoystick');
+        const joystickInner = document.getElementById('joystickInner');
         let isTouching = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
 
         touchpad.addEventListener('touchstart', (e) => {
             isTouching = true;
             const touchpadRect = touchpad.getBoundingClientRect();
-            const touchX = e.touches[0].clientX - touchpadRect.left;
-            const touchY = e.touches[0].clientY - touchpadRect.top;
+            touchStartX = e.touches[0].clientX - touchpadRect.left;
+            touchStartY = e.touches[0].clientY - touchpadRect.top;
 
             // Показываем виртуальный джойстик и устанавливаем его позицию
-            virtualJoystick.style.display = 'block';
-            virtualJoystick.style.left = `${touchX - 25}px`; // Центрируем по X
-            virtualJoystick.style.top = `${touchY - 25}px`; // Центрируем по Y
+            virtualJoystick.style.display = 'flex';
+            virtualJoystick.style.left = `${touchStartX - 50}px`; // Центрируем по X
+            virtualJoystick.style.top = `${touchStartY - 50}px`; // Центрируем по Y
         });
 
         touchpad.addEventListener('touchmove', (e) => {
@@ -84,14 +100,24 @@
             const touchX = e.touches[0].clientX - touchpadRect.left;
             const touchY = e.touches[0].clientY - touchpadRect.top;
 
-            // Обновляем позицию виртуального джойстика
-            virtualJoystick.style.left = `${touchX - 25}px`; // Центрируем по X
-            virtualJoystick.style.top = `${touchY - 25}px`; // Центрируем по Y
+            // Ограничиваем движение внутреннего круга в пределах внешнего круга
+            const deltaX = touchX - touchStartX;
+            const deltaY = touchY - touchStartY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const maxDistance = 25; // Максимальное расстояние от центра
+
+            if (distance > maxDistance) {
+                const angle = Math.atan2(deltaY, deltaX);
+                joystickInner.style.transform = `translate(${Math.cos(angle) * maxDistance}px, ${Math.sin(angle) * maxDistance}px)`;
+            } else {
+                joystickInner.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            }
         });
 
         touchpad.addEventListener('touchend', () => {
             isTouching = false;
             virtualJoystick.style.display = 'none'; // Скрываем виртуальный джойстик
+            joystickInner.style.transform = 'translate(0, 0)'; // Возвращаем внутренний круг в центр
         });
     </script>
 </body>
