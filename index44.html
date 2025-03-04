@@ -37,11 +37,13 @@
             position: absolute;
             width: 50px;
             height: 50px;
-            background-color: rgba(255, 255, 255, 0.3);
+            background-image: url('pic/joystick.png'); /* Путь к вашему изображению */
+            background-size: cover; /* Масштабируем изображение */
+            background-position: center; /* Центрируем изображение */
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
             animation: glow 2s infinite alternate;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            transition: opacity 0.3s ease, box-shadow 0.3s ease;
         }
 
         @keyframes glow {
@@ -54,9 +56,9 @@
         }
 
         #virtualJoystick.active {
-            background-color: rgba(255, 255, 255, 0.7);
+            opacity: 1; /* Делаем изображение ярче */
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
-            animation: none;
+            animation: none; /* Убираем пульсацию */
         }
     </style>
 </head>
