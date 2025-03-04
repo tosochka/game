@@ -42,8 +42,8 @@
 				box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); /* Слабая тень */
 			}
 			100% {
-				background-color: rgba(255, 255, 255, 0.2); /* Конечный цвет */
-				box-shadow: 0 0 20px rgba(255, 255, 255, 0.4); /* Более яркая тень */
+				background-color: rgba(255, 255, 255, 0.1); /* Конечный цвет */
+				box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); /* Более яркая тень */
 			}
 		}
 
@@ -60,8 +60,16 @@
 			z-index: 1000;
 			touch-action: none;
 			animation: glow 2s infinite alternate; /* Анимация свечения */
-
+			display: flex;
+			justify-content: center;
+			align-items: center;			
 		}
+		
+		#touchpadIcon {
+			width: 75px; /* Размер иконки */
+			height: 75px;
+			transition: opacity 0.3s ease; /* Плавное исчезновение */
+		}		
 		
         /* Скрываем touchpad на ПК */
         body.pc #touchpad {
@@ -306,7 +314,9 @@
 	</div>
 	
     <!-- Сенсорный ползунок -->
-    <div id="touchpad"></div>
+	<div id="touchpad">
+		<img id="touchpadIcon" src="icons/finger.png" alt="Touchpad Icon">
+	</div>
 
     <!-- Модальное окно для боевой сводки -->
     <div id="scoreModal">
@@ -554,6 +564,42 @@
 		let isInfantryStopped = false; // Остановлена ли пехота
 		
 		let isGameOver = false; // Флаг для отслеживания состояния игры
+		
+		const touchpadIcon = document.getElementById('touchpadIcon');
+        const touchpad = document.getElementById('touchpad');		
+
+		let isTouching = false;
+		let timeoutId = null; // Идентификатор таймера
+
+		// Обработчик начала касания
+		touchpad.addEventListener('touchstart', () => {
+			isTouching = true; // Тачпад активен
+			touchpadIcon.style.opacity = '0'; // Скрываем иконку
+
+			// Отменяем предыдущий таймер, если он был
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
+		});
+
+		// Обработчик движения пальца по тачпаду
+		touchpad.addEventListener('touchmove', () => {
+			isTouching = true; // Тачпад всё ещё активен
+			touchpadIcon.style.opacity = '0'; // Иконка остаётся скрытой
+		});
+
+		// Обработчик окончания касания
+		touchpad.addEventListener('touchend', () => {
+			isTouching = false; // Тачпад больше не активен
+
+			// Устанавливаем новый таймер
+			timeoutId = setTimeout(() => {
+				if (!isTouching) { // Проверяем, что тачпад всё ещё неактивен
+					touchpadIcon.style.opacity = '1'; // Показываем иконку
+				}
+			}, 1000); // Задержка перед показом иконки
+		});		
 		
 		function playSound(soundId) {
 			const sound = document.getElementById(soundId);
@@ -822,8 +868,7 @@
         }
 
         // Логика для сенсорного ползунка
-        const touchpad = document.getElementById('touchpad');
-        let isTouching = false;
+        // let isTouching = false;
         let touchStartX = 0;
         let playerStartX = 0;
         let isTap = false;
