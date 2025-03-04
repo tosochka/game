@@ -221,8 +221,8 @@
 		#healthBar {
 			position: absolute;
 			top: 10px;
-			left: 5px;
-			width: 100px; /* Фиксированная ширина для ПК */
+			left: 10px;
+			width: 120px; /* Фиксированная ширина для ПК */
 			height: 24px;
 			background-color: rgba(255, 0, 0, 0.3);
 			border: 1px solid white;
@@ -233,8 +233,8 @@
 		#ammoBar {
 			position: absolute;
 			top: 10px;
-			right: 5px;
-			width: 100px; /* Фиксированная ширина для ПК */
+			right:10px;
+			width: 120px; /* Фиксированная ширина для ПК */
 			height: 24px;
 			background-color: rgba(0, 0, 0, 0.3);
 			border: 1px solid white;
@@ -255,7 +255,6 @@
 			gap: 5px; /* Уменьшаем отступы между иконками */
 			background-color: rgba(255, 255, 255, 0.0);
 			z-index: 100;
-			padding: 0 20px; /* Добавляем отступы по бокам */
 		}
 		
 		/* Для ПК добавляем дополнительный отступ сверху */
@@ -1617,7 +1616,7 @@
         function drawHealthBar() {
 			if (isGameOver) return;
 		
-            const barWidth = 120; // Ширина индикатора
+            const barWidth = canvas.width * 0.3; // Ширина индикатора
             const barHeight = 24; // Высота индикатора
             const x = 10; // Левый верхний угол с отступом 10px
             const y = 10; // Отступ сверху
@@ -1638,7 +1637,7 @@
 		function drawAmmoBar() {
 			if (isGameOver) return;
 			
-			const barWidth = 120; // Ширина индикатора
+			const barWidth = canvas.width * 0.3; // Ширина индикатора
 			const barHeight = 24; // Высота индикатора
 			const x = canvas.width - barWidth - 10; // Правый верхний угол с отступом 10px
 			const y = 10; // Отступ сверху
@@ -1918,12 +1917,12 @@
 					const availableWidth = ammoBarLeft - healthBarRight;
 
 					// Добавляем отступы между индикаторами и панелью иконок
-					const padding = 30; // Увеличиваем отступ до 30 пикселей с каждой стороны
-					const panelWidth = availableWidth + 2 * padding; // Увеличиваем ширину панели на отступы
+					const padding = 20; // Отступ в 20 пикселей с каждой стороны
+					const panelWidth = availableWidth - 2 * padding; // Уменьшаем ширину панели на отступы
 
-					// Устанавливаем ширину панели иконок
+					// Устанавливаем ширину панели иконок в пределах доступного пространства
 					iconsPanel.style.width = `${panelWidth}px`;
-					iconsPanel.style.left = `${healthBarRight - padding + (panelWidth / 2)}px`;
+					iconsPanel.style.left = `${healthBarRight + padding + (panelWidth / 2)}px`;
 				}
 			}
 		}		
