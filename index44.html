@@ -569,11 +569,18 @@
         const touchpad = document.getElementById('touchpad');		
 
 		let isTouching = false;
+		let timeoutId = null; // Идентификатор таймера
 
 		// Обработчик начала касания
 		touchpad.addEventListener('touchstart', () => {
 			isTouching = true; // Тачпад активен
 			touchpadIcon.style.opacity = '0'; // Скрываем иконку
+
+			// Отменяем предыдущий таймер, если он был
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
 		});
 
 		// Обработчик движения пальца по тачпаду
@@ -586,12 +593,12 @@
 		touchpad.addEventListener('touchend', () => {
 			isTouching = false; // Тачпад больше не активен
 
-			// Показываем иконку через 1 секунду после завершения взаимодействия
-			setTimeout(() => {
+			// Устанавливаем новый таймер
+			timeoutId = setTimeout(() => {
 				if (!isTouching) { // Проверяем, что тачпад всё ещё неактивен
 					touchpadIcon.style.opacity = '1'; // Показываем иконку
 				}
-			}, 2000);
+			}, 1000); // Задержка перед показом иконки
 		});		
 		
 		function playSound(soundId) {
