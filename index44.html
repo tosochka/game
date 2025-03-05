@@ -79,8 +79,9 @@
         body.pc canvas {
             top: 20px !important; /* Отступ 20 пикселей от верхней границы */
         }
+		
 		#scoreModal {
-			display: none; /* ранее flex */
+			display: none; /* Скрыто по умолчанию */
 			position: fixed;
 			top: 0;
 			left: 0;
@@ -91,36 +92,111 @@
 			align-items: center;
 			z-index: 1001; /* Выше, чем у панели иконок */
 		}
-        #scoreModalContent {
-            background-color: #222;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            color: white;
-            width: 80%;
-            max-width: 300px;
-        }
-        #scoreModalContent h3 {
-            margin: 0 0 10px 0;
-            font-size: 20px;
-        }
-        #scoreModalContent div {
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        #restartButton, #instructionButton {
-            width: 100%;
-            padding: 10px;
-            background-color: #444;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        #restartButton:hover, #instructionButton:hover {
-            background-color: #666;
-        }
+		
+		#scoreModalContent {
+			background-color: #222;
+			padding: 20px;
+			border-radius: 10px;
+			text-align: center;
+			color: white;
+			width: 80%;
+			max-width: 300px;
+			border: 2px solid white; /* Оранжевая рамка */
+			/* box-shadow: 0 0 20px rgba(230, 126, 34, 0.6);  Тень */
+			/* box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.3); /* Свечение вокруг рамки */			
+			overflow: hidden; /* Чтобы заголовок не выходил за границы */
+		}
+		
+		/* Стили для заголовка */
+		.modal-header {
+			background-color: #444; /* Серый фон, как у кнопок */
+			padding: 15px; /* Отступы внутри заголовка */
+			border-bottom: 2px solid white; /* Оранжевая линия снизу */
+			display: flex; /* Используем Flexbox для центрирования */
+			justify-content: center; /* Горизонтальное центрирование */
+			align-items: center; /* Вертикальное центрирование */
+			height: 30px; /* Фиксированная высота заголовка */
+		}
+
+		.modal-header h3 {
+			margin: 0; /* Убираем отступы у заголовка */
+			font-size: 20px;
+			color: #e67e22; /* #e67e22 Оранжевый цвет для заголовка */
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Тень текста */
+		}		
+				
+		#scoreModalContent h3 {
+			margin: 20px 0 20px 0;
+			font-size: 20px;
+			color: white; /* Оранжевый цвет для заголовка */
+		}
+		
+		/* Стили для таблицы результатов */
+		.results-table {
+			margin-top: 20px; /* Отступ сверху для всей таблицы */		
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 20px;
+			padding: 0 15px; /* Отступы по бокам таблицы */
+		}
+
+		.results-table td {
+			padding: 8px 0;
+			font-size: 16px;
+		}
+
+		.results-table td:first-child {
+			text-align: left;
+			font-weight: bold;
+			color: white; /* Желтый цвет для наименований */
+		}
+
+		.results-table td:last-child {
+			text-align: right;
+			font-weight: bold;
+			color: white; /* Красный цвет для значений */
+		}
+
+		/* Отступ между группами строк */
+		.results-table .spacer-row td {
+			padding: 10px 0; /* Отступ между группами строк */
+		}
+		
+		/* Стили для иконок */
+		.icon {
+			width: 20px; /* Размер иконок */
+			height: 20px;
+			vertical-align: middle; /* Выравнивание по вертикали */
+			margin-right: 8px; /* Отступ справа от иконки */
+		}
+
+		/* Стили для таблицы результатов */
+		.results-table td:first-child {
+			display: flex; /* Используем Flexbox для выравнивания иконок и текста */
+			align-items: center; /* Выравнивание по вертикали */
+			text-align: left;
+			font-weight: bold;
+			color: white; /* Желтый цвет для наименований */
+		}		
+
+		/* Стили для кнопок */
+		#restartButton, #instructionButton {
+			width: 100%;
+			padding: 10px;
+			background-color: #444;
+			color: white;
+			border: none;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: bold;
+			margin-top: 10px;
+			border-radius: 0 0 10px 10px; /* Закругляем только нижние углы */
+			transition: background-color 0.3s ease;
+		}
+
+		#restartButton:hover, #instructionButton:hover {
+			background-color: #666;
+		}
         #orientationWarning {
             position: fixed;
             top: 0;
@@ -318,23 +394,75 @@
 		<img id="touchpadIcon" src="icons/finger.png" alt="Touchpad Icon">
 	</div>
 
-    <!-- Модальное окно для боевой сводки -->
-    <div id="scoreModal">
-        <div id="scoreModalContent">
-            <h3>Боевая сводка</h3>
-            <div>Очки: <span id="modalTotalScore">0</span></div>
-            <div>Рекорд: <span id="modalHighScoreDisplay">0</span></div>
-            <div>Пехота: <span id="modalInfantryCount">0</span></div>
-            <div>Танки: <span id="modalTankCount">0</span></div>
-            <div>РСЗО: <span id="modalRocketLauncherCount">0</span></div>
-            <div>Уровень: <span id="modalLevel">1</span></div>
-            <div>Сложность: <span id="modalDifficultyLevel">0</span></div>
-            <div>Здоровье: <span id="modalHealthDisplay">100%</span></div>
-            <!-- Новая кнопка "Инструкция по выживанию" -->
-            <button id="instructionButton">Инструкция по выживанию</button>
-            <button id="restartButton">Начать игру</button>
-        </div>
-    </div>
+	<!-- Модальное окно для боевой сводки -->
+	<div id="scoreModal">
+		<div id="scoreModalContent">
+			<!-- Заголовок с серым фоном -->
+			<div class="modal-header">
+				<h3>Боевая сводка</h3>
+			</div>
+			<!-- Таблица результатов -->
+			<table class="results-table">
+				<!-- Первая группа строк -->
+				<tr>
+					<td>
+						<img src="icons/medal.png" alt="Медаль" class="icon"> Очки:
+					</td>
+					<td><span id="modalTotalScore">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/trophy.png" alt="Трофей" class="icon"> Рекорд:
+					</td>
+					<td><span id="modalHighScoreDisplay">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/infantry.png" alt="Пехота" class="icon"> Пехота:
+					</td>
+					<td><span id="modalInfantryCount">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/tank.png" alt="Танк" class="icon"> Танки:
+					</td>
+					<td><span id="modalTankCount">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/artrocket.png" alt="РСЗО" class="icon"> РСЗО:
+					</td>
+					<td><span id="modalRocketLauncherCount">0</span></td>
+				</tr>
+				<!-- Отступ между группами строк -->
+				<tr class="spacer-row">
+					<td colspan="2"></td>
+				</tr>
+				<!-- Вторая группа строк -->
+				<tr>
+					<td>
+						<img src="icons/level.png" alt="Уровень" class="icon"> Уровень:
+					</td>
+					<td><span id="modalLevel">1</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/difficulty.png" alt="Сложность" class="icon"> Сложность:
+					</td>
+					<td><span id="modalDifficultyLevel">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/health.png" alt="Здоровье" class="icon"> Здоровье:
+					</td>
+					<td><span id="modalHealthDisplay">100%</span></td>
+				</tr>
+			</table>
+			<!-- Кнопки -->
+			<button id="instructionButton">Инструкция по выживанию</button>
+			<button id="restartButton">Начать игру</button>
+		</div>
+	</div>
 
     <!-- Модальное окно для инструкции -->
     <div id="instructionModal">
@@ -428,6 +556,17 @@
 			loadImage('icons/medkit_temp.png'),
 			loadImage('icons/ammo_temp.png'),
 			loadImage('icons/rocket_temp.png'),
+			
+			loadImage('icons/artrocket.png'),
+			loadImage('icons/difficulty.png'),
+			loadImage('icons/finger.png'),
+			loadImage('icons/health.png'),
+			loadImage('icons/infantry.png'),
+			loadImage('icons/level.png'),
+			loadImage('icons/medal.png'),
+			loadImage('icons/tank.png'),
+			loadImage('icons/trophy.png'),
+			
 			loadAudio('soundtrack/shoot.ogg'),
 			loadAudio('soundtrack/explosion.ogg'),
 			loadAudio('soundtrack/background.ogg'),
