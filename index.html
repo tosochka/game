@@ -703,7 +703,8 @@
 		icons.ammo.image.onload = () => console.log('Ящик со снарядами загружен');
 		icons.rocket.image.src = 'icons/rocket_temp.png';
 		icons.rocket.image.onload = () => console.log('Орешник загружен');
-
+		
+		let isShowingModal = false; // Глобальная переменная для отслеживания отображения модального окна
 		let enemies = []; // Вместо const enemies = [];
 		let isGameStarted = false; // Добавляем переменную для отслеживания состояния игры
 		let isInfantryExploding = false; // Флаг для отслеживания взрывов вокруг пехоты
@@ -713,8 +714,8 @@
 		let tanksKilled = 0; // Количество уничтоженных танков
 		let rocketLaunchersKilled = 0; // Количество уничтоженных РСЗО
 		let enemiesCrossedThreshold = false; // Флаг для проверки, преодолели ли враги 60% поля		
-        const enemyMissiles = [];
-        const explosions = [];
+        let enemyMissiles = [];
+        let explosions = [];
         const baseMissileSpeed = 7;
         const missileCount = 5;
         const missileSpreadAngle = 2;
@@ -747,11 +748,39 @@
 		
 		let isGameOver = false; // Флаг для отслеживания состояния игры
 		
+		
+		// Переменные для управления режимами и анимацией
+		let isNightMode = false; // Текущий режим (false - день, true - ночь)
+		let nightModeAlpha = 0; // Текущая прозрачность затемнения (0 - день, 0.7 - ночь)
+		let isTransitioning = false; // Флаг для отслеживания активной анимации
+		let lastModeSwitchTime = Date.now(); // Время последнего переключения режима
+		const modeSwitchInterval = 120000; // Интервал переключения режима (2 минуты)
+		const transitionDuration = 1167; // Длительность перехода затенения(2 секунды)
+		
 		const touchpadIcon = document.getElementById('touchpadIcon');
         const touchpad = document.getElementById('touchpad');		
 
 		let isTouching = false;
 		let timeoutId = null; // Идентификатор таймера
+		
+		const initialEnemyShootingParams = {
+			пехота: {
+				cooldown: 7000, // Начальное время перезарядки для пехоты
+				bulletSize: { width: 3, height: 6 },
+				type: 'single'
+			},
+			танк: {
+				cooldown: 30000, // Начальное время перезарядки для танков
+				bulletSize: { width: 5, height: 10 },
+				type: 'single'
+			},
+			РСЗО: {
+				cooldown: 20000, // Начальное время перезарядки для РСЗО
+				bulletSize: { width: 5, height: 10 },
+				type: 'burst',
+				burstCount: 5
+			}
+		};		
 		
 		// Отключаем контекстное меню для иконки
 		touchpadIcon.addEventListener('contextmenu', (event) => {
@@ -874,7 +903,7 @@
 		function createRandomExplosionsAroundPlayer() {
 			const playerCenterX = player.x + player.width / 2;
 			const playerCenterY = player.y + player.height / 2;
-			createRandomExplosions(playerCenterX, playerCenterY);
+			createRandomExplosions(playerCenterX, playerCenterY, 10, 50, 20); // 10 взрывов, радиус 50, длительность 20
 		}
 		
 		function spawnIcon(type) {
@@ -972,42 +1001,90 @@
 			}
 		}
 
-        function handleDefeat() {
-            defeatHandled = true;
-			isGameOver = true;
-			isGameStarted = false; // Игра завершена
+		function handleDefeat() {
+			console.log("Гибель игрока. Текущий режим:", isNightMode ? "Ночь" : "День", "Прозрачность:", nightModeAlpha);
+			defeatHandled = true;
+			isGameOver = true; // Устанавливаем флаг завершения игры
+			isGameStarted = false;
+			isShowingModal = false; // Сбрасываем флаг отображения модального окна
 
-            // Останавливаем игровой цикл
-            cancelAnimationFrame(gameLoop);
+			console.log("Останавливаем игровой цикл...");
+			cancelAnimationFrame(gameLoop); // Останавливаем игровой цикл
 
-            // Блокируем управление
-            isTouching = false;
-            isTap = false;
+			console.log("Блокируем управление...");
+			isTouching = false;
+			isTap = false;
 
-            // Запускаем интервал для создания взрывов
-            explosionInterval = setInterval(() => {
-                createRandomExplosionsAroundPlayer();
-            }, 300); // Взрывы каждые 0.3 секунды
+			console.log("Создаем начальные взрывы вокруг игрока...");
+			createRandomExplosionsAroundPlayer();
 
-            // Начинаем моргание
-            startBlinking();
+			console.log("Запускаем интервал для создания дополнительных взрывов...");
+			explosionInterval = setInterval(() => {
+				createRandomExplosionsAroundPlayer();
+			}, 300);
 
-            // Проигрываем звук поражения
-            const defeatSound = document.getElementById('defeatSound');
-            defeatSound.currentTime = 0;
-            defeatSound.play();
+			console.log("Начинаем моргание...");
+			startBlinking();
 
-            // Ждем завершения звука и переходим в меню
-            defeatSound.onended = () => {
-                clearInterval(explosionInterval); // Останавливаем создание взрывов
-                stopBlinking(); // Останавливаем моргание
-                updateHighScore();
-                stopBackgroundMusic();
-                updateScoreboard();
-                document.getElementById('scoreModal').style.display = 'flex';
-                defeatHandled = false; // Сбрасываем флаг для следующей игры
-            };
-        }
+			console.log("Проигрываем звук поражения...");
+			const defeatSound = document.getElementById('defeatSound');
+			defeatSound.currentTime = 0;
+			defeatSound.play();
+
+			console.log("Ждем завершения звука и переходим в меню...");
+			defeatSound.onended = () => {
+				console.log("Звук поражения завершен. Останавливаем взрывы и моргание...");
+				clearInterval(explosionInterval); // Останавливаем создание взрывов
+				stopBlinking(); // Останавливаем моргание
+
+				console.log("Обновляем рекорд и останавливаем музыку...");
+				updateHighScore();
+				stopBackgroundMusic();
+				updateScoreboard();
+
+				console.log("Показываем модальное окно с результатами...");
+				document.getElementById('scoreModal').style.display = 'flex';
+				isShowingModal = true; // Устанавливаем флаг, что модальное окно отображено
+
+				console.log("Останавливаем цикл отрисовки экрана поражения...");
+				cancelAnimationFrame(drawDefeatScreen); // Останавливаем отрисовку экрана поражения
+			};
+
+			console.log("Запускаем цикл отрисовки экрана поражения...");
+			drawDefeatScreen(); // Запускаем отрисовку экрана поражения
+		}
+
+		function drawDefeatScreen() {
+			console.log("Отрисовка экрана поражения. isShowingModal:", isShowingModal);
+
+			// Если модальное окно отображено, останавливаем отрисовку
+			if (isShowingModal) {
+				console.log("Модальное окно отображено. Останавливаем отрисовку экрана поражения.");
+				return;
+			}
+
+			console.log("Очистка холста...");
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+			console.log("Отрисовка фона...");
+			drawBackground();
+
+			console.log("Отрисовка затемнения...");
+			drawNightOverlay(); // Отрисовываем затенение (ночной режим)
+
+			console.log("Отрисовка всех игровых элементов...");
+			drawMissiles();
+			drawEnemies();
+			drawEnemyMissiles();
+			drawExplosions();
+			drawIcons();
+			drawPlayer();
+			drawHealthBar();
+			drawAmmoBar();
+
+			console.log("Запускаем следующий кадр отрисовки экрана поражения...");
+			requestAnimationFrame(drawDefeatScreen); // Передаем флаг в следующий кадр
+		}
 
         function startBlinking() {
             isPlayerBlinking = true;
@@ -1109,6 +1186,11 @@
 
         // Управление на ПК
         document.addEventListener('keydown', (e) => {
+		
+			if (e.key === 't' || e.key === 'T') { // Переключение по нажатию t
+				toggleNightMode();
+			}		
+		
             if (platform === 'PC') {
                 if (e.key === 'ArrowLeft') {
                     player.x = Math.max(0, player.x - player.speed);
@@ -1124,15 +1206,15 @@
         });
 		
 		// Временно: Создаем иконки для тестирования
-		// document.addEventListener('keydown', (e) => {
-		//	if (e.key === '1') {
-		//		spawnIcon('medkit');
-		//	} else if (e.key === '2') {
-		//		spawnIcon('ammo');
-		//	} else if (e.key === '3') {
-		//		spawnIcon('rocket');
-		//	}
-		// });
+		document.addEventListener('keydown', (e) => {
+		if (e.key === '1') {
+				spawnIcon('medkit');
+			} else if (e.key === '2') {
+				spawnIcon('ammo');
+			} else if (e.key === '3') {
+				spawnIcon('rocket');
+			}
+		});
 
         document.addEventListener('keyup', (e) => {
             if (platform === 'PC' && e.key === ' ') {
@@ -1247,39 +1329,61 @@
             });
         }
 
-        function drawEnemyMissiles() {
-            enemyMissiles.forEach((missile, index) => {
-                if (missile.type === 'burst') {
-                    ctx.fillStyle = 'yellow';
-                    ctx.beginPath();
-                    ctx.moveTo(missile.x + missile.width / 2, missile.y);
-                    ctx.lineTo(missile.x, missile.y + missile.height);
-                    ctx.lineTo(missile.x + missile.width, missile.y + missile.height);
-                    ctx.closePath();
-                    ctx.fill();
-                } else if (missile.type === 'single' && missile.source === 'пехота') {
-                    ctx.fillStyle = 'white';
-                    ctx.beginPath();
-                    ctx.arc(missile.x + missile.width / 2, missile.y + missile.height / 2, missile.width / 2, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (missile.type === 'single' && missile.source === 'танк') {
-                    ctx.fillStyle = 'black';
-                    ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
-                }
+		function drawEnemyMissiles() {
+			enemyMissiles.forEach((missile, index) => {
+				if (missile.type === 'burst') {
+					// Снаряды РСЗО (оставляем без изменений)
+					ctx.fillStyle = 'yellow';
+					ctx.beginPath();
+					ctx.moveTo(missile.x + missile.width / 2, missile.y);
+					ctx.lineTo(missile.x, missile.y + missile.height);
+					ctx.lineTo(missile.x + missile.width, missile.y + missile.height);
+					ctx.closePath();
+					ctx.fill();
+				} else if (missile.type === 'single' && missile.source === 'пехота') {
+					// Снаряды пехоты (оставляем без изменений)
+					ctx.fillStyle = 'white';
+					ctx.beginPath();
+					ctx.arc(missile.x + missile.width / 2, missile.y + missile.height / 2, missile.width / 2, 0, Math.PI * 2);
+					ctx.fill();
+				} else if (missile.type === 'single' && missile.source === 'танк') {
+					// Снаряды танков (добавляем свечение и трассирующий эффект)
+					ctx.save(); // Сохраняем текущие настройки контекста
 
-                if (missile.angle !== undefined) {
-                    const angleInRadians = (missile.angle * Math.PI) / 180;
-                    missile.x += Math.sin(angleInRadians) * missile.speed;
-                    missile.y += Math.cos(angleInRadians) * missile.speed;
-                } else {
-                    missile.y += missile.speed;
-                }
+					// Свечение (glow effect)
+					ctx.shadowBlur = 10; // Размер свечения
+					ctx.shadowColor = 'rgba(255, 165, 0, 0.8)'; // Цвет свечения (оранжевый)
 
-                if (missile.y > canvas.height || missile.x < 0 || missile.x > canvas.width) {
-                    enemyMissiles.splice(index, 1);
-                }
-            });
-        }
+					// Трассирующий эффект (след за снарядом)
+					ctx.beginPath();
+					ctx.moveTo(missile.x + missile.width / 2, missile.y + missile.height); // Начало следа
+					ctx.lineTo(missile.x + missile.width / 2, missile.y + missile.height - 20); // Конец следа
+					ctx.strokeStyle = 'rgba(255, 165, 0, 0.5)'; // Полупрозрачный оранжевый
+					ctx.lineWidth = 2; // Толщина линии
+					ctx.stroke();
+
+					// Сам снаряд
+					ctx.fillStyle = 'black'; // Яркий оранжевый цвет
+					ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
+
+					ctx.restore(); // Восстанавливаем настройки контекста
+				}
+
+				// Обновляем позицию снаряда
+				if (missile.angle !== undefined) {
+					const angleInRadians = (missile.angle * Math.PI) / 180;
+					missile.x += Math.sin(angleInRadians) * missile.speed;
+					missile.y += Math.cos(angleInRadians) * missile.speed;
+				} else {
+					missile.y += missile.speed;
+				}
+
+				// Удаляем снаряд, если он вышел за пределы экрана
+				if (missile.y > canvas.height || missile.x < 0 || missile.x > canvas.width) {
+					enemyMissiles.splice(index, 1);
+				}
+			});
+		}
 
         function enemyShoot() {
             const currentTime = Date.now();
@@ -1450,21 +1554,21 @@
 			});
 		}
 
-        function drawExplosions() {
-            explosions.forEach((explosion, index) => {
-                ctx.beginPath();
-                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
-                ctx.fill();
+		function drawExplosions() {
+			explosions.forEach((explosion, index) => {
+				ctx.beginPath();
+				ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+				ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
+				ctx.fill();
 
-                explosion.radius += 1;
-                explosion.alpha -= 0.05;
+				explosion.radius += 1;
+				explosion.alpha -= 0.05;
 
-                if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
-                    explosions.splice(index, 1);
-                }
-            });
-        }
+				if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
+					explosions.splice(index, 1);
+				}
+			});
+		}
 
         function checkCollision(obj1, obj2) {
             return (
@@ -1788,30 +1892,49 @@
 			}
 		}
 
-        function restartGame() {
-			isGameStarted = true; // Игра началась
-            gameOver = false;
-            defeatHandled = false;
-			isGameOver = false;
-            clearInterval(explosionInterval);
-            stopBlinking(); // Останавливаем моргание
-            document.getElementById('scoreModal').style.display = 'none';
-            score = 0;
-            infantryCount = 0;
-            tankCount = 0;
-            rocketLauncherCount = 0;
-            level = 1;
-            speedMultiplier = 1;
-			console.log(`Уровень игры сброшен: ${level}`);
-			console.log(`Множитель скорости сброшен: ${speedMultiplier}`);			
-            lastRszShotTime = 0;
-            player.health = 100;
-            lastHealthIncreaseScore = 0;
-            infantryHitCounter = 0;
-            ammo = maxAmmo; // Сбрасываем боекомплект
-            lastShotTimeAmmo = Date.now(); // Сбрасываем время последнего выстрела/
+		function restartGame() {
+			console.log("Новая игра. Текущий режим:", isNightMode ? "Ночь" : "День", "Прозрачность:", nightModeAlpha);
 
-			// Сбрасываем состояние эффектов иконок
+			// Сброс параметров стрельбы врагов
+			enemyShootingParams.пехота.cooldown = initialEnemyShootingParams.пехота.cooldown;
+			enemyShootingParams.танк.cooldown = initialEnemyShootingParams.танк.cooldown;
+			enemyShootingParams.РСЗО.cooldown = initialEnemyShootingParams.РСЗО.cooldown;
+
+			// Сброс скорости снарядов врагов
+			enemyMissiles.forEach(missile => {
+				missile.speed = 4; // Начальная скорость снарядов
+			});
+
+			// Сброс lastShotTime для всех врагов
+			enemies.forEach(enemy => {
+				enemy.lastShotTime = 0; // Сбрасываем время последнего выстрела
+			});
+
+			// Сброс всех глобальных переменных
+			isGameStarted = true;
+			gameOver = false;
+			defeatHandled = false;
+			isGameOver = false;
+			isNightMode = false;
+			nightModeAlpha = 0;
+			lastModeSwitchTime = Date.now();
+			clearInterval(explosionInterval);
+			stopBlinking();
+			document.getElementById('scoreModal').style.display = 'none';
+			score = 0;
+			infantryCount = 0;
+			tankCount = 0;
+			rocketLauncherCount = 0;
+			level = 1;
+			speedMultiplier = 1;
+			lastRszShotTime = 0;
+			player.health = 100;
+			lastHealthIncreaseScore = 0;
+			infantryHitCounter = 0;
+			ammo = maxAmmo;
+			lastShotTimeAmmo = Date.now();
+
+			// Сброс состояния эффектов иконок
 			medkitEffectActive = false;
 			ammoEffectActive = false;
 			rocketEffectActive = false;
@@ -1824,23 +1947,24 @@
 			setIconActive('ammoIcon', false);
 			setIconActive('rocketIcon', false);
 
-            updateScoreboard();
-            player.missiles = [];
-            enemies.length = 0;
-            enemyMissiles.length = 0;
-            explosions.length = 0;
-			
-			// Сбрасываем состояние иконок
+			// Очистка массивов
+			player.missiles.length = 0;
+			enemies.length = 0;
+			enemyMissiles.length = 0;
+			explosions.length = 0;
+
+			// Сброс состояния иконок
 			resetIcons();
 
+			// Запуск музыки и спавна врагов
 			startBackgroundMusic();
+			clearInterval(enemySpawnInterval);
+			enemySpawnInterval = setInterval(spawnEnemy, 1000);
 
-            clearInterval(enemySpawnInterval);
-            enemySpawnInterval = setInterval(spawnEnemy, 1000);
-
-            resizeCanvas();
-            gameLoop();
-        }
+			// Обновление размеров холста и запуск игрового цикла
+			resizeCanvas();
+			gameLoop();
+		}
 
         document.getElementById('restartButton').addEventListener('click', restartGame);
 
@@ -1871,6 +1995,49 @@
             ctx.strokeRect(x, y, barWidth, barHeight);
         }
 
+		// Функция для плавного перехода
+		function startTransition() {
+			if (isTransitioning) return;
+			isTransitioning = true;
+
+			const targetAlpha = isNightMode ? 0.7 : 0;
+			const startAlpha = nightModeAlpha;
+			const startTime = Date.now();
+
+			function animateTransition() {
+				const elapsedTime = Date.now() - startTime;
+				const progress = Math.min(elapsedTime / transitionDuration, 1);
+
+				nightModeAlpha = startAlpha + (targetAlpha - startAlpha) * progress;
+				console.log("Анимация перехода. Прозрачность:", nightModeAlpha);
+
+				if (progress < 1) {
+					requestAnimationFrame(animateTransition);
+				} else {
+					isTransitioning = false;
+				}
+			}
+
+			animateTransition();
+		}
+		
+		// Функция для переключения режима
+		function toggleNightMode() {
+			isNightMode = !isNightMode;
+			lastModeSwitchTime = Date.now();
+			startTransition();
+			console.log("Переключение режима. Новый режим:", isNightMode ? "Ночь" : "День");
+		}
+
+		function drawNightOverlay() {
+			console.log("Отрисовка затемнения. Прозрачность:", nightModeAlpha);
+			if (nightModeAlpha > 0) {
+				ctx.fillStyle = `rgba(0, 0, 0, ${nightModeAlpha})`;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
+		}
+		
+		
 		function drawAmmoBar() {
 			if (isGameOver) return;
 			
@@ -1907,12 +2074,12 @@
 
 			if (isPaused) {
 				iconsPanel.classList.add('hidden'); // Скрываем панель при паузе
-				clearInterval(enemySpawnInterval);
-				stopBackgroundMusic();
+				clearInterval(enemySpawnInterval); // Останавливаем спавн врагов
+				stopBackgroundMusic(); // Останавливаем музыку
 			} else {
 				iconsPanel.classList.remove('hidden'); // Показываем панель при снятии паузы
-				enemySpawnInterval = setInterval(spawnEnemy, 1000);
-				startBackgroundMusic();
+				enemySpawnInterval = setInterval(spawnEnemy, 1000); // Возобновляем спавн врагов
+				startBackgroundMusic(); // Возобновляем музыку
 			}
 		}
 
@@ -2045,7 +2212,16 @@
 		
 
 		function gameLoop() {
+			console.log("Игровой цикл выполняется. isGameOver:", isGameOver);	
+		
+			if (isGameOver) {
+				console.log("Игра завершена. Останавливаем игровой цикл.");
+				return; // Останавливаем игровой цикл, если игра завершена
+			}		
+		
+		
 			if (gameOver || player.health <= 0) {
+				console.log("Игрок погиб. Обрабатываем поражение...");
 				if (!defeatHandled) {
 					handleDefeat();
 				}
@@ -2053,33 +2229,48 @@
 			}
 
 			if (isPaused) {
+				console.log("Игра на паузе. Рисуем меню паузы...");
 				drawPauseMenu();
 				requestAnimationFrame(gameLoop);
 				return;
 			}
-			
+
+			// Проверка времени для автоматического переключения режима
+			if (Date.now() - lastModeSwitchTime >= modeSwitchInterval) {
+				toggleNightMode();
+			}
+
+			// Очистка массивов (удаление вышедших за пределы объектов)
 			function cleanUpArrays() {
 				enemies = enemies.filter(enemy => enemy.y < canvas.height);
 				enemyMissiles = enemyMissiles.filter(missile => missile.y < canvas.height);
 				explosions = explosions.filter(explosion => explosion.alpha > 0);
-			}			
+			}
 
 			// Обновление состояния игры
+		    console.log("Обновляем состояние игры...");	
 			updateGameState();
-			
-            // Восстановление боекомплекта
-            const currentTime = Date.now();
-            if (currentTime - lastShotTimeAmmo >= 1000) { // Если прошла 1 секунда с последнего выстрела
-                ammo = Math.min(maxAmmo, ammo + 5); // Восстанавливаем 5 единиц боекомплекта
-                lastShotTimeAmmo = currentTime; // Обновляем время последнего восстановления
-            }			
+
+			// Восстановление боекомплекта
+			const currentTime = Date.now();
+			if (currentTime - lastShotTimeAmmo >= 1000) { // Если прошла 1 секунда с последнего выстрела
+				ammo = Math.min(maxAmmo, ammo + 5); // Восстанавливаем 5 единиц боекомплекта
+				lastShotTimeAmmo = currentTime; // Обновляем время последнего восстановления
+			}
 
 			// Очистка холста
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			// Отрисовка всех элементов
-			drawGameElements();
+			// Отрисовка фона
+			drawBackground();
 
+			// Отрисовка затемнения (ночной режим)
+			drawNightOverlay();
+
+			console.log("Рисуем игровые элементы...");
+			drawGameElements();
+			
+			console.log("Запускаем следующий кадр игрового цикла...");			
 			requestAnimationFrame(gameLoop);
 		}
 
@@ -2098,7 +2289,7 @@
 		}
 
 		function drawGameElements() {
-			drawBackground();
+
 			drawMissiles();
 			drawEnemies();
 			drawEnemyMissiles();
