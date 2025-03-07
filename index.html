@@ -526,6 +526,9 @@
     <audio id="infantryHitSound1" src="soundtrack/infantry_hit1.ogg"></audio>
     <audio id="infantryHitSound2" src="soundtrack/infantry_hit2.ogg"></audio>
     <audio id="infantryHitSound3" src="soundtrack/infantry_hit3.ogg"></audio>
+    <audio id="infantryHitSound4" src="soundtrack/infantry_hit4.ogg"></audio>
+    <audio id="infantryHitSound5" src="soundtrack/infantry_hit5.ogg"></audio>
+    <audio id="infantryHitSound6" src="soundtrack/infantry_hit6.ogg"></audio>	
     <audio id="defeatSound" src="soundtrack/defeat.ogg"></audio>
 	<audio id="effectActivateSound" src="soundtrack/effect_activate.ogg"></audio>
 	<audio id="effectDeactivateSound" src="soundtrack/effect_deactivate.ogg"></audio>
@@ -574,6 +577,9 @@
 			loadAudio('soundtrack/infantry_hit1.ogg'),
 			loadAudio('soundtrack/infantry_hit2.ogg'),
 			loadAudio('soundtrack/infantry_hit3.ogg'),
+			loadAudio('soundtrack/infantry_hit4.ogg'),			
+			loadAudio('soundtrack/infantry_hit5.ogg'),			
+			loadAudio('soundtrack/infantry_hit6.ogg'),			
 			loadAudio('soundtrack/defeat.ogg'),
 			loadAudio('soundtrack/effect_activate.ogg'),
 			loadAudio('soundtrack/effect_deactivate.ogg'),
@@ -754,7 +760,7 @@
 		let nightModeAlpha = 0; // Текущая прозрачность затемнения (0 - день, 0.7 - ночь)
 		let isTransitioning = false; // Флаг для отслеживания активной анимации
 		let lastModeSwitchTime = Date.now(); // Время последнего переключения режима
-		const modeSwitchInterval = 120000; // Интервал переключения режима (2 минуты)
+		const modeSwitchInterval = 80000; // Интервал переключения режима (2 минуты)
 		const transitionDuration = 1167; // Длительность перехода затенения(2 секунды)
 		
 		const touchpadIcon = document.getElementById('touchpadIcon');
@@ -885,7 +891,10 @@
         const infantryHitSounds = [
             document.getElementById('infantryHitSound1'),
             document.getElementById('infantryHitSound2'),
-            document.getElementById('infantryHitSound3')
+            document.getElementById('infantryHitSound3'),			
+            document.getElementById('infantryHitSound4'),			
+            document.getElementById('infantryHitSound5'),			
+            document.getElementById('infantryHitSound6')
         ];
 
         let defeatHandled = false;
