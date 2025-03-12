@@ -783,6 +783,7 @@
         let speedMultiplier = 1;
         let level = 1;
         const levelThresholds = [100, 300, 600, 1000];
+		const levelIncrement = 500;
         let isPaused = false;
         let highScore = localStorage.getItem('highScore') || 0;
 		
@@ -1312,16 +1313,25 @@
             document.getElementById('modalDifficultyLevel').textContent = difficultyLevel;
         }
 
-        function updateLevel() {
-            for (let i = 0; i < levelThresholds.length; i++) {
-                if (score >= levelThresholds[i] && level < i + 2) {
-                    level = i + 2;
-                    speedMultiplier = 1 + level * 0.1;
-                    updateScoreboard();
-                    break;
-                }
-            }
-        }
+		function updateLevel() {
+			// Проверяем пороги для первых 5 уровней
+			for (let i = 0; i < levelThresholds.length; i++) {
+				if (score >= levelThresholds[i] && level < i + 2) {
+					level = i + 2;
+					speedMultiplier = 1 + level * 0.1;
+					updateScoreboard();
+					break;
+				}
+			}
+
+			// После 1000 очков увеличиваем уровень каждые 500 очков
+			if (score >= 1000) {
+				const additionalLevels = Math.floor((score - 1000) / levelIncrement);
+				level = 5 + additionalLevels; // Начинаем с уровня 5
+				speedMultiplier = 1 + level * 0.1;
+				updateScoreboard();
+			}
+		}
 
         function drawPlayer() {
             if (isPlayerBlinking && !isPlayerVisible()) return; // Не отображаем игрока, если идет моргание и он невидим
