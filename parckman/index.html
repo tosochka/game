@@ -25,8 +25,8 @@
   <script>
     const config = {
       type: Phaser.AUTO,
-      width: 800,
-      height: 600,
+      width: 800, // Ширина холста
+      height: 800, // Высота холста (теперь квадрат)
       parent: 'game-container',
       scene: {
         preload: preload,
@@ -41,8 +41,8 @@
         }
       },
       scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        mode: Phaser.Scale.FIT, // Масштабирование с сохранением пропорций
+        autoCenter: Phaser.Scale.CENTER_BOTH // Центрирование по горизонтали и вертикали
       }
     };
 
@@ -54,30 +54,13 @@
     }
 
     function create() {
-      // Добавление фона
-      this.add.image(400, 300, 'background');
-
-      // Создание парковочных мест (пример)
-      createParkingSpots(this);
+      // Добавление фона с масштабированием
+      const background = this.add.image(400, 400, 'background'); // Центр холста (400, 400)
+      background.setDisplaySize(800, 800); // Устанавливаем размер фона под холст
     }
 
     function update() {
       // Пока ничего не делаем
-    }
-
-    function createParkingSpots(scene) {
-      // Пример размещения парковочных мест
-      const parkingSpots = [
-        { x: 200, y: 150 }, // Парковочное место 1
-        { x: 250, y: 150 }, // Парковочное место 2
-        { x: 300, y: 150 }, // Парковочное место 3
-        { x: 350, y: 150 }, // Парковочное место 4
-        // Добавь остальные места по аналогии
-      ];
-
-      parkingSpots.forEach(spot => {
-        scene.add.rectangle(spot.x, spot.y, 40, 30, 0x00FF00).setOrigin(0.5); // Зелёные прямоугольники как парковочные места
-      });
     }
   </script>
 </head>
