@@ -55,16 +55,28 @@
     // Коэффициент масштабирования
     const scaleFactor = 0.4; // 800 / 2000
 
-    // Сдвиг вправо и вниз
+    // Сдвиг вправо и вниз для парковочных мест
     const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
     const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
 
+    // Дополнительные сдвиги для дорог (вверх и влево)
+    const roadOffsetX = -12; // Сдвиг влево
+    const roadOffsetY = -16; // Сдвиг вверх
+
     // Функция для масштабирования координат
-    function scaleCoords(x, y) {
-      return {
-        x: x * scaleFactor + offsetX,
-        y: y * scaleFactor + offsetY,
-      };
+    function scaleCoords(x, y, isRoad = false) {
+      const scaledX = x * scaleFactor + offsetX;
+      const scaledY = y * scaleFactor + offsetY;
+
+      // Применяем дополнительные сдвиги для дорог
+      if (isRoad) {
+        return {
+          x: scaledX + roadOffsetX,
+          y: scaledY + roadOffsetY,
+        };
+      }
+
+      return { x: scaledX, y: scaledY };
     }
 
     function preload() {
@@ -127,23 +139,44 @@
     }
 
     function createRoads(scene) {
-      // Пример координат дорог (замени на свои)
+      // Координаты и размеры дорог
       const roads = [
-        { x: 400, y: 100, width: 800, height: 20 }, // Верхняя дорога
-        { x: 400, y: 700, width: 800, height: 20 }, // Нижняя дорога
-        { x: 100, y: 400, width: 20, height: 800 }, // Левая дорога
-        { x: 700, y: 400, width: 20, height: 800 }, // Правая дорога
+        // Въезд
+        { x: 3 + 252 / 2, y: 893 + 216 / 2, width: 252, height: 216 }, // Центр въезда
+
+        // Левая вертикальная дорога
+        { x: 255 + 104 / 2, y: 236 + 1529 / 2, width: 104, height: 1529 }, // Центр дороги
+
+        // Правая вертикальная дорога
+        { x: 1618 + 120 / 2, y: 237 + 1526 / 2, width: 120, height: 1526 }, // Центр дороги
+
+        // Верхняя горизонтальная дорога
+        { x: 257 + 1485 / 2, y: 234 + 143 / 2, width: 1485, height: 143 }, // Центр дороги
+
+        // Нижняя горизонтальная дорога
+        { x: 259 + 1479 / 2, y: 1622 + 141 / 2, width: 1479, height: 141 }, // Центр дороги
+
+        // Центральная горизонтальная дорога
+        { x: 257 + 1482 / 2, y: 872 + 252 / 2, width: 1482, height: 252 }, // Центр дороги
+
+        // Центральная вертикальная дорога
+        { x: 887 + 203 / 2, y: 236 + 1528 / 2, width: 203, height: 1528 }, // Центр дороги
       ];
 
       roads.forEach(road => {
-        const { x, y } = scaleCoords(road.x, road.y); // Масштабируем координаты
-        scene.add.rectangle(x, y, road.width * scaleFactor, road.height * scaleFactor, 0x666666).setOrigin(0.5); // Дороги
+        const { x, y } = scaleCoords(road.x, road.y, true); // Масштабируем координаты с учётом сдвига
+        scene.add.rectangle(
+          x, y,
+          road.width * scaleFactor, // Масштабируем ширину
+          road.height * scaleFactor, // Масштабируем высоту
+          0x666666 // Цвет дороги (серый)
+        ).setOrigin(0.5);
       });
     }
 
     function createEntranceAndPavilion(scene) {
       // Въезд
-      const { x: entranceX, y: entranceY } = scaleCoords(100, 700); // Масштабируем координаты
+      const { x: entranceX, y: entranceY } = scaleCoords(3 + 252 / 2, 893 + 216 / 2, true); // Центр въезда с учётом сдвига
       scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
 
       // Павильон
