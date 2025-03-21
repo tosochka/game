@@ -48,10 +48,32 @@
 
     const game = new Phaser.Game(config);
 
+    // Размеры спрайта парковочного места
+    const parkingSpotWidth = 59; // Ширина
+    const parkingSpotHeight = 85; // Высота
+
+    // Коэффициент масштабирования
+    const scaleFactor = 0.4; // 800 / 2000
+
+    // Сдвиг вправо и вниз
+    const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
+    const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
+
+    // Функция для масштабирования координат
+    function scaleCoords(x, y) {
+      return {
+        x: x * scaleFactor + offsetX,
+        y: y * scaleFactor + offsetY,
+      };
+    }
+
     function preload() {
       // Загрузка изображений
       this.load.image('background', 'assets/parking_map.png'); // Фон парковки
       this.load.image('parking', 'assets/parking_spot.png'); // Парковочное место
+      this.load.image('road', 'assets/road.png'); // Дорога
+      this.load.image('entrance', 'assets/entrance.png'); // Въезд
+      this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
     }
 
     function create() {
@@ -61,6 +83,12 @@
 
       // Добавление парковочных мест
       createParkingSpots(this);
+
+      // Добавление дорог
+      createRoads(this);
+
+      // Добавление въезда и павильона
+      createEntranceAndPavilion(this);
     }
 
     function update() {
@@ -68,17 +96,6 @@
     }
 
     function createParkingSpots(scene) {
-      // Размеры спрайта парковочного места
-      const parkingSpotWidth = 59; // Ширина
-      const parkingSpotHeight = 85; // Высота
-
-      // Коэффициент масштабирования
-      const scaleFactor = 0.4; // 800 / 2000
-
-      // Сдвиг вправо и вниз
-      const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
-      const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
-
       // Координаты парковочных мест (X, Y) в реальных размерах (верхние блоки)
       const upperParkingSpots = [
         { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },
@@ -102,15 +119,36 @@
 
       // Добавляем все парковочные места
       allParkingSpots.forEach(spot => {
-        // Масштабирование координат
-        const xScaled = spot.x * scaleFactor + offsetX;
-        const yScaled = spot.y * scaleFactor + offsetY;
-
-        // Добавление парковочного места
-        const parkingSpot = scene.add.image(xScaled, yScaled, 'parking');
+        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
+        const parkingSpot = scene.add.image(x, y, 'parking');
         parkingSpot.displayWidth = parkingSpotWidth * scaleFactor; // Масштабируем ширину
         parkingSpot.displayHeight = parkingSpotHeight * scaleFactor; // Масштабируем высоту
       });
+    }
+
+    function createRoads(scene) {
+      // Пример координат дорог (замени на свои)
+      const roads = [
+        { x: 400, y: 100, width: 800, height: 20 }, // Верхняя дорога
+        { x: 400, y: 700, width: 800, height: 20 }, // Нижняя дорога
+        { x: 100, y: 400, width: 20, height: 800 }, // Левая дорога
+        { x: 700, y: 400, width: 20, height: 800 }, // Правая дорога
+      ];
+
+      roads.forEach(road => {
+        const { x, y } = scaleCoords(road.x, road.y); // Масштабируем координаты
+        scene.add.rectangle(x, y, road.width * scaleFactor, road.height * scaleFactor, 0x666666).setOrigin(0.5); // Дороги
+      });
+    }
+
+    function createEntranceAndPavilion(scene) {
+      // Въезд
+      const { x: entranceX, y: entranceY } = scaleCoords(100, 700); // Масштабируем координаты
+      scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
+
+      // Павильон
+      const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100); // Масштабируем координаты
+      scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
     }
   </script>
 </head>
