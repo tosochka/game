@@ -79,15 +79,16 @@
       return { x: scaledX, y: scaledY };
     }
 
-    function preload() {
-      // Загрузка изображений
-      this.load.image('background', 'assets/parking_map.png'); // Фон парковки
-      this.load.image('entrance', 'assets/entrance.png'); // Въезд
-      this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
-      this.load.image('grass1', 'assets/grass1.png'); // Трава 1
-      this.load.image('tree1', 'assets/tree1.png'); // Дерево 1
-      this.load.image('bush1', 'assets/bush1.png'); // Куст 1
-    }
+	function preload() {
+	  // Загрузка изображений
+	  this.load.image('background', 'assets/parking_map.png'); // Фон парковки
+	  this.load.image('entrance', 'assets/entrance.png'); // Въезд
+	  this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
+	  this.load.image('grass1', 'assets/grass1.png'); // Трава 1
+	  this.load.image('tree1', 'assets/tree1.png'); // Дерево 1
+	  this.load.image('bush1', 'assets/bush1.png'); // Куст 1
+	  this.load.image('oil', 'assets/oil.png'); // Масляное пятно
+	}
 
     function create() {
       // Очистка сцены от всех объектов
@@ -217,32 +218,38 @@
       scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
     }
 
-    function createDecorativeLayer(scene) {
-      // Переменные для смещения декоративных элементов
-      const grassOffsetX = 0; // Смещение травы по X
-      const grassOffsetY = 22; // Смещение травы по Y
+	function createDecorativeLayer(scene) {
+	  // Переменные для смещения декоративных элементов
+	  const grassOffsetX = 0; // Смещение травы по X
+	  const grassOffsetY = 22; // Смещение травы по Y
 
-      const treeOffsetX = 45; // Смещение дерева по X
-      const treeOffsetY = 35; // Смещение дерева по Y
+	  const treeOffsetX = 45; // Смещение дерева по X
+	  const treeOffsetY = 35; // Смещение дерева по Y
 
-      const bushOffsetX = 35; // Смещение куста по X
-      const bushOffsetY = 25; // Смещение куста по Y
+	  const bushOffsetX = 35; // Смещение куста по X
+	  const bushOffsetY = 25; // Смещение куста по Y
 
-      // Масштабирование координат для декоративных элементов
-      const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY); // Трава 1
-      const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY); // Дерево 1
-      const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY); // Куст 1
+	  const oilOffsetX = 0; // Смещение масляного пятна по X
+	  const oilOffsetY = 0; // Смещение масляного пятна по Y
 
-      // Добавление декоративных элементов с масштабированными координатами
-      const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5); // Трава 1
-      const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5); // Дерево 1
-      const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5); // Куст 1
+	  // Масштабирование координат для декоративных элементов
+	  const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY); // Трава 1
+	  const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY); // Дерево 1
+	  const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY); // Куст 1
+	  const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY); // Масляное пятно
 
-      // Установка глубины для декоративных элементов (чтобы они отображались поверх других объектов)
-      grass1.setDepth(10);
-      tree1.setDepth(10);
-      bush1.setDepth(10);
-    }
+	  // Добавление декоративных элементов с масштабированными координатами
+	  const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5); // Трава 1
+	  const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5); // Дерево 1
+	  const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5); // Куст 1
+	  const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5); // Масляное пятно
+
+	  // Установка глубины для декоративных элементов (чтобы они отображались поверх других объектов)
+	  grass1.setDepth(10);
+	  tree1.setDepth(10);
+	  bush1.setDepth(10);
+	  oil.setDepth(10);
+	}
   </script>
 </head>
 <body>
