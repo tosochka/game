@@ -86,20 +86,46 @@
       this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
     }
 
-    function create() {
-      // Добавление фона
-      const background = this.add.image(400, 400, 'background');
-      background.setDisplaySize(800, 800);
+	function create() {
+	  // Очистка сцены от всех объектов
+	  this.children.each(child => {
+		console.log("Уничтожаем объект:", child);
+		child.destroy();
+	  });
 
-      // Добавление невидимых парковочных мест
-      createInvisibleParkingSpots(this);
+	  // Добавление фона
+	  const background = this.add.image(400, 400, 'background');
+	  background.setDisplaySize(800, 800);
 
-      // Добавление невидимых дорог
-      createInvisibleRoads(this);
+	  // Временный код для вывода списка объектов (для отладки)
+	  console.log("Объекты на сцене после очистки:");
+	  this.children.each(child => {
+		console.log(child);
+	  });
 
-      // Добавление въезда и павильона
-      createEntranceAndPavilion(this);
-    }
+	  // Добавление невидимых парковочных мест
+	  createInvisibleParkingSpots(this);
+
+	  // Добавление невидимых дорог
+	  createInvisibleRoads(this);
+
+	  // Добавление въезда и павильона
+	  createEntranceAndPavilion(this);
+
+	  // Временный код для вывода списка объектов после создания
+	  console.log("Объекты на сцене после создания:");
+	  this.children.each(child => {
+		console.log(child);
+	  });
+
+	  // Удаление лишних объектов (если они остались)
+	  this.children.each(child => {
+		if (child.type === 'Image' && (child.width === 32 || child.height === 32)) {
+		  console.log("Удаляем лишний объект:", child);
+		  child.destroy();
+		}
+	  });
+}
 
     function update() {
       // Пока ничего не делаем
