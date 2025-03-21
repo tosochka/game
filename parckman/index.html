@@ -84,48 +84,46 @@
       this.load.image('background', 'assets/parking_map.png'); // Фон парковки
       this.load.image('entrance', 'assets/entrance.png'); // Въезд
       this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
+      this.load.image('grass1', 'assets/grass1.png'); // Трава 1
+      this.load.image('tree1', 'assets/tree1.png'); // Дерево 1
+      this.load.image('bush1', 'assets/bush1.png'); // Куст 1
     }
 
-	function create() {
-	  // Очистка сцены от всех объектов
-	  this.children.each(child => {
-		console.log("Уничтожаем объект:", child);
-		child.destroy();
-	  });
+    function create() {
+      // Очистка сцены от всех объектов
+      this.children.each(child => {
+        console.log("Уничтожаем объект:", child);
+        child.destroy();
+      });
 
-	  // Добавление фона
-	  const background = this.add.image(400, 400, 'background');
-	  background.setDisplaySize(800, 800);
+      // Добавление фона
+      const background = this.add.image(400, 400, 'background');
+      background.setDisplaySize(800, 800);
 
-	  // Временный код для вывода списка объектов (для отладки)
-	  console.log("Объекты на сцене после очистки:");
-	  this.children.each(child => {
-		console.log(child);
-	  });
+      // Временный код для вывода списка объектов (для отладки)
+      console.log("Объекты на сцене после очистки:");
+      this.children.each(child => {
+        console.log(child);
+      });
 
-	  // Добавление невидимых парковочных мест
-	  createInvisibleParkingSpots(this);
+      // Добавление невидимых парковочных мест
+      createInvisibleParkingSpots(this);
 
-	  // Добавление невидимых дорог
-	  createInvisibleRoads(this);
+      // Добавление невидимых дорог
+      createInvisibleRoads(this);
 
-	  // Добавление въезда и павильона
-	  createEntranceAndPavilion(this);
+      // Добавление въезда и павильона
+      createEntranceAndPavilion(this);
 
-	  // Временный код для вывода списка объектов после создания
-	  console.log("Объекты на сцене после создания:");
-	  this.children.each(child => {
-		console.log(child);
-	  });
+      // Создание декоративного слоя
+      createDecorativeLayer(this);
 
-	  // Удаление лишних объектов (если они остались)
-	  this.children.each(child => {
-		if (child.type === 'Image' && (child.width === 32 || child.height === 32)) {
-		  console.log("Удаляем лишний объект:", child);
-		  child.destroy();
-		}
-	  });
-}
+      // Временный код для вывода списка объектов после создания
+      console.log("Объекты на сцене после создания:");
+      this.children.each(child => {
+        console.log(child);
+      });
+    }
 
     function update() {
       // Пока ничего не делаем
@@ -217,6 +215,18 @@
       // Павильон
       const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100); // Масштабируем координаты
       scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
+    }
+
+    function createDecorativeLayer(scene) {
+      // Добавление декоративных элементов
+      const grass1 = scene.add.image(661, 89, 'grass1').setScale(0.5); // Трава 1
+      const tree1 = scene.add.image(1635, 127, 'tree1').setScale(0.5); // Дерево 1
+      const bush1 = scene.add.image(1716, 298, 'bush1').setScale(0.5); // Куст 1
+
+      // Установка глубины для декоративных элементов (чтобы они отображались поверх других объектов)
+      grass1.setDepth(10);
+      tree1.setDepth(10);
+      bush1.setDepth(10);
     }
   </script>
 </head>
