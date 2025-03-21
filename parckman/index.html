@@ -118,6 +118,14 @@
       // Создание декоративного слоя
       createDecorativeLayer(this);
 
+      // Удаление лишнего квадратика (крайний слева и по середине)
+      this.children.each(child => {
+        if (child.type === 'Image' && child.x === 51.4 && child.y === 401.4) {
+          console.log("Удаляем лишний квадратик:", child);
+          child.destroy();
+        }
+      });
+
       // Временный код для вывода списка объектов после создания
       console.log("Объекты на сцене после создания:");
       this.children.each(child => {
@@ -220,13 +228,13 @@
     function createDecorativeLayer(scene) {
       // Переменные для смещения декоративных элементов
       const grassOffsetX = 0; // Смещение травы по X
-      const grassOffsetY = 25; // Смещение травы по Y
+      const grassOffsetY = 0; // Смещение травы по Y
 
-      const treeOffsetX = 25; // Смещение дерева по X
-      const treeOffsetY = 15; // Смещение дерева по Y
+      const treeOffsetX = 0; // Смещение дерева по X
+      const treeOffsetY = 0; // Смещение дерева по Y
 
-      const bushOffsetX = 25; // Смещение куста по X
-      const bushOffsetY = 15; // Смещение куста по Y
+      const bushOffsetX = 0; // Смещение куста по X
+      const bushOffsetY = 0; // Смещение куста по Y
 
       // Масштабирование координат для декоративных элементов
       const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY); // Трава 1
@@ -234,9 +242,9 @@
       const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY); // Куст 1
 
       // Добавление декоративных элементов с масштабированными координатами
-      const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5); // Трава 1
-      const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5); // Дерево 1
-      const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5); // Куст 1
+      const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1'); // Трава 1
+      const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1'); // Дерево 1
+      const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1'); // Куст 1
 
       // Установка глубины для декоративных элементов (чтобы они отображались поверх других объектов)
       grass1.setDepth(10);
