@@ -118,6 +118,14 @@
       // Создание декоративного слоя
       createDecorativeLayer(this);
 
+      // Удаление всех объектов с типом 'Image', кроме декоративных элементов
+      this.children.each(child => {
+        if (child.type === 'Image' && !['grass1', 'tree1', 'bush1'].includes(child.texture.key)) {
+          console.log("Удаляем объект типа 'Image':", child);
+          child.destroy();
+        }
+      });
+
       // Временный код для вывода списка объектов после создания
       console.log("Объекты на сцене после создания:");
       this.children.each(child => {
@@ -220,7 +228,7 @@
     function createDecorativeLayer(scene) {
       // Переменные для смещения декоративных элементов
       const grassOffsetX = 0; // Смещение травы по X
-      const grassOffsetY = 15; // Смещение травы по Y
+      const grassOffsetY = 25; // Смещение травы по Y
 
       const treeOffsetX = 25; // Смещение дерева по X
       const treeOffsetY = 15; // Смещение дерева по Y
