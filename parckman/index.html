@@ -52,9 +52,6 @@
       // Загрузка изображений
       this.load.image('background', 'assets/parking_map.png'); // Фон парковки
       this.load.image('parking', 'assets/parking_spot.png'); // Парковочное место
-      this.load.image('road', 'assets/road.png'); // Дорога
-      this.load.image('entrance', 'assets/entrance.png'); // Въезд
-      this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
     }
 
     function create() {
@@ -64,13 +61,6 @@
 
       // Добавление парковочных мест
       createParkingSpots(this);
-
-      // Добавление дорог
-      createRoads(this);
-
-      // Добавление въезда и павильона
-      this.add.image(100, 700, 'entrance').setScale(0.5); // Въезд
-      this.add.image(700, 100, 'pavilion').setScale(0.5); // Павильон
     }
 
     function update() {
@@ -78,34 +68,34 @@
     }
 
     function createParkingSpots(scene) {
-      // Пример координат парковочных мест (замени на свои)
+      // Размеры спрайта парковочного места
+      const parkingSpotWidth = 59; // Ширина
+      const parkingSpotHeight = 85; // Высота
+
+      // Коэффициент масштабирования
+      const scaleFactor = 0.4; // 800 / 2000
+
+      // Координаты парковочных мест (X, Y) в реальных размерах
       const parkingSpots = [
-        { x: 200, y: 200 }, // Парковочное место 1
-        { x: 300, y: 200 }, // Парковочное место 2
-        { x: 400, y: 200 }, // Парковочное место 3
-        { x: 500, y: 200 }, // Парковочное место 4
-        { x: 200, y: 300 }, // Парковочное место 5
-        { x: 300, y: 300 }, // Парковочное место 6
-        { x: 400, y: 300 }, // Парковочное место 7
-        { x: 500, y: 300 }, // Парковочное место 8
+        { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },
+        { x: 361, y: 495 }, { x: 454, y: 495 }, { x: 546, y: 495 }, { x: 641, y: 495 }, { x: 729, y: 495 }, { x: 823, y: 495 },
+        { x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 },
+        { x: 361, y: 785 }, { x: 454, y: 785 }, { x: 546, y: 785 }, { x: 641, y: 785 }, { x: 729, y: 785 }, { x: 823, y: 785 },
+        { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 },
+        { x: 1094, y: 495 }, { x: 1189, y: 495 }, { x: 1279, y: 495 }, { x: 1371, y: 495 }, { x: 1462, y: 495 }, { x: 1555, y: 495 },
+        { x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 },
+        { x: 1094, y: 785 }, { x: 1189, y: 785 }, { x: 1279, y: 785 }, { x: 1371, y: 785 }, { x: 1462, y: 785 }, { x: 1555, y: 785 },
       ];
 
       parkingSpots.forEach(spot => {
-        scene.add.image(spot.x, spot.y, 'parking').setScale(0.5); // Парковочные места
-      });
-    }
+        // Масштабирование координат
+        const xScaled = spot.x * scaleFactor;
+        const yScaled = spot.y * scaleFactor;
 
-    function createRoads(scene) {
-      // Пример координат дорог (замени на свои)
-      const roads = [
-        { x: 400, y: 100, width: 800, height: 20 }, // Верхняя дорога
-        { x: 400, y: 700, width: 800, height: 20 }, // Нижняя дорога
-        { x: 100, y: 400, width: 20, height: 800 }, // Левая дорога
-        { x: 700, y: 400, width: 20, height: 800 }, // Правая дорога
-      ];
-
-      roads.forEach(road => {
-        scene.add.rectangle(road.x, road.y, road.width, road.height, 0x666666).setOrigin(0.5); // Дороги
+        // Добавление парковочного места
+        const parkingSpot = scene.add.image(xScaled, yScaled, 'parking');
+        parkingSpot.displayWidth = parkingSpotWidth * scaleFactor; // Масштабируем ширину
+        parkingSpot.displayHeight = parkingSpotHeight * scaleFactor; // Масштабируем высоту
       });
     }
   </script>
