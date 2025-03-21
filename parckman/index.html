@@ -89,46 +89,41 @@
       this.load.image('bush1', 'assets/bush1.png'); // Куст 1
     }
 
-	function create() {
-	  // Очистка сцены от всех объектов
-	  this.children.each(child => {
-		console.log("Уничтожаем объект:", child);
-		child.destroy();
-	  });
+    function create() {
+      // Очистка сцены от всех объектов
+      this.children.each(child => {
+        console.log("Уничтожаем объект:", child);
+        child.destroy();
+      });
 
-	  // Добавление фона
-	  const background = this.add.image(400, 400, 'background');
-	  background.setDisplaySize(800, 800);
+      // Добавление фона
+      const background = this.add.image(400, 400, 'background');
+      background.setDisplaySize(800, 800);
 
-	  // Временный код для вывода списка объектов (для отладки)
-	  console.log("Объекты на сцене после очистки:");
-	  this.children.each(child => {
-		console.log(child);
-	  });
+      // Временный код для вывода списка объектов (для отладки)
+      console.log("Объекты на сцене после очистки:");
+      this.children.each(child => {
+        console.log(child);
+      });
 
-	  // Добавление невидимых парковочных мест
-	  createInvisibleParkingSpots(this);
+      // Добавление невидимых парковочных мест
+      createInvisibleParkingSpots(this);
 
-	  // Добавление невидимых дорог
-	  createInvisibleRoads(this);
+      // Добавление невидимых дорог
+      createInvisibleRoads(this);
 
-	  // Добавление въезда и павильона
-	  createEntranceAndPavilion(this);
+      // Добавление въезда и павильона
+      createEntranceAndPavilion(this);
 
-	  // Временный код для вывода списка объектов после создания
-	  console.log("Объекты на сцене после создания:");
-	  this.children.each(child => {
-		console.log(child);
-	  });
+      // Создание декоративного слоя
+      createDecorativeLayer(this);
 
-	  // Удаление всех объектов с типом 'Image'
-	  this.children.each(child => {
-		if (child.type === 'Image') {
-		  console.log("Удаляем объект типа 'Image':", child);
-		  child.destroy(); // Уничтожаем объект
-		}
-	  });
-	}
+      // Временный код для вывода списка объектов после создания
+      console.log("Объекты на сцене после создания:");
+      this.children.each(child => {
+        console.log(child);
+      });
+    }
 
     function update() {
       // Пока ничего не делаем
