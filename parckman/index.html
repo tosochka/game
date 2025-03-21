@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parking Rush</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #000;
+    }
+    #game-container {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      width: 800,
+      height: 600,
+      parent: 'game-container',
+      scene: {
+        preload: preload,
+        create: create,
+        update: update
+      },
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { y: 0 },
+          debug: false
+        }
+      },
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+      }
+    };
+
+    const game = new Phaser.Game(config);
+
+    function preload() {
+      // Загрузка фонового изображения
+      this.load.image('background', 'assets/parking_map.png');
+    }
+
+    function create() {
+      // Добавление фона
+      this.add.image(400, 300, 'background');
+
+      // Создание парковочных мест (пример)
+      createParkingSpots(this);
+    }
+
+    function update() {
+      // Пока ничего не делаем
+    }
+
+    function createParkingSpots(scene) {
+      // Пример размещения парковочных мест
+      const parkingSpots = [
+        { x: 200, y: 150 }, // Парковочное место 1
+        { x: 250, y: 150 }, // Парковочное место 2
+        { x: 300, y: 150 }, // Парковочное место 3
+        { x: 350, y: 150 }, // Парковочное место 4
+        // Добавь остальные места по аналогии
+      ];
+
+      parkingSpots.forEach(spot => {
+        scene.add.rectangle(spot.x, spot.y, 40, 30, 0x00FF00).setOrigin(0.5); // Зелёные прямоугольники как парковочные места
+      });
+    }
+  </script>
+</head>
+<body>
+  <div id="game-container"></div>
+</body>
+</html>
