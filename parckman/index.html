@@ -79,8 +79,8 @@
       const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
       const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
 
-      // Координаты парковочных мест (X, Y) в реальных размерах
-      const parkingSpots = [
+      // Координаты парковочных мест (X, Y) в реальных размерах (верхние блоки)
+      const upperParkingSpots = [
         { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },
         { x: 361, y: 495 }, { x: 454, y: 495 }, { x: 546, y: 495 }, { x: 641, y: 495 }, { x: 729, y: 495 }, { x: 823, y: 495 },
         { x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 },
@@ -91,7 +91,17 @@
         { x: 1094, y: 785 }, { x: 1189, y: 785 }, { x: 1279, y: 785 }, { x: 1371, y: 785 }, { x: 1462, y: 785 }, { x: 1555, y: 785 },
       ];
 
-      parkingSpots.forEach(spot => {
+      // Отзеркаливаем координаты для нижних блоков
+      const lowerParkingSpots = upperParkingSpots.map(spot => ({
+        x: spot.x,
+        y: 2000 - spot.y, // Отзеркаливаем относительно нижней границы фона (2000 пикселей)
+      }));
+
+      // Объединяем верхние и нижние парковочные места
+      const allParkingSpots = [...upperParkingSpots, ...lowerParkingSpots];
+
+      // Добавляем все парковочные места
+      allParkingSpots.forEach(spot => {
         // Масштабирование координат
         const xScaled = spot.x * scaleFactor + offsetX;
         const yScaled = spot.y * scaleFactor + offsetY;
