@@ -75,9 +75,9 @@
       // Коэффициент масштабирования
       const scaleFactor = 0.4; // 800 / 2000
 
-      // Сдвиг влево на половину ширины и вниз на половину высоты
-      const offsetX = (parkingSpotWidth / 2) * scaleFactor;
-      const offsetY = (parkingSpotHeight / 2) * scaleFactor;
+      // Сдвиг вправо и вниз
+      const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
+      const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
 
       // Координаты парковочных мест (X, Y) в реальных размерах
       const parkingSpots = [
@@ -92,9 +92,9 @@
       ];
 
       parkingSpots.forEach(spot => {
-        // Масштабирование координат и сдвиг
-        const xScaled = spot.x * scaleFactor - offsetX;
-        const yScaled = spot.y * scaleFactor - offsetY;
+        // Масштабирование координат
+        const xScaled = spot.x * scaleFactor + offsetX;
+        const yScaled = spot.y * scaleFactor + offsetY;
 
         // Добавление парковочного места
         const parkingSpot = scene.add.image(xScaled, yScaled, 'parking');
