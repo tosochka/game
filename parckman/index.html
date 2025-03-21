@@ -218,10 +218,20 @@
     }
 
     function createDecorativeLayer(scene) {
+      // Переменные для смещения декоративных элементов
+      const grassOffsetX = 0; // Смещение травы по X
+      const grassOffsetY = 15; // Смещение травы по Y
+
+      const treeOffsetX = 25; // Смещение дерева по X
+      const treeOffsetY = 15; // Смещение дерева по Y
+
+      const bushOffsetX = 25; // Смещение куста по X
+      const bushOffsetY = 15; // Смещение куста по Y
+
       // Масштабирование координат для декоративных элементов
-      const grass1Coords = scaleCoords(661, 89); // Трава 1
-      const tree1Coords = scaleCoords(1635, 127); // Дерево 1
-      const bush1Coords = scaleCoords(1716, 298); // Куст 1
+      const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY); // Трава 1
+      const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY); // Дерево 1
+      const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY); // Куст 1
 
       // Добавление декоративных элементов с масштабированными координатами
       const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5); // Трава 1
