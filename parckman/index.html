@@ -25,8 +25,8 @@
   <script>
     const config = {
       type: Phaser.AUTO,
-      width: 800, // Ширина холста
-      height: 800, // Высота холста (теперь квадрат)
+      width: 800,
+      height: 800,
       parent: 'game-container',
       scene: {
         preload: preload,
@@ -41,26 +41,72 @@
         }
       },
       scale: {
-        mode: Phaser.Scale.FIT, // Масштабирование с сохранением пропорций
-        autoCenter: Phaser.Scale.CENTER_BOTH // Центрирование по горизонтали и вертикали
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
       }
     };
 
     const game = new Phaser.Game(config);
 
     function preload() {
-      // Загрузка фонового изображения
-      this.load.image('background', 'assets/parking_map.png');
+      // Загрузка изображений
+      this.load.image('background', 'assets/parking_map.png'); // Фон парковки
+      this.load.image('parking', 'assets/parking_spot.png'); // Парковочное место
+      this.load.image('road', 'assets/road.png'); // Дорога
+      this.load.image('entrance', 'assets/entrance.png'); // Въезд
+      this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
     }
 
     function create() {
-      // Добавление фона с масштабированием
-      const background = this.add.image(400, 400, 'background'); // Центр холста (400, 400)
-      background.setDisplaySize(800, 800); // Устанавливаем размер фона под холст
+      // Добавление фона
+      const background = this.add.image(400, 400, 'background');
+      background.setDisplaySize(800, 800);
+
+      // Добавление парковочных мест
+      createParkingSpots(this);
+
+      // Добавление дорог
+      createRoads(this);
+
+      // Добавление въезда и павильона
+      this.add.image(100, 700, 'entrance').setScale(0.5); // Въезд
+      this.add.image(700, 100, 'pavilion').setScale(0.5); // Павильон
     }
 
     function update() {
       // Пока ничего не делаем
+    }
+
+    function createParkingSpots(scene) {
+      // Пример координат парковочных мест (замени на свои)
+      const parkingSpots = [
+        { x: 200, y: 200 }, // Парковочное место 1
+        { x: 300, y: 200 }, // Парковочное место 2
+        { x: 400, y: 200 }, // Парковочное место 3
+        { x: 500, y: 200 }, // Парковочное место 4
+        { x: 200, y: 300 }, // Парковочное место 5
+        { x: 300, y: 300 }, // Парковочное место 6
+        { x: 400, y: 300 }, // Парковочное место 7
+        { x: 500, y: 300 }, // Парковочное место 8
+      ];
+
+      parkingSpots.forEach(spot => {
+        scene.add.image(spot.x, spot.y, 'parking').setScale(0.5); // Парковочные места
+      });
+    }
+
+    function createRoads(scene) {
+      // Пример координат дорог (замени на свои)
+      const roads = [
+        { x: 400, y: 100, width: 800, height: 20 }, // Верхняя дорога
+        { x: 400, y: 700, width: 800, height: 20 }, // Нижняя дорога
+        { x: 100, y: 400, width: 20, height: 800 }, // Левая дорога
+        { x: 700, y: 400, width: 20, height: 800 }, // Правая дорога
+      ];
+
+      roads.forEach(road => {
+        scene.add.rectangle(road.x, road.y, road.width, road.height, 0x666666).setOrigin(0.5); // Дороги
+      });
     }
   </script>
 </head>
