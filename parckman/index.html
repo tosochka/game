@@ -37,7 +37,7 @@
         default: 'arcade',
         arcade: {
           gravity: { y: 0 },
-          debug: false
+          debug: false // Режим отладки выключен
         }
       },
       scale: {
@@ -82,8 +82,6 @@
     function preload() {
       // Загрузка изображений
       this.load.image('background', 'assets/parking_map.png'); // Фон парковки
-      this.load.image('parking', 'assets/parking_spot.png'); // Парковочное место
-      this.load.image('road', 'assets/road.png'); // Дорога
       this.load.image('entrance', 'assets/entrance.png'); // Въезд
       this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
     }
@@ -93,11 +91,11 @@
       const background = this.add.image(400, 400, 'background');
       background.setDisplaySize(800, 800);
 
-      // Добавление парковочных мест
-      createParkingSpots(this);
+      // Добавление невидимых парковочных мест
+      createInvisibleParkingSpots(this);
 
-      // Добавление дорог
-      createRoads(this);
+      // Добавление невидимых дорог
+      createInvisibleRoads(this);
 
       // Добавление въезда и павильона
       createEntranceAndPavilion(this);
@@ -107,7 +105,7 @@
       // Пока ничего не делаем
     }
 
-    function createParkingSpots(scene) {
+    function createInvisibleParkingSpots(scene) {
       // Координаты парковочных мест (X, Y) в реальных размерах (верхние блоки)
       const upperParkingSpots = [
         { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },
@@ -129,16 +127,23 @@
       // Объединяем верхние и нижние парковочные места
       const allParkingSpots = [...upperParkingSpots, ...lowerParkingSpots];
 
-      // Добавляем все парковочные места
+      // Добавляем невидимые парковочные места
       allParkingSpots.forEach(spot => {
         const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
-        const parkingSpot = scene.add.image(x, y, 'parking');
-        parkingSpot.displayWidth = parkingSpotWidth * scaleFactor; // Масштабируем ширину
-        parkingSpot.displayHeight = parkingSpotHeight * scaleFactor; // Масштабируем высоту
+        const parkingSpot = scene.add.rectangle(
+          x, y,
+          parkingSpotWidth * scaleFactor, // Масштабируем ширину
+          parkingSpotHeight * scaleFactor, // Масштабируем высоту
+          0x000000, // Цвет (чёрный, но невидимый)
+          0 // Прозрачность (0 = полностью прозрачный)
+        ).setOrigin(0.5);
+
+        // Добавляем физику для парковочного места
+        scene.physics.add.existing(parkingSpot, true); // Статический объект
       });
     }
 
-    function createRoads(scene) {
+    function createInvisibleRoads(scene) {
       // Координаты и размеры дорог
       const roads = [
         // Въезд
@@ -165,12 +170,16 @@
 
       roads.forEach(road => {
         const { x, y } = scaleCoords(road.x, road.y, true); // Масштабируем координаты с учётом сдвига
-        scene.add.rectangle(
+        const roadRect = scene.add.rectangle(
           x, y,
           road.width * scaleFactor, // Масштабируем ширину
           road.height * scaleFactor, // Масштабируем высоту
-          0x666666 // Цвет дороги (серый)
+          0x000000, // Цвет (чёрный, но невидимый)
+          0 // Прозрачность (0 = полностью прозрачный)
         ).setOrigin(0.5);
+
+        // Добавляем физику для дороги
+        scene.physics.add.existing(roadRect, true); // Статический объект
       });
     }
 
