@@ -23,7 +23,7 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
-    /*
+     /*
       ============================================
       ОПИСАНИЕ ИГРЫ "MASTER PARKING"
       ============================================
@@ -46,8 +46,8 @@
       - Физика: реализована с использованием движка Phaser 3 (arcade physics).
 
       ============================================
-    */
-
+    */ 
+  
     const config = {
       type: Phaser.AUTO,
       width: 800,
@@ -62,7 +62,7 @@
         default: 'arcade',
         arcade: {
           gravity: { y: 0 },
-          debug: false // Режим отладки выключен
+          debug: false
         }
       },
       scale: {
@@ -90,10 +90,9 @@
 
     // Функция для масштабирования координат
     function scaleCoords(x, y, isRoad = false) {
-      const scaledX = x * scaleFactor + offsetX;
-      const scaledY = y * scaleFactor + offsetY;
+      const scaledX = (x / 2000) * 800 + offsetX;
+      const scaledY = (y / 2000) * 800 + offsetY;
 
-      // Применяем дополнительные сдвиги для дорог
       if (isRoad) {
         return {
           x: scaledX + roadOffsetX,
@@ -112,7 +111,84 @@
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
+    // Стартовые координаты NPC (уже масштабированы)
+    const startCoords = scaleCoords(361, 380);
+    const startX = startCoords.x;
+    const startY = startCoords.y;
+
+    // Массив маршрутов для NPC (координаты в масштабированной системе 800x800)
+    const npcRoutes = [
+      // 1. Кольцевой маршрут по периметру (по часовой стрелке)
+      [
+        { x: startX, y: startY }, // Парковочное место
+        { x: startX, y: startY - 20 }, // Выезд с парковочного места
+        { x: startX, y: startY - 50 }, // Выезд с парковочного места
+        { x: 700 - npcOffset, y: startY - 50 }, // Движение вправо
+        { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз
+        { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево
+        { x: 100 + npcOffset, y: startY - 50 }, // Движение вверх
+        { x: startX, y: startY - 50 }, // Подъезд к парковочному месту
+        { x: startX, y: startY }  // Заезд на парковочное место
+      ],
+
+      // 2. Кольцевой маршрут по периметру (против часовой стрелки)
+      [
+        { x: startX, y: startY }, // Парковочное место
+        { x: startX, y: startY - 20 }, // Выезд с парковочного места
+        { x: startX, y: startY - 50 }, // Выезд с парковочного места
+        { x: 100 + npcOffset, y: startY - 50 }, // Левая вертикальная дорога
+        { x: 100 + npcOffset, y: 700 - npcOffset }, // Нижняя горизонтальная дорога
+        { x: 700 - npcOffset, y: 700 - npcOffset }, // Правая вертикальная дорога
+        { x: 700 - npcOffset, y: startY - 50 }, // Верхняя горизонтальная дорога
+        { x: startX, y: startY - 50 }, // Подъезд к парковочному месту
+        { x: startX, y: startY }  // Заезд на парковочное место
+      ]
+    ];
+
+    // Функция для выбора случайного маршрута
+    function getRandomRoute() {
+      return npcRoutes[Math.floor(Math.random() * npcRoutes.length)];
+    }
+
     function preload() {
+	  /*
+		============================================
+		ПАМЯТКА О РАСЧЕТЕ КООРДИНАТ
+		============================================
+
+		1. Исходная система координат:
+		   - Карта имеет размер 2000x2000 пикселей.
+		   - Все объекты (парковочные места, дороги, NPC и т.д.) задаются в этой системе.
+
+		2. Масштабирование:
+		   - Игровое поле отображается в окне 800x800 пикселей.
+		   - Коэффициент масштабирования: scaleFactor = 800 / 2000 = 0.4.
+		   - Чтобы перевести координаты из системы 2000x2000 в 800x800, используйте формулу:
+			   scaledX = (x / 2000) * 800 + offsetX;
+			   scaledY = (y / 2000) * 800 + offsetY;
+
+		3. Смещения:
+		   - offsetX и offsetY: Смещения для парковочных мест и других объектов.
+		   - roadOffsetX и roadOffsetY: Дополнительные смещения для дорог.
+
+		4. Координаты маршрута NPC:
+		   - Координаты маршрута NPC задаются в масштабированной системе (800x800).
+		   - Стартовые координаты (startX, startY) уже масштабированы.
+		   - Остальные точки маршрута (например, 700 - npcOffset, 100 + npcOffset) также задаются в 800x800.
+
+		5. Пример:
+		   - Если координата на карте 2000x2000: x = 361, y = 380,
+			 то в масштабированной системе:
+			   scaledX = (361 / 2000) * 800 + offsetX;
+			   scaledY = (380 / 2000) * 800 + offsetY;
+
+		6. Важно:
+		   - Не масштабируйте координаты маршрута NPC, если они уже заданы в 800x800.
+		   - Для парковочных мест и дорог используйте функцию scaleCoords.
+
+		============================================
+	  */	
+	
       // Загрузка изображений
       this.load.image('background', 'assets/parking_map.png'); // Фон парковки
       this.load.image('entrance', 'assets/entrance.png'); // Въезд
@@ -147,49 +223,15 @@
       // Создание декоративного слоя
       createDecorativeLayer(this);
 
-      // Масштабируем стартовые координаты парковочного места
-      const startCoords = scaleCoords(361, 380); // Координаты из Photoshop (2000x2000)
-      const startX = startCoords.x; // Масштабированная координата X
-      const startY = startCoords.y; // Масштабированная координата Y
-
       // Создание NPC автомобиля
       npcCar = this.physics.add.sprite(startX, startY, 'npcCar').setScale(0.5);
       npcCar.setCollideWorldBounds(true);
 
-      // Массив маршрутов для NPC
-      const npcRoutes = [
-        // 1. Кольцевой маршрут по периметру (по часовой стрелке)
-        [
-          { x: startX, y: startY }, // Парковочное место
-          { x: startX, y: startY - 20 }, // Выезд с парковочного места (вертикально вверх, небольшое смещение)
-          { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
-          { x: 700 - npcOffset, y: startY - 50 }, // Движение вправо по верхней горизонтальной дороге
-          { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз по правой вертикальной дороге
-          { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево по нижней горизонтальной дороге
-          { x: 100 + npcOffset, y: startY - 50 }, // Движение вверх по левой вертикальной дороге
-          { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
-          { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
-        ],
-
-        // 2. Кольцевой маршрут по периметру (против часовой стрелки)
-        [
-          { x: startX, y: startY }, // Парковочное место
-          { x: startX, y: startY - 20 }, // Выезд с парковочного места (вертикально вверх, небольшое смещение)
-          { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
-          { x: 100 + npcOffset, y: startY - 50 }, // Левая вертикальная дорога (вниз)
-          { x: 100 + npcOffset, y: 700 - npcOffset }, // Нижняя горизонтальная дорога (вправо)
-          { x: 700 - npcOffset, y: 700 - npcOffset }, // Правая вертикальная дорога (вверх)
-          { x: 700 - npcOffset, y: startY - 50 }, // Верхняя горизонтальная дорога (влево)
-          { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
-          { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
-        ]
-      ];
-
-      // Выбор случайного маршрута
-      npcPath = npcRoutes[Math.floor(Math.random() * npcRoutes.length)];
+      // Выбор случайного маршрута для NPC
+      npcPath = getRandomRoute();
+      npcPathIndex = 0;
 
       // Начинаем движение NPC
-      npcPathIndex = 0;
       moveNPCToNextPoint();
     }
 
@@ -199,8 +241,15 @@
         const target = npcPath[npcPathIndex];
         const distance = Phaser.Math.Distance.Between(npcCar.x, npcCar.y, target.x, target.y);
 
-        if (distance < 5) { // Если NPC близко к точке, переходим к следующей
-          npcPathIndex = (npcPathIndex + 1) % npcPath.length; // Переход к следующей точке
+        if (distance < 5) { // Если NPC близко к точке
+          npcPathIndex++;
+
+          // Если NPC завершил маршрут, выбираем новый случайный маршрут
+          if (npcPathIndex >= npcPath.length) {
+            npcPath = getRandomRoute();
+            npcPathIndex = 0;
+          }
+
           moveNPCToNextPoint();
         }
       }
