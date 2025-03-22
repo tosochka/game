@@ -156,20 +156,40 @@
       npcCar = this.physics.add.sprite(startX, startY, 'npcCar').setScale(0.5);
       npcCar.setCollideWorldBounds(true);
 
-      // Задаем путь для NPC (координаты точек пути с учетом смещения внутрь дороги)
-      npcPath = [
-        { x: startX, y: startY }, // Начальная точка (парковочное место)
-        { x: startX, y: startY - 20 }, // Выезд с парковочного места (вертикально вверх, небольшое смещение)
-        { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
-        { x: 700 - npcOffset, y: startY - 50 }, // Движение вправо по верхней горизонтальной дороге
-        { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз по правой вертикальной дороге
-        { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево по нижней горизонтальной дороге
-        { x: 100 + npcOffset, y: startY - 50 }, // Движение вверх по левой вертикальной дороге
-        { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
-        { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
+      // Массив маршрутов для NPC
+      const npcRoutes = [
+        // 1. Кольцевой маршрут по периметру (по часовой стрелке)
+        [
+          { x: startX, y: startY }, // Парковочное место
+          { x: startX, y: startY - 20 }, // Выезд с парковочного места (вертикально вверх, небольшое смещение)
+          { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
+          { x: 700 - npcOffset, y: startY - 50 }, // Движение вправо по верхней горизонтальной дороге
+          { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз по правой вертикальной дороге
+          { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево по нижней горизонтальной дороге
+          { x: 100 + npcOffset, y: startY - 50 }, // Движение вверх по левой вертикальной дороге
+          { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
+          { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
+        ],
+
+        // 2. Кольцевой маршрут по периметру (против часовой стрелки)
+        [
+          { x: startX, y: startY }, // Парковочное место
+          { x: startX, y: startY - 20 }, // Выезд с парковочного места (вертикально вверх, небольшое смещение)
+          { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
+          { x: 100 + npcOffset, y: startY - 50 }, // Левая вертикальная дорога (вниз)
+          { x: 100 + npcOffset, y: 700 - npcOffset }, // Нижняя горизонтальная дорога (вправо)
+          { x: 700 - npcOffset, y: 700 - npcOffset }, // Правая вертикальная дорога (вверх)
+          { x: 700 - npcOffset, y: startY - 50 }, // Верхняя горизонтальная дорога (влево)
+          { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
+          { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
+        ]
       ];
 
+      // Выбор случайного маршрута
+      npcPath = npcRoutes[Math.floor(Math.random() * npcRoutes.length)];
+
       // Начинаем движение NPC
+      npcPathIndex = 0;
       moveNPCToNextPoint();
     }
 
@@ -190,8 +210,12 @@
       const target = npcPath[npcPathIndex];
       const angle = Phaser.Math.Angle.Between(npcCar.x, npcCar.y, target.x, target.y);
 
-      // Устанавливаем скорость NPC в зависимости от участка пути
-      const isParkingMovement = npcPathIndex === 0 || npcPathIndex === 1 || npcPathIndex === 2 || npcPathIndex === npcPath.length - 2 || npcPathIndex === npcPath.length - 1;
+      // Расстояние до текущей целевой точки маршрута
+      const distanceToTarget = Phaser.Math.Distance.Between(npcCar.x, npcCar.y, target.x, target.y);
+
+      // Замедление, если NPC находится в радиусе 30 пикселей от текущей целевой точки
+      const isParkingMovement = distanceToTarget <= 100;
+
       const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
 
       // Устанавливаем скорость NPC
