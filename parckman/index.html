@@ -121,13 +121,19 @@
       // Создание декоративного слоя
       createDecorativeLayer(this);
 
+      // Масштабируем стартовые координаты парковочного места
+      const startCoords = scaleCoords(361, 380); // Координаты из Photoshop (2000x2000)
+      const startX = startCoords.x; // Масштабированная координата X
+      const startY = startCoords.y; // Масштабированная координата Y
+
       // Создание NPC автомобиля
-      npcCar = this.physics.add.sprite(100, 100, 'npcCar').setScale(0.5);
+      npcCar = this.physics.add.sprite(startX, startY, 'npcCar').setScale(0.5);
       npcCar.setCollideWorldBounds(true);
 
       // Задаем путь для NPC (координаты точек пути с учетом смещения внутрь дороги)
       npcPath = [
-        { x: 100 + npcOffset, y: 100 + npcOffset }, // Начальная точка (верхний левый угол)
+        { x: startX, y: startY }, // Начальная точка (парковочное место)
+        { x: 100 + npcOffset, y: 100 + npcOffset }, // Выезд на дорогу
         { x: 700 - npcOffset, y: 100 + npcOffset }, // Движение вправо по верхней горизонтальной дороге
         { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз по правой вертикальной дороге
         { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево по нижней горизонтальной дороге
