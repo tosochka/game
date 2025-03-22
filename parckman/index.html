@@ -82,7 +82,8 @@
     let npcCar;
     let npcPath;
     let npcPathIndex = 0;
-    const npcSpeed = 100; // Скорость NPC
+    const npcSpeed = 100; // Скорость NPC по дороге
+    const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
@@ -133,11 +134,14 @@
       // Задаем путь для NPC (координаты точек пути с учетом смещения внутрь дороги)
       npcPath = [
         { x: startX, y: startY }, // Начальная точка (парковочное место)
+        { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
         { x: 100 + npcOffset, y: 100 + npcOffset }, // Выезд на дорогу
         { x: 700 - npcOffset, y: 100 + npcOffset }, // Движение вправо по верхней горизонтальной дороге
         { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз по правой вертикальной дороге
         { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево по нижней горизонтальной дороге
-        { x: 100 + npcOffset, y: 100 + npcOffset }  // Движение вверх по левой вертикальной дороге (возврат в начало)
+        { x: 100 + npcOffset, y: 100 + npcOffset }, // Движение вверх по левой вертикальной дороге
+        { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
+        { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
       ];
 
       // Начинаем движение NPC
@@ -161,8 +165,12 @@
       const target = npcPath[npcPathIndex];
       const angle = Phaser.Math.Angle.Between(npcCar.x, npcCar.y, target.x, target.y);
 
+      // Устанавливаем скорость NPC в зависимости от участка пути
+      const isParkingMovement = npcPathIndex === 0 || npcPathIndex === 1 || npcPathIndex === npcPath.length - 2 || npcPathIndex === npcPath.length - 1;
+      const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
+
       // Устанавливаем скорость NPC
-      npcCar.setVelocity(Math.cos(angle) * npcSpeed, Math.sin(angle) * npcSpeed);
+      npcCar.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
       // Поворачиваем NPC в направлении движения
       npcCar.rotation = angle + Math.PI / 2; // +Math.PI/2 для корректного поворота спрайта
