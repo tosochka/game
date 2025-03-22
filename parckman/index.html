@@ -134,12 +134,12 @@
       // Задаем путь для NPC (координаты точек пути с учетом смещения внутрь дороги)
       npcPath = [
         { x: startX, y: startY }, // Начальная точка (парковочное место)
+        { x: startX, y: startY - 20 }, // Выезд с парковочного места (вертикально вверх, небольшое смещение)
         { x: startX, y: startY - 50 }, // Выезд с парковочного места (вертикально вверх)
-        { x: 100 + npcOffset, y: 100 + npcOffset }, // Выезд на дорогу
-        { x: 700 - npcOffset, y: 100 + npcOffset }, // Движение вправо по верхней горизонтальной дороге
+        { x: 700 - npcOffset, y: startY - 50 }, // Движение вправо по верхней горизонтальной дороге
         { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз по правой вертикальной дороге
         { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево по нижней горизонтальной дороге
-        { x: 100 + npcOffset, y: 100 + npcOffset }, // Движение вверх по левой вертикальной дороге
+        { x: 100 + npcOffset, y: startY - 50 }, // Движение вверх по левой вертикальной дороге
         { x: startX, y: startY - 50 }, // Подъезд к парковочному месту (вертикально вниз)
         { x: startX, y: startY }  // Заезд на парковочное место (вертикально вниз)
       ];
@@ -166,7 +166,7 @@
       const angle = Phaser.Math.Angle.Between(npcCar.x, npcCar.y, target.x, target.y);
 
       // Устанавливаем скорость NPC в зависимости от участка пути
-      const isParkingMovement = npcPathIndex === 0 || npcPathIndex === 1 || npcPathIndex === npcPath.length - 2 || npcPathIndex === npcPath.length - 1;
+      const isParkingMovement = npcPathIndex === 0 || npcPathIndex === 1 || npcPathIndex === 2 || npcPathIndex === npcPath.length - 2 || npcPathIndex === npcPath.length - 1;
       const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
 
       // Устанавливаем скорость NPC
@@ -237,6 +237,12 @@
 
         // Центральная вертикальная дорога
         { x: 887 + 203 / 2, y: 236 + 1528 / 2, width: 203, height: 1528 }, // Центр дороги
+
+        // Внутренний верхний проезд
+        { x: 259 + 1477 / 2, y: 579 + 94 / 2, width: 1477, height: 94 }, // Центр внутреннего верхнего проезда
+
+        // Внутренний нижний проезд
+        { x: 259 + 1477 / 2, y: 1326 + 94 / 2, width: 1477, height: 94 } // Центр внутреннего нижнего проезда
       ];
 
       roads.forEach(road => {
