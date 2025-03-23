@@ -81,6 +81,7 @@
     let npcs = []; // Массив для хранения NPC
     const npcSpeed = 100; // Скорость NPC по дороге
     const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
+	const npcFinalApproachSpeed = 20; // Скорость NPC на последних трех точках цикла
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
@@ -234,7 +235,7 @@
 
 	  if (isPreRotation) {
 		// Небольшой разворот "передом" в противоположную сторону (например, 20 градусов)
-		npc.rotation = Phaser.Math.DegToRad(20); // -0 градусов
+		npc.rotation = Phaser.Math.DegToRad(20); // 20 градусов
 	  } else if (isFinalRotating) {
 		// Окончательный разворот на 0 градусов
 		npc.rotation = 0; // Устанавливаем угол 0 градусов (перпендикулярно дороге)
@@ -250,12 +251,9 @@
 	  const parkingSpot = npc.route[npc.route.length - 1];
 	  const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
 
-	  // Замедление, если NPC находится на последних этапах маршрута
-	  const isParkingMovement = (
-		npc.routeIndex >= npc.route.length - 3 && // Последние 3 точки маршрута
-		distanceToParkingSpot <= 50 // Расстояние до парковочного места меньше 50 пикселей
-	  );
-	  const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
+	  // Замедление, если NPC находится на последних трех точках маршрута
+	  const isFinalApproach = npc.routeIndex >= npc.route.length - 2; // Последние 3 точки маршрута
+	  const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
 
 	  // Устанавливаем скорость и поворот NPC
 	  npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
