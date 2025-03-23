@@ -302,14 +302,44 @@
       });
     }
 
-    function moveNPCToNextPoint(npc) {
-      const target = npc.route[npc.routeIndex];
-      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+	function moveNPCToNextPoint(npc) {
+	  const target = npc.route[npc.routeIndex];
+	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
 
-      // Установка скорости
-      const speed = npc.routeIndex >= npc.route.length - 2 ? npcFinalApproachSpeed : npcSpeed;
-      npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-    }
+	  // Проверяем, находится ли NPC на этапе небольшого разворота (точка до предпоследней)
+	  const isPreRotation = npc.routeIndex === npc.route.length - 3;
+
+	  // Проверяем, находится ли NPC на этапе окончательного разворота (предпоследняя точка)
+	  const isFinalRotating = npc.routeIndex === npc.route.length - 2;
+
+	  // Проверяем, находится ли NPC на последней точке маршрута
+	  const isParking = npc.routeIndex === npc.route.length - 1;
+
+	  if (isPreRotation) {
+		// Небольшой разворот "передом" в противоположную сторону (например, 20 градусов)
+		npc.rotation = Phaser.Math.DegToRad(20); // 20 градусов
+	  } else if (isFinalRotating) {
+		// Окончательный разворот на 0 градусов
+		npc.rotation = 0; // Устанавливаем угол 0 градусов (перпендикулярно дороге)
+	  } else if (isParking) {
+		// Если NPC на последней точке маршрута, сохраняем ориентацию
+		npc.rotation = 0; // Оставляем угол 0 градусов
+	  } else {
+		// Обычное движение
+		npc.rotation = angle + Math.PI / 2; // Стандартный поворот
+	  }
+
+	  // Расстояние до парковочного места (последняя точка маршрута)
+	  const parkingSpot = npc.route[npc.route.length - 1];
+	  const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+
+	  // Замедление, если NPC находится на последних трех точках маршрута
+	  const isFinalApproach = npc.routeIndex >= npc.route.length - 2; // Последние 2 точки маршрута
+	  const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
+
+	  // Устанавливаем скорость и поворот NPC
+	  npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+	}
 
     function createInvisibleParkingSpots(scene) {
       // Добавляем невидимые парковочные места
