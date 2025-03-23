@@ -81,7 +81,7 @@
     let npcs = []; // Массив для хранения NPC
     const npcSpeed = 100; // Скорость NPC по дороге
     const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
-	const npcFinalApproachSpeed = 20; // Скорость NPC на последних трех точках цикла
+	const npcFinalApproachSpeed = 25; // Скорость NPC на последних трех точках цикла
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
@@ -252,7 +252,7 @@
 	  const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
 
 	  // Замедление, если NPC находится на последних трех точках маршрута
-	  const isFinalApproach = npc.routeIndex >= npc.route.length - 2; // Последние 3 точки маршрута
+	  const isFinalApproach = npc.routeIndex >= npc.route.length - 2; // Последние 2 точки маршрута
 	  const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
 
 	  // Устанавливаем скорость и поворот NPC
