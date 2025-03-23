@@ -315,9 +315,17 @@
 	  // Проверяем, находится ли NPC на последней точке маршрута
 	  const isParking = npc.routeIndex === npc.route.length - 1;
 
+	  // Определяем, движется ли NPC по маршруту против часовой стрелки
+	  const isCounterClockwise = npc.route[0].x === npc.route[npc.route.length - 1].x && 
+								 npc.route[0].y === npc.route[npc.route.length - 1].y;
+
 	  if (isPreRotation) {
-		// Небольшой разворот "передом" в противоположную сторону (например, 20 градусов)
-		npc.rotation = Phaser.Math.DegToRad(0); // 20 градусов
+		// Небольшой разворот "передом" в противоположную сторону
+		if (isCounterClockwise) {
+		  npc.rotation = -Phaser.Math.DegToRad(20); // -20 градусов для против часовой стрелки
+		} else {
+		  npc.rotation = Phaser.Math.DegToRad(20); // 20 градусов для по часовой стрелке
+		}
 	  } else if (isFinalRotating) {
 		// Окончательный разворот на 0 градусов
 		npc.rotation = 0; // Устанавливаем угол 0 градусов (перпендикулярно дороге)
