@@ -23,6 +23,31 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
+     /*
+      ============================================
+      ОПИСАНИЕ ИГРЫ "MASTER PARKING"
+      ============================================
+
+      Цель игры:
+      Игрок должен как можно быстрее и точнее припарковать автомобиль на заданное парковочное место.
+      На пути игрока встречаются препятствия: другие автомобили (NPC), мотоциклисты, пешеходы и т.д.
+
+      Базовая механика:
+      1. Игрок управляет автомобилем, который может двигаться только по дорогам.
+      2. На карте есть парковочные места, на которые нужно припарковаться.
+      3. NPC (другие автомобили, мотоциклисты, пешеходы) двигаются по своим маршрутам и создают препятствия.
+      4. Игрок должен избегать столкновений с NPC и другими объектами.
+      5. Победа засчитывается, когда игрок успешно паркуется на заданное место за минимальное время.
+
+      Особенности:
+      - Дороги: все объекты (игрок и NPC) могут двигаться только по дорогам.
+      - Парковочные места: на них могут стоять NPC, и на одно из них нужно припарковаться.
+      - NPC: двигаются по заданным маршрутам, могут заезжать и выезжать с парковочных мест.
+      - Физика: реализована с использованием движка Phaser 3 (arcade physics).
+
+      ============================================
+     */
+  
     const config = {
       type: Phaser.AUTO,
       width: 800,
@@ -81,7 +106,7 @@
     let npcs = []; // Массив для хранения NPC
     const npcSpeed = 100; // Скорость NPC по дороге
     const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
-	const npcFinalApproachSpeed = 25; // Скорость NPC на последних трех точках цикла
+    const npcFinalApproachSpeed = 25; // Скорость NPC на последних трех точках цикла
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
@@ -138,52 +163,52 @@
       this.load.image('npcCar', 'assets/npc_car.png'); // NPC автомобиль
     }
 
-	function create() {
-	  // Очистка сцены от всех объектов
-	  this.children.each(child => {
-		child.destroy();
-	  });
+    function create() {
+      // Очистка сцены от всех объектов
+      this.children.each(child => {
+        child.destroy();
+      });
 
-	  // Добавление фона
-	  const background = this.add.image(400, 400, 'background');
-	  background.setDisplaySize(800, 800);
+      // Добавление фона
+      const background = this.add.image(400, 400, 'background');
+      background.setDisplaySize(800, 800);
 
-	  // Добавление невидимых парковочных мест
-	  createInvisibleParkingSpots(this);
+      // Добавление невидимых парковочных мест
+      createInvisibleParkingSpots(this);
 
-	  // Добавление невидимых дорог
-	  createInvisibleRoads(this);
+      // Добавление невидимых дорог
+      createInvisibleRoads(this);
 
-	  // Добавление въезда и павильона
-	  createEntranceAndPavilion(this);
+      // Добавление въезда и павильона
+      createEntranceAndPavilion(this);
 
-	  // Создание декоративного слоя
-	  createDecorativeLayer(this);
+      // Создание декоративного слоя
+      createDecorativeLayer(this);
 
-	  // Создание NPC для каждого парковочного места
-	  npcs = allParkingSpots.map((spot, index) => {
-		const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
-		const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
-		npc.setCollideWorldBounds(true);
+      // Создание NPC для каждого парковочного места
+      npcs = allParkingSpots.map((spot, index) => {
+        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
+        const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
+        npc.setCollideWorldBounds(true);
 
-		// Назначаем маршрут
-		npc.route = npcRoutes[index];
-		npc.routeIndex = 0;
+        // Назначаем маршрут
+        npc.route = npcRoutes[index];
+        npc.routeIndex = 0;
 
-		// Добавляем состояние ожидания и флаг разворота
-		npc.isWaiting = true;
-		npc.isRotated = false; // Изначально NPC не развернут
+        // Добавляем состояние ожидания и флаг разворота
+        npc.isWaiting = true;
+        npc.isRotated = false; // Изначально NPC не развернут
 
-		// Случайная задержка перед началом движения (от 1 до 5 секунд)
-		const delay = Phaser.Math.Between(100, 5000); // Задержка в миллисекундах
-		this.time.delayedCall(delay, () => {
-		  npc.isWaiting = false; // Завершаем ожидание
-		  moveNPCToNextPoint(npc); // Начинаем движение
-		}, [], this);
+        // Случайная задержка перед началом движения (от 1 до 5 секунд)
+        const delay = Phaser.Math.Between(100, 5000); // Задержка в миллисекундах
+        this.time.delayedCall(delay, () => {
+          npc.isWaiting = false; // Завершаем ожидание
+          moveNPCToNextPoint(npc); // Начинаем движение
+        }, [], this);
 
-		return npc;
-	  });
-	}
+        return npc;
+      });
+    }
 
     function update() {
       // Обновление движения NPC
@@ -220,44 +245,24 @@
       });
     }
 
-	function moveNPCToNextPoint(npc) {
-	  const target = npc.route[npc.routeIndex];
-	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+    // Функция для расчета угла поворота NPC
+    function calculateRotationAngle(npc, target) {
+      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+      return angle + Math.PI / 2; // Поворот на 90 градусов для корректной ориентации спрайта
+    }
 
-	  // Проверяем, находится ли NPC на этапе небольшого разворота (точка до предпоследней)
-	  const isPreRotation = npc.routeIndex === npc.route.length - 3;
+    // Функция для движения NPC к следующей точке
+    function moveNPCToNextPoint(npc) {
+      const target = npc.route[npc.routeIndex];
+      const angle = calculateRotationAngle(npc, target);
 
-	  // Проверяем, находится ли NPC на этапе окончательного разворота (предпоследняя точка)
-	  const isFinalRotating = npc.routeIndex === npc.route.length - 2;
+      // Плавный поворот NPC
+      npc.rotation = Phaser.Math.Angle.RotateTo(npc.rotation, angle, 0.05); // Скорость поворота
 
-	  // Проверяем, находится ли NPC на последней точке маршрута
-	  const isParking = npc.routeIndex === npc.route.length - 1;
-
-	  if (isPreRotation) {
-		// Небольшой разворот "передом" в противоположную сторону (например, 20 градусов)
-		npc.rotation = Phaser.Math.DegToRad(20); // 20 градусов
-	  } else if (isFinalRotating) {
-		// Окончательный разворот на 0 градусов
-		npc.rotation = 0; // Устанавливаем угол 0 градусов (перпендикулярно дороге)
-	  } else if (isParking) {
-		// Если NPC на последней точке маршрута, сохраняем ориентацию
-		npc.rotation = 0; // Оставляем угол 0 градусов
-	  } else {
-		// Обычное движение
-		npc.rotation = angle + Math.PI / 2; // Стандартный поворот
-	  }
-
-	  // Расстояние до парковочного места (последняя точка маршрута)
-	  const parkingSpot = npc.route[npc.route.length - 1];
-	  const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
-
-	  // Замедление, если NPC находится на последних трех точках маршрута
-	  const isFinalApproach = npc.routeIndex >= npc.route.length - 2; // Последние 2 точки маршрута
-	  const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
-
-	  // Устанавливаем скорость и поворот NPC
-	  npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-	}
+      // Установка скорости
+      const speed = npc.routeIndex >= npc.route.length - 2 ? npcFinalApproachSpeed : npcSpeed;
+      npc.setVelocity(Math.cos(angle - Math.PI / 2) * speed, Math.sin(angle - Math.PI / 2) * speed);
+    }
 
     function createInvisibleParkingSpots(scene) {
       // Добавляем невидимые парковочные места
