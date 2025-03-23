@@ -101,7 +101,7 @@
       { x: 1279, y: 380 }, // Третье место
       { x: 1371, y: 380 }, // Четвертое место
       { x: 1462, y: 380 }, // Пятое место
-      { x: 1555, y: 380 }, // Шестое место
+      { x: 1555, y: 380 }, // Шестое место,
     ];
 
     // Объединяем все парковочные места
@@ -172,7 +172,7 @@
         npc.isWaiting = true;
 
         // Случайная задержка перед началом движения (от 1 до 5 секунд)
-        const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
+        const delay = Phaser.Math.Between(500, 10000); // Задержка в миллисекундах
         this.time.delayedCall(delay, () => {
           npc.isWaiting = false; // Завершаем ожидание
           moveNPCToNextPoint(npc); // Начинаем движение
@@ -200,7 +200,7 @@
 
               // Добавляем задержку перед повторным выездом
               npc.isWaiting = true;
-              const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
+              const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
               this.time.delayedCall(delay, () => {
                 npc.isWaiting = false; // Завершаем ожидание
                 moveNPCToNextPoint(npc); // Начинаем движение
@@ -218,9 +218,14 @@
       const target = npc.route[npc.routeIndex];
       const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
 
-      // Замедление, если NPC приближается к парковочному месту
+      // Расстояние до парковочного места (последняя точка маршрута)
+      const parkingSpot = npc.route[npc.route.length - 1];
+      const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+
+      // Замедление, если NPC находится на последних этапах маршрута и в радиусе 50 пикселей от парковочного места
       const isParkingMovement = (
-        npc.routeIndex >= npc.route.length - 3 // Последние три точки маршрута
+        npc.routeIndex >= npc.route.length - 3 && // Последние 3 точки маршрута
+        distanceToParkingSpot <= 50 // Расстояние до парковочного места меньше 50 пикселей
       );
       const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
 
