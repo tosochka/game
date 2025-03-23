@@ -182,37 +182,40 @@
       });
     }
 
-    function update() {
-      // Обновление движения NPC
-      npcs.forEach(npc => {
-        if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
-          const target = npc.route[npc.routeIndex];
-          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+	function update() {
+	  // Обновление движения NPC
+	  npcs.forEach(npc => {
+		if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
+		  const target = npc.route[npc.routeIndex];
+		  const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
-          if (distance < 5) { // Если NPC близко к точке
-            npc.routeIndex++;
+		  if (distance < 5) { // Если NPC близко к точке
+			npc.routeIndex++;
 
-            // Если NPC завершил маршрут
-            if (npc.routeIndex >= npc.route.length) {
-              // Останавливаем NPC на парковочном месте
-              npc.setVelocity(0, 0); // Сбрасываем скорость
-              npc.routeIndex = 0; // Сбрасываем индекс маршрута
+			// Если NPC завершил маршрут
+			if (npc.routeIndex >= npc.route.length) {
+			  // Останавливаем NPC на парковочном месте
+			  npc.setVelocity(0, 0); // Сбрасываем скорость
+			  npc.routeIndex = 0; // Сбрасываем индекс маршрута
 
-              // Добавляем задержку перед повторным выездом
-              npc.isWaiting = true;
-              const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
-              this.time.delayedCall(delay, () => {
-                npc.isWaiting = false; // Завершаем ожидание
-                moveNPCToNextPoint(npc); // Начинаем движение
-              }, [], this);
-            } else {
-              // Продолжаем движение к следующей точке
-              moveNPCToNextPoint(npc);
-            }
-          }
-        }
-      });
-    }
+			  // Выравниваем NPC по вертикали (перпендикулярно дороге)
+			  npc.rotation = Math.PI / 2; // 90 градусов (вертикально)
+
+			  // Добавляем задержку перед повторным выездом
+			  npc.isWaiting = true;
+			  const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
+			  this.time.delayedCall(delay, () => {
+				npc.isWaiting = false; // Завершаем ожидание
+				moveNPCToNextPoint(npc); // Начинаем движение
+			  }, [], this);
+			} else {
+			  // Продолжаем движение к следующей точке
+			  moveNPCToNextPoint(npc);
+			}
+		  }
+		}
+	  });
+	}
 
 	function moveNPCToNextPoint(npc) {
 	  const target = npc.route[npc.routeIndex];
