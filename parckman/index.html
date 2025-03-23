@@ -223,18 +223,24 @@
 	  const target = npc.route[npc.routeIndex];
 	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
 
-	  // Проверяем, находится ли NPC на этапе плавного разворота (предпоследняя точка)
-	  const isSmoothRotating = npc.routeIndex === npc.route.length - 2;
+	  // Проверяем, находится ли NPC на этапе небольшого разворота (точка до предпоследней)
+	  const isPreRotation = npc.routeIndex === npc.route.length - 3;
 
-	  // Проверяем, находится ли NPC на этапе окончательного разворота (последняя точка)
-	  const isFinalRotating = npc.routeIndex === npc.route.length - 1;
+	  // Проверяем, находится ли NPC на этапе окончательного разворота (предпоследняя точка)
+	  const isFinalRotating = npc.routeIndex === npc.route.length - 2;
 
-	  if (isSmoothRotating) {
-		// Плавный разворот на 45 градусов (в сторону 0 градусов)
-		npc.rotation = -Math.PI / 4; // 45 градусов (в сторону 0 градусов)
+	  // Проверяем, находится ли NPC на последней точке маршрута
+	  const isParking = npc.routeIndex === npc.route.length - 1;
+
+	  if (isPreRotation) {
+		// Небольшой разворот "передом" в противоположную сторону (например, -20 градусов)
+		npc.rotation = -Phaser.Math.DegToRad(20); // -20 градусов
 	  } else if (isFinalRotating) {
 		// Окончательный разворот на 0 градусов
 		npc.rotation = 0; // Устанавливаем угол 0 градусов (перпендикулярно дороге)
+	  } else if (isParking) {
+		// Если NPC на последней точке маршрута, сохраняем ориентацию
+		npc.rotation = 0; // Оставляем угол 0 градусов
 	  } else {
 		// Обычное движение
 		npc.rotation = angle + Math.PI / 2; // Стандартный поворот
