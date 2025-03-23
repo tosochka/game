@@ -342,7 +342,7 @@
 	  const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
 
 	  // Замедление, если NPC находится на последних трех точках маршрута
-	  const isFinalApproach = npc.routeIndex >= npc.route.length - 3; // Последние 2 точки маршрута
+	  const isFinalApproach = npc.routeIndex >= npc.route.length - 2; // Последние 2 точки маршрута
 	  const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
 
 	  // Устанавливаем скорость и поворот NPC
