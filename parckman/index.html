@@ -84,8 +84,8 @@
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
-    // Координаты шести парковочных мест из верхнего ряда верхнего левого блока
-    const upperParkingSpots = [
+    // Координаты шести парковочных мест из верхнего ряда левого блока
+    const upperLeftParkingSpots = [
       { x: 361, y: 380 }, // Первое место
       { x: 454, y: 380 }, // Второе место
       { x: 546, y: 380 }, // Третье место
@@ -94,8 +94,21 @@
       { x: 823, y: 380 }, // Шестое место
     ];
 
+    // Координаты шести парковочных мест из верхнего ряда правого блока
+    const upperRightParkingSpots = [
+      { x: 1094, y: 380 }, // Первое место
+      { x: 1189, y: 380 }, // Второе место
+      { x: 1279, y: 380 }, // Третье место
+      { x: 1371, y: 380 }, // Четвертое место
+      { x: 1462, y: 380 }, // Пятое место
+      { x: 1555, y: 380 }, // Шестое место
+    ];
+
+    // Объединяем все парковочные места
+    const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
+
     // Маршруты для NPC (масштабированные координаты)
-    const npcRoutes = upperParkingSpots.map(spot => {
+    const npcRoutes = allParkingSpots.map(spot => {
       const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты парковочного места
       return [
         { x, y }, // Парковочное место
@@ -146,7 +159,7 @@
       createDecorativeLayer(this);
 
       // Создание NPC для каждого парковочного места
-      npcs = upperParkingSpots.map((spot, index) => {
+      npcs = allParkingSpots.map((spot, index) => {
         const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
         const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
         npc.setCollideWorldBounds(true);
@@ -187,7 +200,7 @@
 
               // Добавляем задержку перед повторным выездом
               npc.isWaiting = true;
-              const delay = Phaser.Math.Between(1000, 10000); // Задержка в миллисекундах
+              const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
               this.time.delayedCall(delay, () => {
                 npc.isWaiting = false; // Завершаем ожидание
                 moveNPCToNextPoint(npc); // Начинаем движение
@@ -217,12 +230,6 @@
     }
 
     function createInvisibleParkingSpots(scene) {
-      // Координаты парковочных мест (X, Y) в реальных размерах (верхние блоки)
-      const allParkingSpots = [
-        ...upperParkingSpots,
-        // Остальные места...
-      ];
-
       // Добавляем невидимые парковочные места
       allParkingSpots.forEach(spot => {
         const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
