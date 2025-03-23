@@ -23,6 +23,31 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
+      /*
+      ============================================
+      ОПИСАНИЕ ИГРЫ "MASTER PARKING"
+      ============================================
+
+      Цель игры:
+      Игрок должен как можно быстрее и точнее припарковать автомобиль на заданное парковочное место.
+      На пути игрока встречаются препятствия: другие автомобили (NPC), мотоциклисты, пешеходы и т.д.
+
+      Базовая механика:
+      1. Игрок управляет автомобилем, который может двигаться только по дорогам.
+      2. На карте есть парковочные места, на которые нужно припарковаться.
+      3. NPC (другие автомобили, мотоциклисты, пешеходы) двигаются по своим маршрутам и создают препятствия.
+      4. Игрок должен избегать столкновений с NPC и другими объектами.
+      5. Победа засчитывается, когда игрок успешно паркуется на заданное место за минимальное время.
+
+      Особенности:
+      - Дороги: все объекты (игрок и NPC) могут двигаться только по дорогам.
+      - Парковочные места: на них могут стоять NPC, и на одно из них нужно припарковаться.
+      - NPC: двигаются по заданным маршрутам, могут заезжать и выезжать с парковочных мест.
+      - Физика: реализована с использованием движка Phaser 3 (arcade physics).
+
+      ============================================
+    */
+  
     const config = {
       type: Phaser.AUTO,
       width: 800,
@@ -48,88 +73,121 @@
 
     const game = new Phaser.Game(config);
 
-    // Размеры сцены
-    const sceneWidth = 800;
-    const sceneHeight = 800;
+    // Размеры спрайта парковочного места
+    const parkingSpotWidth = 59; // Ширина
+    const parkingSpotHeight = 85; // Высота
 
-    // Функции для перевода относительных координат
-    function relX(x) {
-      return x * sceneWidth;
+    // Коэффициент масштабирования
+    const scaleFactor = 0.4; // 800 / 2000
+
+    // Сдвиг вправо и вниз для парковочных мест
+    const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
+    const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
+
+    // Дополнительные сдвиги для дорог (вверх и влево)
+    const roadOffsetX = -12; // Сдвиг влево
+    const roadOffsetY = -16; // Сдвиг вверх
+
+    // Функция для масштабирования координат
+    function scaleCoords(x, y, isRoad = false) {
+      const scaledX = (x / 2000) * 800 + offsetX;
+      const scaledY = (y / 2000) * 800 + offsetY;
+
+      if (isRoad) {
+        return {
+          x: scaledX + roadOffsetX,
+          y: scaledY + roadOffsetY,
+        };
+      }
+
+      return { x: scaledX, y: scaledY };
     }
 
-    function relY(y) {
-      return y * sceneHeight;
-    }
+    let npcs = []; // Массив для хранения NPC
+    const npcSpeed = 100; // Скорость NPC по дороге
+    const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
+    const npcWidth = 40; // Ширина спрайта NPC
+    const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
-    function relSize(size) {
-      return size * Math.min(sceneWidth, sceneHeight);
-    }
-
-    // Смещения в относительных единицах
-    const grassOffsetX = 0.0125; // 10 пикселей / 800 = 0.0125
-    const grassOffsetY = 0.025; // 20 пикселей / 800 = 0.025
-
-    const treeOffsetX = 0.05625; // 45 пикселей / 800 = 0.05625
-    const treeOffsetY = 0.04375; // 35 пикселей / 800 = 0.04375
-
-    const bushOffsetX = 0.04375; // 35 пикселей / 800 = 0.04375
-    const bushOffsetY = 0.03125; // 25 пикселей / 800 = 0.03125
-
-    const oilOffsetX = 0.01875; // 15 пикселей / 800 = 0.01875
-    const oilOffsetY = 0.02875; // 23 пикселей / 800 = 0.02875
-
-    // Относительные координаты парковочных мест (левый верхний блок)
+    // Координаты шести парковочных мест из верхнего ряда левого блока
     const upperLeftParkingSpots = [
-      { x: 0.18, y: 0.19 }, // Первое место
-      { x: 0.227, y: 0.19 }, // Второе место
-      { x: 0.273, y: 0.19 }, // Третье место
-      { x: 0.32, y: 0.19 }, // Четвертое место
-      { x: 0.365, y: 0.19 }, // Пятое место
-      { x: 0.412, y: 0.19 }, // Шестое место
+      { x: 361, y: 380 }, // Первое место
+      { x: 454, y: 380 }, // Второе место
+      { x: 546, y: 380 }, // Третье место
+      { x: 641, y: 380 }, // Четвертое место
+      { x: 729, y: 380 }, // Пятое место
+      { x: 823, y: 380 }, // Шестое место
     ];
 
-    // Относительные координаты парковочных мест (правый верхний блок)
+    // Координаты шести парковочных мест из верхнего ряда правого блока
     const upperRightParkingSpots = [
-      { x: 0.547, y: 0.19 }, // Первое место
-      { x: 0.595, y: 0.19 }, // Второе место
-      { x: 0.64, y: 0.19 }, // Третье место
-      { x: 0.685, y: 0.19 }, // Четвертое место
-      { x: 0.731, y: 0.19 }, // Пятое место
-      { x: 0.778, y: 0.19 }, // Шестое место,
+      { x: 1094, y: 380 }, // Первое место
+      { x: 1189, y: 380 }, // Второе место
+      { x: 1279, y: 380 }, // Третье место
+      { x: 1371, y: 380 }, // Четвертое место
+      { x: 1462, y: 380 }, // Пятое место
+      { x: 1555, y: 380 }, // Шестое место,
     ];
 
     // Объединяем все парковочные места
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
 
-    // Масштабируем координаты парковочных мест
-    const scaledParkingSpots = allParkingSpots.map(spot => ({
-      x: relX(spot.x),
-      y: relY(spot.y),
-    }));
-
-    // Маршруты для NPC (относительные координаты)
+    // Маршруты для NPC (масштабированные координаты)
     const npcRoutes = allParkingSpots.map(spot => {
-      const x = relX(spot.x);
-      const y = relY(spot.y);
+      const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты парковочного места
       return [
         { x, y }, // Парковочное место
-        { x, y: y - relY(0.025) }, // Выезд с парковочного места (начало)
-        { x, y: y - relY(0.05) }, // Выезд с парковочного места (конечная высота)
-        { x: relX(0.875), y: y - relY(0.05) }, // Движение вправо
-        { x: relX(0.875), y: relY(0.875) }, // Движение вниз
-        { x: relX(0.125), y: relY(0.875) }, // Движение влево
-        { x: relX(0.125), y: y - relY(0.05) }, // Движение вверх
-        { x, y: y - relY(0.05) }, // Подъезд к парковочному месту (начало)
-        { x, y: y - relY(0.025) }, // Подъезд к парковочному месту (близко)
+        { x, y: y - 20 }, // Выезд с парковочного места (начало)
+        { x, y: y - 50 }, // Выезд с парковочного места (конечная высота)
+        { x: 700 - npcOffset, y: y - 50 }, // Движение вправо
+        { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз
+        { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево
+        { x: 100 + npcOffset, y: y - 50 }, // Движение вверх
+        { x, y: y - 50 }, // Подъезд к парковочному месту (начало)
+        { x, y: y - 20 }, // Подъезд к парковочному месту (близко)
         { x, y }  // Заезд на парковочное место (очень близко)
       ];
     });
 
-    let npcs = []; // Массив для хранения NPC
-    const npcSpeed = 100; // Скорость NPC по дороге
-    const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
-
     function preload() {
+	 /*
+		============================================
+		ПАМЯТКА О РАСЧЕТЕ КООРДИНАТ
+		============================================
+
+		1. Исходная система координат:
+		   - Карта имеет размер 2000x2000 пикселей.
+		   - Все объекты (парковочные места, дороги, NPC и т.д.) задаются в этой системе.
+
+		2. Масштабирование:
+		   - Игровое поле отображается в окне 800x800 пикселей.
+		   - Коэффициент масштабирования: scaleFactor = 800 / 2000 = 0.4.
+		   - Чтобы перевести координаты из системы 2000x2000 в 800x800, используйте формулу:
+			   scaledX = (x / 2000) * 800 + offsetX;
+			   scaledY = (y / 2000) * 800 + offsetY;
+
+		3. Смещения:
+		   - offsetX и offsetY: Смещения для парковочных мест и других объектов.
+		   - roadOffsetX и roadOffsetY: Дополнительные смещения для дорог.
+
+		4. Координаты маршрута NPC:
+		   - Координаты маршрута NPC задаются в масштабированной системе (800x800).
+		   - Стартовые координаты (startX, startY) уже масштабированы.
+		   - Остальные точки маршрута (например, 700 - npcOffset, 100 + npcOffset) также задаются в 800x800.
+
+		5. Пример:
+		   - Если координата на карте 2000x2000: x = 361, y = 380,
+			 то в масштабированной системе:
+			   scaledX = (361 / 2000) * 800 + offsetX;
+			   scaledY = (380 / 2000) * 800 + offsetY;
+
+		6. Важно:
+		   - Не масштабируйте координаты маршрута NPC, если они уже заданы в 800x800.
+		   - Для парковочных мест и дорог используйте функцию scaleCoords.
+
+		============================================
+	 */		
+	
       // Загрузка изображений
       this.load.image('background', 'assets/parking_map.png'); // Фон парковки
       this.load.image('entrance', 'assets/entrance.png'); // Въезд
@@ -148,8 +206,8 @@
       });
 
       // Добавление фона
-      const background = this.add.image(relX(0.5), relY(0.5), 'background');
-      background.setDisplaySize(sceneWidth, sceneHeight);
+      const background = this.add.image(400, 400, 'background');
+      background.setDisplaySize(800, 800);
 
       // Добавление невидимых парковочных мест
       createInvisibleParkingSpots(this);
@@ -164,8 +222,9 @@
       createDecorativeLayer(this);
 
       // Создание NPC для каждого парковочного места
-      npcs = scaledParkingSpots.map((spot, index) => {
-        const npc = this.physics.add.sprite(spot.x, spot.y, 'npcCar').setScale(0.5);
+      npcs = allParkingSpots.map((spot, index) => {
+        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
+        const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
         npc.setCollideWorldBounds(true);
 
         // Назначаем маршрут
@@ -176,7 +235,7 @@
         npc.isWaiting = true;
 
         // Случайная задержка перед началом движения (от 1 до 5 секунд)
-        const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
+        const delay = Phaser.Math.Between(100, 5000); // Задержка в миллисекундах
         this.time.delayedCall(delay, () => {
           npc.isWaiting = false; // Завершаем ожидание
           moveNPCToNextPoint(npc); // Начинаем движение
@@ -186,40 +245,40 @@
       });
     }
 
-    function update() {
-      // Обновление движения NPC
-      npcs.forEach(npc => {
-        if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
-          const target = npc.route[npc.routeIndex];
-          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+	function update() {
+	  // Обновление движения NPC
+	  npcs.forEach(npc => {
+		if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
+		  const target = npc.route[npc.routeIndex];
+		  const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
-          if (distance < 5) { // Если NPC близко к точке
-            npc.routeIndex++;
+		  if (distance < 5) { // Если NPC близко к точке
+			npc.routeIndex++;
 
-            // Если NPC завершил маршрут
-            if (npc.routeIndex >= npc.route.length) {
-              // Останавливаем NPC на парковочном месте
-              npc.setVelocity(0, 0); // Сбрасываем скорость
-              npc.routeIndex = 0; // Сбрасываем индекс маршрута
+			// Если NPC завершил маршрут
+			if (npc.routeIndex >= npc.route.length) {
+			  // Останавливаем NPC на парковочном месте
+			  npc.setVelocity(0, 0); // Сбрасываем скорость
+			  npc.routeIndex = 0; // Сбрасываем индекс маршрута
 
-              // Выравниваем NPC строго перпендикулярно дороге (угол 0 градусов)
-              npc.rotation = 0; // 0 градусов (перпендикулярно дороге)
+			  // Выравниваем NPC строго перпендикулярно дороге (угол 0 градусов)
+			  npc.rotation = 0; // 0 градусов (перпендикулярно дороге)
 
-              // Добавляем задержку перед повторным выездом
-              npc.isWaiting = true;
-              const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
-              this.time.delayedCall(delay, () => {
-                npc.isWaiting = false; // Завершаем ожидание
-                moveNPCToNextPoint(npc); // Начинаем движение
-              }, [], this);
-            } else {
-              // Продолжаем движение к следующей точке
-              moveNPCToNextPoint(npc);
-            }
-          }
-        }
-      });
-    }
+			  // Добавляем задержку перед повторным выездом
+			  npc.isWaiting = true;
+			  const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
+			  this.time.delayedCall(delay, () => {
+				npc.isWaiting = false; // Завершаем ожидание
+				moveNPCToNextPoint(npc); // Начинаем движение
+			  }, [], this);
+			} else {
+			  // Продолжаем движение к следующей точке
+			  moveNPCToNextPoint(npc);
+			}
+		  }
+		}
+	  });
+	}
 
     function moveNPCToNextPoint(npc) {
       const target = npc.route[npc.routeIndex];
@@ -243,11 +302,12 @@
 
     function createInvisibleParkingSpots(scene) {
       // Добавляем невидимые парковочные места
-      scaledParkingSpots.forEach(spot => {
+      allParkingSpots.forEach(spot => {
+        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
         const parkingSpot = scene.add.rectangle(
-          spot.x, spot.y,
-          relSize(0.03), // Ширина (3% от сцены)
-          relSize(0.0425), // Высота (4.25% от сцены)
+          x, y,
+          parkingSpotWidth * scaleFactor, // Масштабируем ширину
+          parkingSpotHeight * scaleFactor, // Масштабируем высоту
           0x000000, // Цвет (чёрный, но невидимый)
           0 // Прозрачность (0 = полностью прозрачный)
         ).setOrigin(0.5);
@@ -258,45 +318,42 @@
     }
 
     function createInvisibleRoads(scene) {
-      // Координаты и размеры дорог (относительные)
+      // Координаты и размеры дорог
       const roads = [
         // Въезд
-        { x: 0.126, y: 0.4465, width: 0.126, height: 0.108 }, // Центр въезда
+        { x: 3 + 252 / 2, y: 893 + 216 / 2, width: 252, height: 216 }, // Центр въезда
 
         // Левая вертикальная дорога
-        { x: 0.1275, y: 0.118, width: 0.052, height: 0.7645 }, // Центр дороги
+        { x: 255 + 104 / 2, y: 236 + 1529 / 2, width: 104, height: 1529 }, // Центр дороги
 
         // Правая вертикальная дорога
-        { x: 0.809, y: 0.1185, width: 0.06, height: 0.763 }, // Центр дороги
+        { x: 1618 + 120 / 2, y: 237 + 1526 / 2, width: 120, height: 1526 }, // Центр дороги
 
         // Верхняя горизонтальная дорога
-        { x: 0.1285, y: 0.117, width: 0.7425, height: 0.0715 }, // Центр дороги
+        { x: 257 + 1485 / 2, y: 234 + 143 / 2, width: 1485, height: 143 }, // Центр дороги
 
         // Нижняя горизонтальная дорога
-        { x: 0.1295, y: 0.811, width: 0.7395, height: 0.0705 }, // Центр дороги
+        { x: 259 + 1479 / 2, y: 1622 + 141 / 2, width: 1479, height: 141 }, // Центр дороги
 
         // Центральная горизонтальная дорога
-        { x: 0.1285, y: 0.436, width: 0.741, height: 0.126 }, // Центр дороги
+        { x: 257 + 1482 / 2, y: 872 + 252 / 2, width: 1482, height: 252 }, // Центр дороги
 
         // Центральная вертикальная дорога
-        { x: 0.4435, y: 0.118, width: 0.1015, height: 0.764 }, // Центр дороги
+        { x: 887 + 203 / 2, y: 236 + 1528 / 2, width: 203, height: 1528 }, // Центр дороги
 
         // Внутренний верхний проезд
-        { x: 0.1295, y: 0.2895, width: 0.7385, height: 0.047 }, // Центр внутреннего верхнего проезда
+        { x: 259 + 1477 / 2, y: 579 + 94 / 2, width: 1477, height: 94 }, // Центр внутреннего верхнего проезда
 
         // Внутренний нижний проезд
-        { x: 0.1295, y: 0.663, width: 0.7385, height: 0.047 } // Центр внутреннего нижнего проезда
+        { x: 259 + 1477 / 2, y: 1326 + 94 / 2, width: 1477, height: 94 } // Центр внутреннего нижнего проезда
       ];
 
       roads.forEach(road => {
-        const x = relX(road.x);
-        const y = relY(road.y);
-        const width = relX(road.width);
-        const height = relY(road.height);
-
+        const { x, y } = scaleCoords(road.x, road.y, true); // Масштабируем координаты с учётом сдвига
         const roadRect = scene.add.rectangle(
           x, y,
-          width, height,
+          road.width * scaleFactor, // Масштабируем ширину
+          road.height * scaleFactor, // Масштабируем высоту
           0x000000, // Цвет (чёрный, но невидимый)
           0 // Прозрачность (0 = полностью прозрачный)
         ).setOrigin(0.5);
@@ -308,34 +365,33 @@
 
     function createEntranceAndPavilion(scene) {
       // Въезд
-      const entranceX = relX(0.126);
-      const entranceY = relY(0.4465);
+      const { x: entranceX, y: entranceY } = scaleCoords(3 + 252 / 2, 893 + 216 / 2, true); // Центр въезда с учётом сдвига
       scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
 
       // Павильон
-      const pavilionX = relX(0.35);
-      const pavilionY = relY(0.05);
+      const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100); // Масштабируем координаты
       scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
     }
 
     function createDecorativeLayer(scene) {
+      // Переменные для смещения декоративных элементов
+      const grassOffsetX = 0; // Смещение травы по X
+      const grassOffsetY = 20; // Смещение травы по Y
+
+      const treeOffsetX = 45; // Смещение дерева по X
+      const treeOffsetY = 35; // Смещение дерева по Y
+
+      const bushOffsetX = 35; // Смещение куста по X
+      const bushOffsetY = 25; // Смещение куста по Y
+
+      const oilOffsetX = 15; // Смещение масляного пятна по X
+      const oilOffsetY = 23; // Смещение масляного пятна по Y
+
       // Масштабирование координат для декоративных элементов
-      const grass1Coords = {
-        x: relX(0.3305) + relX(grassOffsetX), // Трава 1
-        y: relY(0.0445) + relY(grassOffsetY)
-      };
-      const tree1Coords = {
-        x: relX(0.8175) + relX(treeOffsetX), // Дерево 1
-        y: relY(0.0635) + relY(treeOffsetY)
-      };
-      const bush1Coords = {
-        x: relX(0.858) + relX(bushOffsetX), // Куст 1
-        y: relY(0.149) + relY(bushOffsetY)
-      };
-      const oilCoords = {
-        x: relX(0.0125) + relX(oilOffsetX), // Масляное пятно
-        y: relY(0.469) + relY(oilOffsetY)
-      };
+      const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY); // Трава 1
+      const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY); // Дерево 1
+      const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY); // Куст 1
+      const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY); // Масляное пятно
 
       // Добавление декоративных элементов с масштабированными координатами
       const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5); // Трава 1
