@@ -316,8 +316,7 @@
 	  const isParking = npc.routeIndex === npc.route.length - 1;
 
 	  // Определяем, движется ли NPC по маршруту против часовой стрелки
-	  const isCounterClockwise = npc.route[0].x === npc.route[npc.route.length - 1].x && 
-								 npc.route[0].y === npc.route[npc.route.length - 1].y;
+	  const isCounterClockwise = npc.route[1].x < npc.route[0].x; // Если следующая точка левее, то против часовой стрелки
 
 	  if (isPreRotation) {
 		// Небольшой разворот "передом" в противоположную сторону
