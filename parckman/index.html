@@ -224,51 +224,55 @@
       this.load.image('npcCar', 'assets/npc_car.png'); // NPC автомобиль
     }
 
-    function create() {
-      // Очистка сцены от всех объектов
-      this.children.each(child => {
-        child.destroy();
-      });
+	function create() {
+	  // Очистка сцены от всех объектов
+	  this.children.each(child => {
+		child.destroy();
+	  });
 
-      // Добавление фона
-      const background = this.add.image(400, 400, 'background');
-      background.setDisplaySize(800, 800);
+	  // Добавление фона
+	  const background = this.add.image(400, 400, 'background');
+	  background.setDisplaySize(800, 800);
 
-      // Добавление невидимых парковочных мест
-      createInvisibleParkingSpots(this);
+	  // Добавление невидимых парковочных мест
+	  createInvisibleParkingSpots(this);
 
-      // Добавление невидимых дорог
-      createInvisibleRoads(this);
+	  // Добавление невидимых дорог
+	  createInvisibleRoads(this);
 
-      // Добавление въезда и павильона
-      createEntranceAndPavilion(this);
+	  // Добавление въезда и павильона
+	  createEntranceAndPavilion(this);
 
-      // Создание декоративного слоя
-      createDecorativeLayer(this);
+	  // Создание декоративного слоя
+	  createDecorativeLayer(this);
 
-      // Создание NPC для каждого парковочного места
-      npcs = allParkingSpots.map((spot, index) => {
-        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
-        const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
-        npc.setCollideWorldBounds(true);
+	  // Создание NPC для каждого парковочного места
+	  npcs = allParkingSpots.map((spot, index) => {
+		const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
+		const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
+		npc.setCollideWorldBounds(true);
 
-        // Назначаем маршрут
-        npc.route = npcRoutes[index];
-        npc.routeIndex = 0;
+		// Случайный выбор маршрута
+		const isCounterClockwise = Phaser.Math.Between(0, 1) === 1; // Случайное направление
+		npc.route = isCounterClockwise ? counterClockwiseRoute(spot) : clockwiseRoute(spot);
+		npc.routeIndex = 0;
 
-        // Состояние ожидания
-        npc.isWaiting = true;
+		// Сохраняем направление маршрута
+		npc.isCounterClockwise = isCounterClockwise;
 
-        // Задержка перед началом движения (от 1 до 5 секунд)
-        const delay = Phaser.Math.Between(100, 5000); // Задержка в миллисекундах
-        this.time.delayedCall(delay, () => {
-          npc.isWaiting = false; // Завершаем ожидание
-          moveNPCToNextPoint(npc); // Начинаем движение
-        }, [], this);
+		// Состояние ожидания
+		npc.isWaiting = true;
 
-        return npc;
-      });
-    }
+		// Задержка перед началом движения (от 1 до 5 секунд)
+		const delay = Phaser.Math.Between(100, 5000); // Задержка в миллисекундах
+		this.time.delayedCall(delay, () => {
+		  npc.isWaiting = false; // Завершаем ожидание
+		  moveNPCToNextPoint(npc); // Начинаем движение
+		}, [], this);
+
+		return npc;
+	  });
+	}
 
     function update() {
       // Обновление движения NPC
@@ -315,12 +319,9 @@
 	  // Проверяем, находится ли NPC на последней точке маршрута
 	  const isParking = npc.routeIndex === npc.route.length - 1;
 
-	  // Определяем, движется ли NPC по маршруту против часовой стрелки
-	  const isCounterClockwise = npc.route[1].x < npc.route[0].x; // Если следующая точка левее, то против часовой стрелки
-
 	  if (isPreRotation) {
 		// Небольшой разворот "передом" в противоположную сторону
-		if (isCounterClockwise) {
+		if (npc.isCounterClockwise) {
 		  npc.rotation = -Phaser.Math.DegToRad(20); // -20 градусов для против часовой стрелки
 		} else {
 		  npc.rotation = Phaser.Math.DegToRad(20); // 20 градусов для по часовой стрелке
