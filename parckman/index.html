@@ -233,8 +233,8 @@
 	  const isParking = npc.routeIndex === npc.route.length - 1;
 
 	  if (isPreRotation) {
-		// Небольшой разворот "передом" в противоположную сторону (например, -20 градусов)
-		npc.rotation = -Phaser.Math.DegToRad(20); // -20 градусов
+		// Небольшой разворот "передом" в противоположную сторону (например, 20 градусов)
+		npc.rotation = Phaser.Math.DegToRad(20); // -0 градусов
 	  } else if (isFinalRotating) {
 		// Окончательный разворот на 0 градусов
 		npc.rotation = 0; // Устанавливаем угол 0 градусов (перпендикулярно дороге)
