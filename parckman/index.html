@@ -106,7 +106,7 @@
     let npcs = []; // Массив для хранения NPC
     const npcSpeed = 100; // Скорость NPC по дороге
     const npcParkingSpeed = 30; // Скорость NPC при выезде/заезде на парковочное место
-    const npcFinalApproachSpeed = 35; // Скорость NPC на последних трех точках цикла
+    const npcFinalApproachSpeed = 25; // Скорость NPC на последних трех точках цикла
     const npcWidth = 40; // Ширина спрайта NPC
     const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
 
@@ -322,9 +322,9 @@
 	  if (isPreRotation) {
 		// Небольшой разворот "передом" в противоположную сторону
 		if (npc.isCounterClockwise) {
-		  npc.rotation = -Phaser.Math.DegToRad(10); // -20 градусов для против часовой стрелки
+		  npc.rotation = -Phaser.Math.DegToRad(0); // -20 градусов для против часовой стрелки
 		} else {
-		  npc.rotation = Phaser.Math.DegToRad(10); // 20 градусов для по часовой стрелке
+		  npc.rotation = Phaser.Math.DegToRad(0); // 20 градусов для по часовой стрелке
 		}
 	  } else if (isFinalRotating) {
 		// Окончательный разворот на 0 градусов
