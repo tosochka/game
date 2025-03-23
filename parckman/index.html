@@ -235,7 +235,7 @@
         npc.isWaiting = true;
 
         // Случайная задержка перед началом движения (от 1 до 5 секунд)
-        const delay = Phaser.Math.Between(500, 10000); // Задержка в миллисекундах
+        const delay = Phaser.Math.Between(100, 5000); // Задержка в миллисекундах
         this.time.delayedCall(delay, () => {
           npc.isWaiting = false; // Завершаем ожидание
           moveNPCToNextPoint(npc); // Начинаем движение
