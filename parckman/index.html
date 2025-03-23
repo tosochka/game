@@ -182,67 +182,57 @@
       });
     }
 
-	function update() {
-	  // Обновление движения NPC
-	  npcs.forEach(npc => {
-		if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
-		  const target = npc.route[npc.routeIndex];
-		  const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+    function update() {
+      // Обновление движения NPC
+      npcs.forEach(npc => {
+        if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
+          const target = npc.route[npc.routeIndex];
+          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
-		  if (distance < 5) { // Если NPC близко к точке
-			npc.routeIndex++;
+          if (distance < 5) { // Если NPC близко к точке
+            npc.routeIndex++;
 
-			// Если NPC завершил маршрут
-			if (npc.routeIndex >= npc.route.length) {
-			  // Останавливаем NPC на парковочном месте
-			  npc.setVelocity(0, 0); // Сбрасываем скорость
-			  npc.routeIndex = 0; // Сбрасываем индекс маршрута
+            // Если NPC завершил маршрут
+            if (npc.routeIndex >= npc.route.length) {
+              // Останавливаем NPC на парковочном месте
+              npc.setVelocity(0, 0); // Сбрасываем скорость
+              npc.routeIndex = 0; // Сбрасываем индекс маршрута
 
-			  // Выравниваем NPC по вертикали (перпендикулярно дороге)
-			  npc.rotation = Math.PI / 2; // 90 градусов (вертикально)
+              // Добавляем задержку перед повторным выездом
+              npc.isWaiting = true;
+              const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
+              this.time.delayedCall(delay, () => {
+                npc.isWaiting = false; // Завершаем ожидание
+                moveNPCToNextPoint(npc); // Начинаем движение
+              }, [], this);
+            } else {
+              // Продолжаем движение к следующей точке
+              moveNPCToNextPoint(npc);
+            }
+          }
+        }
+      });
+    }
 
-			  // Добавляем задержку перед повторным выездом
-			  npc.isWaiting = true;
-			  const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
-			  this.time.delayedCall(delay, () => {
-				npc.isWaiting = false; // Завершаем ожидание
-				moveNPCToNextPoint(npc); // Начинаем движение
-			  }, [], this);
-			} else {
-			  // Продолжаем движение к следующей точке
-			  moveNPCToNextPoint(npc);
-			}
-		  }
-		}
-	  });
-	}
+    function moveNPCToNextPoint(npc) {
+      const target = npc.route[npc.routeIndex];
+      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
 
-	function moveNPCToNextPoint(npc) {
-	  const target = npc.route[npc.routeIndex];
-	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+      // Расстояние до парковочного места (последняя точка маршрута)
+      const parkingSpot = npc.route[npc.route.length - 1];
+      const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
 
-	  // Расстояние до парковочного места (последняя точка маршрута)
-	  const parkingSpot = npc.route[npc.route.length - 1];
-	  const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+      // Замедление, если NPC находится на последних этапах маршрута и в радиусе 50 пикселей от парковочного места
+      const isParkingMovement = (
+        npc.routeIndex >= npc.route.length - 3 && // Последние 3 точки маршрута
+        distanceToParkingSpot <= 50 // Расстояние до парковочного места меньше 50 пикселей
+      );
+      const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
 
-	  // Замедление, если NPC находится на последних этапах маршрута и в радиусе 50 пикселей от парковочного места
-	  const isParkingMovement = (
-		npc.routeIndex >= npc.route.length - 3 && // Последние 3 точки маршрута
-		distanceToParkingSpot <= 50 // Расстояние до парковочного места меньше 50 пикселей
-	  );
-	  const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
-
-	  // Устанавливаем скорость
-	  npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-
-	  // Принудительный поворот на 90 градусов при парковке и выезде
-	  if (isParkingMovement) {
-		npc.rotation = Math.PI / 2; // 90 градусов
-	  } else {
-		// Обычный поворот в направлении движения
-		npc.rotation = angle + Math.PI / 2;
-	  }
-	}
+      // Устанавливаем скорость и поворот NPC
+      npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+      npc.rotation = angle + Math.PI / 2;
+    }
 
     function createInvisibleParkingSpots(scene) {
       // Добавляем невидимые парковочные места
