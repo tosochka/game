@@ -172,7 +172,7 @@
         npc.isWaiting = true;
 
         // Случайная задержка перед началом движения (от 1 до 5 секунд)
-        const delay = Phaser.Math.Between(500, 10000); // Задержка в миллисекундах
+        const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
         this.time.delayedCall(delay, () => {
           npc.isWaiting = false; // Завершаем ожидание
           moveNPCToNextPoint(npc); // Начинаем движение
@@ -198,9 +198,12 @@
               npc.setVelocity(0, 0); // Сбрасываем скорость
               npc.routeIndex = 0; // Сбрасываем индекс маршрута
 
+              // Выравниваем NPC по вертикали (перпендикулярно дороге)
+              npc.rotation = Math.PI / 2; // 90 градусов (вертикально)
+
               // Добавляем задержку перед повторным выездом
               npc.isWaiting = true;
-              const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
+              const delay = Phaser.Math.Between(1000, 5000); // Задержка в миллисекундах
               this.time.delayedCall(delay, () => {
                 npc.isWaiting = false; // Завершаем ожидание
                 moveNPCToNextPoint(npc); // Начинаем движение
