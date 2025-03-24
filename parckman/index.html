@@ -212,8 +212,8 @@
 		{ x, y }, // Парковочное место
 		{ x, y: y - 20 }, // Выезд с парковочного места (начало)
 		{ x, y: y - 50 }, // Выезд с парковочного места (конечная высота)
-		{ x: 400 - npcOffset, y: y - 50 }, // Движение вправо (верхняя горизонтальная дорога)
-		{ x: 400 - npcOffset, y: 400 }, // Движение вниз (центральная вертикальная дорога)
+		{ x: 410 - npcOffset, y: y - 50 }, // Движение вправо (верхняя горизонтальная дорога)
+		{ x: 410 - npcOffset, y: 400 }, // Движение вниз (центральная вертикальная дорога)
 		{ x: 100 + npcOffset, y: 400 }, // Движение влево (центральная горизонтальная дорога)
 		{ x: 100 + npcOffset, y: y - 50 }, // Движение вверх (левая вертикальная дорога)
 		{ x, y: y - 50 }, // Подъезд к парковочному месту (начало)
@@ -228,15 +228,15 @@
 	  const routeType = Phaser.Math.Between(0, 4); // Случайный выбор маршрута (0, 1, 2, 3 или 4)
 	  switch (routeType) {
 		case 0:
-		  return clockwiseRoute(spot); // По часовой стрелке
+		  return leftHalfClockwiseRoute(spot); // Левая половина периметра (по часовой стрелке)		
 		case 1:
-		  return counterClockwiseRoute(spot); // Против часовой стрелки
+		  return upperHalfCounterClockwiseRoute(spot); // Верхняя половина периметра (против часовой стрелки)		
 		case 2:
 		  return upperHalfClockwiseRoute(spot); // Верхняя половина периметра (по часовой стрелке)
 		case 3:
-		  return upperHalfCounterClockwiseRoute(spot); // Верхняя половина периметра (против часовой стрелки)
+		  return counterClockwiseRoute(spot); // Против часовой стрелки
 		case 4:
-		  return leftHalfClockwiseRoute(spot); // Левая половина периметра (по часовой стрелке)
+		  return clockwiseRoute(spot); // По часовой стрелке
 		default:
 		  return clockwiseRoute(spot); // По умолчанию
 	  }
