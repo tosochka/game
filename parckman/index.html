@@ -313,17 +313,17 @@
 	  ];
 	};
 	
-	// Маршрут "левая верхняя малая половина периметра" (по часовой стрелке)
-	const leftUpperSmallClockwiseRoute = (spot) => {
+	// Маршрут "правая верхняя малая половина периметра" (по часовой стрелке)
+	const rightUpperHalfClockwiseRoute = (spot) => {
 	  const { x, y } = scaleCoords(spot.x, spot.y);
 	  return [
 		{ x, y }, // Парковочное место
 		{ x, y: y - 20 }, // Выезд с парковочного места
 		{ x, y: y - 50 }, // Выезд на основную дорогу
-		{ x: 700 - npcOffset, y: y - 50 }, // Движение вправо (верхняя горизонтальная)
-		{ x: 700 - npcOffset, y: 250 }, // Движение вниз (центральная вертикальная)
-		{ x: 415, y: 250 }, // Движение влево (внутренний верхний проезд)
-		{ x: 415, y: y - 50 }, // Движение вверх (левая вертикальная)
+		{ x: 405 - npcOffset, y: y - 50 }, // Движение влево (левая вертикальная)
+		{ x: 405 - npcOffset, y: 250 },
+		{ x: 100 + npcOffset, y: 250 }, // Движение влево (внутренний верхний проезд)
+		{ x: 100 + npcOffset, y: y - 50 }, // Движение вверх (правая вертикальная)
 		{ x, y: y - 50 }, // Подъезд к парковочному месту
 		{ x, y: y - 20 }, // Ближний подъезд
 		{ x, y: y - 10 }, // Точка разворота
@@ -356,7 +356,7 @@
 		case 9: 
 		  return rightHalfCounterClockwiseRoute(spot);	// Правая половина периметра (против часовой стрелки)
 		case 10: 
-		  return leftUpperSmallClockwiseRoute(spot);  // Левая верхняя малая половина периметра (по часовой стрелке)
+		  return rightUpperHalfClockwiseRoute(spot);
 
 		default:
 		  return clockwiseRoute(spot); // return clockwiseRoute(spot);
@@ -446,7 +446,7 @@
 		switch (routeType) {
 
 		  case 10:
-			npc.route = leftUpperSmallClockwiseRoute(spot);
+			npc.route = rightUpperHalfClockwiseRoute(spot);
 			npc.isCounterClockwise = false;
 			break;			
 			
