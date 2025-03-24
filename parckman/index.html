@@ -295,9 +295,27 @@
 	  ];
 	};	
 
+	// Маршрут "правая половина периметра" (против часовой стрелки)
+	const rightHalfCounterClockwiseRoute = (spot) => {
+	  const { x, y } = scaleCoords(spot.x, spot.y);
+	  return [
+		{ x, y }, // Парковочное место
+		{ x, y: y - 20 }, // Выезд с парковочного места
+		{ x, y: y - 50 }, // Выезд на основную дорогу
+		{ x: 400, y: y - 50 }, // Движение к центральной вертикальной
+		{ x: 400, y: 700 - npcOffset }, // Движение вниз (центральная вертикальная)
+		{ x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вправо (нижняя горизонтальная)
+		{ x: 700 - npcOffset, y: y - 50 }, // Движение вверх (правая вертикальная)
+		{ x, y: y - 50 }, // Подъезд к парковочному месту
+		{ x, y: y - 20 }, // Ближний подъезд
+		{ x, y: y - 10 }, // Точка разворота
+		{ x, y } // Заезд на парковочное место
+	  ];
+	};
+
 	// Случайный выбор маршрута для каждого NPC
 	const npcRoutes = allParkingSpots.map((spot) => {
-	  const routeType = Phaser.Math.Between(0, 8);
+	  const routeType = Phaser.Math.Between(0, 9);
 	  switch (routeType) {
 		case 0:
 		  return clockwiseRoute(spot); // По часовой стрелке
@@ -316,7 +334,9 @@
 		case 7: 
 		  return rightUpperQuarterClockwiseRoute(spot); // Правая верхняя четверть периметра (по часовой стрелке)
 		case 8: 
-		  return rightUpperQuarterCounterClockwiseRoute(spot); // Правая верхняя четверть периметра (против часовой стрелки)	  
+		  return rightUpperQuarterCounterClockwiseRoute(spot); // Правая верхняя четверть периметра (против часовой стрелки)
+		case 9: 
+		  return rightHalfCounterClockwiseRoute(spot);	// Правая половина периметра (против часовой стрелки)	  
 
 		default:
 		  return clockwiseRoute(spot); // return clockwiseRoute(spot);
@@ -402,7 +422,7 @@
 		npc.setCollideWorldBounds(true);
 
 		// Случайный выбор маршрута (теперь 0-6)
-		const routeType = Phaser.Math.Between(0, 8);
+		const routeType = Phaser.Math.Between(0, 9);
 		switch (routeType) {
 		  case 0:
 			npc.route = clockwiseRoute(spot);
@@ -438,6 +458,10 @@
 			break;
 		  case 8:
 			npc.route = rightUpperQuarterCounterClockwiseRoute(spot);
+			npc.isCounterClockwise = true;
+			break;
+		  case 9:
+			npc.route = rightHalfCounterClockwiseRoute(spot);
 			npc.isCounterClockwise = true;
 			break;			
 			
