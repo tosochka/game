@@ -93,7 +93,7 @@
     ];
 	
     const upperRightParkingSpots = [
-    //  { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
+        { x: 1094, y: 380 }, //{ x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
 	//	{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
 	//	{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
 	//	{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
@@ -108,8 +108,8 @@
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 20 }, { x, y: y - 30 },
-          { x: 680 - npcOffset, y: y - 30 }, { x: 680 - npcOffset, y: 680 - npcOffset },
-          { x: 120 + npcOffset, y: 680 - npcOffset }, { x: 120 + npcOffset, y: y - 30 },
+          { x: 680 - npcOffset, y: y - 30 }, { x: 680 - npcOffset, y: 660 - npcOffset },
+          { x: 120 + npcOffset, y: 660 - npcOffset }, { x: 120 + npcOffset, y: y - 30 },
           { x, y: y - 30 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
@@ -117,10 +117,10 @@
       function counterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
-          { x, y }, { x, y: y - 20 }, { x, y: y - 70 },
-          { x: 80 + npcOffset, y: y - 70 }, { x: 80 + npcOffset, y: 720 - npcOffset },
-          { x: 720 - npcOffset, y: 720 - npcOffset }, { x: 720 - npcOffset, y: y - 70 },
-          { x, y: y - 70 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+          { x, y }, { x, y: y - 20 }, { x, y: y - 60 },
+          { x: 100 + npcOffset, y: y - 60 }, { x: 100 + npcOffset, y: 700 - npcOffset },
+          { x: 700 - npcOffset, y: 700 - npcOffset }, { x: 700 - npcOffset, y: y - 60 },
+          { x, y: y - 60 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
 
