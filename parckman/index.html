@@ -192,7 +192,8 @@
       this.load.image('entrance', 'assets/entrance.png');
       this.load.image('pavilion', 'assets/pavilion.png');
       this.load.image('grass1', 'assets/grass1.png');
-      this.load.image('tree1', 'assets/tree1.png');
+	  this.load.image('tree1', 'assets/tree1.png');
+	  this.load.image('tree2', 'assets/tree2.png');
       this.load.image('bush1', 'assets/bush1.png');
       this.load.image('oil', 'assets/oil.png');
       this.load.image('npcCar', 'assets/npc_car.png');
@@ -371,6 +372,7 @@
 	  const lampBottomCoords = scaleCoords(854+90, 1650-140);
       const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
       const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY);
+	  const tree2Coords = scaleCoords(100 + 70, 900 - 200);
       const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
       const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
 
@@ -379,6 +381,7 @@
 	  const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
       const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
       const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
+	  const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.5);	  
       const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
       const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
 
@@ -387,6 +390,7 @@
 	  lampBottom.setDepth(11);
       grass1.setDepth(10);
       tree1.setDepth(10);
+	  tree2.setDepth(10);	  
       bush1.setDepth(10);
       oil.setDepth(2);
     }
