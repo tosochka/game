@@ -123,7 +123,26 @@
           { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-
+      // 3. Верхняя половина по часовой стрелке
+      function upperHalfClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
+          { x: 115 + npcOffset, y: 380 }, { x: 115 + npcOffset, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 4. Верхняя половина против часовой стрелки
+      function upperHalfCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 400 },
+          { x: 700 - npcOffset, y: 400 }, { x: 700 - npcOffset, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
     ];
 
     // Глобальные переменные
