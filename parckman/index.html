@@ -103,23 +103,13 @@
 
     // Все 13 маршрутов
     const allPossibleRoutes = [
-     // 12. Левая верхняя малая половина по часовой стрелке
-      function rightUpperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 385 - npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 224 },
-          { x: 115 + npcOffset, y: 224 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 12.1 Левая верхняя малая половина против часовой стрелки
+      // 13. Левая половина против часовой стрелки
       function leftSmallCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 50 }, { x: 85 + npcOffset, y: 250 },
-          { x: 399, y: 250 }, { x: 399, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 675 - npcOffset },
+          { x: 399, y: 675 - npcOffset }, { x: 399, y: y - 55 },
           { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       }
