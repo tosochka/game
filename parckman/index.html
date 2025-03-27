@@ -103,16 +103,156 @@
 
     // Все 13 маршрутов
     const allPossibleRoutes = [
+      // 1. Полный круг по часовой стрелке
+      function clockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 675 - npcOffset },
+          { x: 115 + npcOffset, y: 675 - npcOffset }, { x: 115 + npcOffset, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 2. Полный круг против часовой стрелки
+      function counterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 700 - npcOffset },
+          { x: 703 - npcOffset, y: 700 - npcOffset }, { x: 703 - npcOffset, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 3. Верхняя половина по часовой стрелке
+      function upperHalfClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
+          { x: 115 + npcOffset, y: 380 }, { x: 115 + npcOffset, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 4. Верхняя половина против часовой стрелки
+      function upperHalfCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 400 },
+          { x: 703 - npcOffset, y: 400 }, { x: 703 - npcOffset, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 5. Левая верхняя четверть по часовой стрелке
+      function leftHalfClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 385- npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 360 },
+          { x: 115 + npcOffset, y: 360 }, { x: 115 + npcOffset, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 6. Левая верхняя четверть против часовой стрелки
+      function leftHalfCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 385 },
+          { x: 390, y: 385 }, { x: 390, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 7. Правая половина по часовой стрелке
+      function rightHalfClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 675 - npcOffset },
+          { x: 424, y: 675 - npcOffset }, { x: 424, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 10. Правая половина против часовой стрелки
+      function rightHalfCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 399, y: y - 55 }, { x: 399, y: 700 - npcOffset },
+          { x: 703 - npcOffset, y: 700 - npcOffset }, { x: 703 - npcOffset, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },	
+      // 8. Правая верхняя четверть по часовой стрелке
+      function rightUpperQuarterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
+          { x: 424, y: 380 }, { x: 424, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 9. Правая верхняя четверть против часовой стрелки
+      function rightUpperQuarterCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 399, y: y - 55 }, { x: 399, y: 400 },
+          { x: 703 - npcOffset, y: 400 }, { x: 703 - npcOffset, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 11. Правая верхняя малая половина по часовой стрелке
+      function leftUpperSmallClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 224 },
+          { x: 424, y: 224 }, { x: 424, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      //11.1 Правая верхняя малая половина против часовой стрелки
+      function rightUpperQuarterCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 399, y: y - 55 }, { x: 399, y: 250 },
+          { x: 703 - npcOffset, y: 250 }, { x: 703 - npcOffset, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      }
+     // 12. Левая верхняя малая половина по часовой стрелке
+      function rightUpperHalfClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
+          { x: 385 - npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 224 },
+          { x: 115 + npcOffset, y: 224 }, { x: 115 + npcOffset, y: y - 35 },
+          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      },
+      // 12.1 Левая верхняя малая половина против часовой стрелки
+      function leftSmallCounterClockwiseRoute(spot) {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        return [
+          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 50 }, { x: 85 + npcOffset, y: 250 },
+          { x: 399, y: 250 }, { x: 399, y: y - 55 },
+          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+        ];
+      }
       // 13. Левая половина против часовой стрелки
       function leftSmallCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 675 - npcOffset },
-          { x: 399, y: 675 - npcOffset }, { x: 399, y: y - 55 },
+          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 700 - npcOffset },
+          { x: 399, y: 700 - npcOffset }, { x: 399, y: y - 55 },
           { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
-      }
+      }	  
     ];
 
     // Глобальные переменные
