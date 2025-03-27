@@ -23,31 +23,6 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
-        /*
-      ============================================
-      ОПИСАНИЕ ИГРЫ "MASTER PARKING"
-      ============================================
-
-      Цель игры:
-      Игрок должен как можно быстрее и точнее припарковать автомобиль на заданное парковочное место.
-      На пути игрока встречаются препятствия: другие автомобили (NPC), мотоциклисты, пешеходы и т.д.
-
-      Базовая механика:
-      1. Игрок управляет автомобилем, который может двигаться только по дорогам.
-      2. На карте есть парковочные места, на которые нужно припарковаться.
-      3. NPC (другие автомобили, мотоциклисты, пешеходы) двигаются по своим маршрутам и создают препятствия.
-      4. Игрок должен избегать столкновений с NPC и другими объектами.
-      5. Победа засчитывается, когда игрок успешно паркуется на заданное место за минимальное время.
-
-      Особенности:
-      - Дороги: все объекты (игрок и NPC) могут двигаться только по дорогам.
-      - Парковочные места: на них могут стоять NPC, и на одно из них нужно припарковаться.
-      - NPC: двигаются по заданным маршрутам, могут заезжать и выезжать с парковочных мест.
-      - Физика: реализована с использованием движка Phaser 3 (arcade physics).
-
-      ============================================
-     */ 
-  
     const config = {
       type: Phaser.AUTO,
       width: 800,
@@ -72,6 +47,7 @@
     };
 
     const game = new Phaser.Game(config);
+    let sceneRef; // Ссылка на сцену для доступа в функциях
 
     // Конфигурация
     const parkingSpotWidth = 59;
@@ -84,26 +60,25 @@
     const npcWidth = 40;
     const npcOffset = npcWidth / 2;
 
+    // Параметры объезда
+    const AVOID_DISTANCE = 30;
+    const AVOID_ANGLE = Math.PI/6;
+    const DETECTION_RADIUS = 35;
+    const AVOID_SPEED = 80;
+
     // Парковочные места
     const upperLeftParkingSpots = [
-	//	{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
-		{ x: 361, y: 674 }, //{ x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
-	//	{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
-	//	{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
+        { x: 361, y: 674 }
     ];
-	
+    
     const upperRightParkingSpots = [
-    //    { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
-		{ x: 1094, y: 674 }, //{ x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
-	//	{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
-	//	{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
+        { x: 1094, y: 674 }
     ];
-	
+    
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
 
-    // Все 13 маршрутов
+    // Маршруты
     const allPossibleRoutes = [
-      // 1. Полный круг по часовой стрелке
       function clockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -113,7 +88,6 @@
           { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 2. Полный круг против часовой стрелки
       function counterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -122,137 +96,7 @@
           { x: 703 - npcOffset, y: 700 - npcOffset }, { x: 703 - npcOffset, y: y - 55 },
           { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
-      },
-      // 3. Верхняя половина по часовой стрелке
-      function upperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
-          { x: 115 + npcOffset, y: 380 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 4. Верхняя половина против часовой стрелки
-      function upperHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 400 },
-          { x: 703 - npcOffset, y: 400 }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 5. Левая верхняя четверть по часовой стрелке
-      function leftHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 385- npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 360 },
-          { x: 115 + npcOffset, y: 360 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 6. Левая верхняя четверть против часовой стрелки
-      function leftHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 385 },
-          { x: 390, y: 385 }, { x: 390, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 7. Правая половина по часовой стрелке
-      function rightHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 675 - npcOffset },
-          { x: 424, y: 675 - npcOffset }, { x: 424, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 10. Правая половина против часовой стрелки
-      function rightHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 399, y: y - 55 }, { x: 399, y: 700 - npcOffset },
-          { x: 703 - npcOffset, y: 700 - npcOffset }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },	
-      // 8. Правая верхняя четверть по часовой стрелке
-      function rightUpperQuarterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
-          { x: 424, y: 380 }, { x: 424, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 9. Правая верхняя четверть против часовой стрелки
-      function rightUpperQuarterCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 399, y: y - 55 }, { x: 399, y: 400 },
-          { x: 703 - npcOffset, y: 400 }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 11. Правая верхняя малая половина по часовой стрелке
-      function leftUpperSmallClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 224 },
-          { x: 424, y: 224 }, { x: 424, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      //11.1 Правая верхняя малая половина против часовой стрелки
-      function rightUpperQuarterCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 399, y: y - 55 }, { x: 399, y: 250 },
-          { x: 703 - npcOffset, y: 250 }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-     // 12. Левая верхняя малая половина по часовой стрелке
-      function rightUpperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 385 - npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 224 },
-          { x: 115 + npcOffset, y: 224 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 12.1 Левая верхняя малая половина против часовой стрелки
-      function leftSmallCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 50 }, { x: 85 + npcOffset, y: 250 },
-          { x: 399, y: 250 }, { x: 399, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 13. Левая половина против часовой стрелки
-      function leftSmallCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 700 - npcOffset },
-          { x: 399, y: 700 - npcOffset }, { x: 399, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      }	  
+      }
     ];
 
     // Глобальные переменные
@@ -278,60 +122,41 @@
     }
 
     function preload() {
-	  /*
-		============================================
-		ПАМЯТКА О РАСЧЕТЕ КООРДИНАТ
-		============================================
-
-		1. Исходная система координат:
-		   - Карта имеет размер 2000x2000 пикселей.
-		   - Все объекты (парковочные места, дороги, NPC и т.д.) задаются в этой системе.
-
-		2. Масштабирование:
-		   - Игровое поле отображается в окне 800x800 пикселей.
-		   - Коэффициент масштабирования: scaleFactor = 800 / 2000 = 0.4.
-		   - Чтобы перевести координаты из системы 2000x2000 в 800x800, используйте формулу:
-			   scaledX = (x / 2000) * 800 + offsetX;
-			   scaledY = (y / 2000) * 800 + offsetY;
-
-		3. Смещения:
-		   - offsetX и offsetY: Смещения для парковочных мест и других объектов.
-		   - roadOffsetX и roadOffsetY: Дополнительные смещения для дорог.
-
-		4. Координаты маршрута NPC:
-		   - Координаты маршрута NPC задаются в масштабированной системе (800x800).
-		   - Стартовые координаты (startX, startY) уже масштабированы.
-		   - Остальные точки маршрута (например, 700 - npcOffset, 100 + npcOffset) также задаются в 800x800.
-
-		5. Пример:
-		   - Если координата на карте 2000x2000: x = 361, y = 380,
-			 то в масштабированной системе:
-			   scaledX = (361 / 2000) * 800 + offsetX;
-			   scaledY = (380 / 2000) * 800 + offsetY;
-
-		6. Важно:
-		   - Не масштабируйте координаты маршрута NPC, если они уже заданы в 800x800.
-		   - Для парковочных мест и дорог используйте функцию scaleCoords.
-
-		============================================
-	  */	
-	  this.load.image('lamp_top', 'assets/lamp_top.png');  // Верхний прожектор
-	  this.load.image('lamp_bottom', 'assets/lamp_bottom.png');  // Нижний прожектор	
+      this.load.image('lamp_top', 'assets/lamp_top.png');
+      this.load.image('lamp_bottom', 'assets/lamp_bottom.png');    
       this.load.image('background', 'assets/parking_map.png');
       this.load.image('entrance', 'assets/entrance.png');
       this.load.image('pavilion', 'assets/pavilion.png');
       this.load.image('grass1', 'assets/grass1.png');
-	  this.load.image('tree1', 'assets/tree1.png');
-	  this.load.image('tree2', 'assets/tree2.png');
+      this.load.image('tree1', 'assets/tree1.png');
+      this.load.image('tree2', 'assets/tree2.png');
       this.load.image('bush1', 'assets/bush1.png');
       this.load.image('oil', 'assets/oil.png');
       this.load.image('npcCar', 'assets/npc_car.png');
     }
 
     function create() {
+      sceneRef = this; // Сохраняем ссылку на сцену
+      
       // Фон
       const background = this.add.image(400, 400, 'background');
       background.setDisplaySize(800, 800);
+
+      // Дебаг-графика
+      this.debugGraphics = this.add.graphics();
+      this.input.on('pointerdown', () => {
+        this.debugGraphics.clear();
+        npcs.forEach(npc => {
+          const frontX = npc.x + Math.cos(npc.rotation - Math.PI / 2) * 20;
+          const frontY = npc.y + Math.sin(npc.rotation - Math.PI / 2) * 20;
+          
+          this.debugGraphics.lineStyle(2, 0xFF0000);
+          this.debugGraphics.strokeCircle(frontX, frontY, 5);
+          
+          this.debugGraphics.lineStyle(1, 0x00FF00);
+          this.debugGraphics.lineBetween(npc.x, npc.y, frontX, frontY);
+        });
+      });
 
       // Невидимые парковочные места и дороги
       createInvisibleParkingSpots(this);
@@ -347,89 +172,143 @@
         const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
         npc.setCollideWorldBounds(true);
         
-        // Система маршрутов
         npc.originalSpot = spot;
         npc.routeSequence = createShuffledRouteSequence();
         npc.currentRouteIndex = 0;
         
-        // Определяем направление перед началом движения
         const firstRouteType = npc.routeSequence[npc.currentRouteIndex];
         npc.route = firstRouteType(npc.originalSpot);
-        npc.isCounterClockwise = firstRouteType.toString().includes('Counter'); // Запоминаем направление
+        npc.isCounterClockwise = firstRouteType.toString().includes('Counter');
         
         npc.routeIndex = 0;
         npc.isWaiting = true;
+        npc.isAvoiding = false;
+        npc.avoidTimer = null;
 
-        // Задержка перед началом движения
         this.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
           npc.isWaiting = false;
           moveNPCToNextPoint(npc);
-        });
+        }, [], this);
         
         return npc;
       });
     }
 
     function update() {
+      sceneRef.debugGraphics.clear();
+      
+      // Сначала сбрасываем состояние объезда
       npcs.forEach(npc => {
-        if (!npc.isWaiting) {
-          const target = npc.route[npc.routeIndex];
-          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+        if (npc.isAvoiding && !npc.avoidTimer) {
+          npc.isAvoiding = false;
+        }
+      });
 
-          if (distance < 5) {
-            npc.routeIndex++;
-            
-            if (npc.routeIndex >= npc.route.length) {
-              // Переход к следующему маршруту
-              npc.setVelocity(0, 0);
-              npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
-              
-              // Всегда используем оригинальное парковочное место
-              const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
-              npc.route = nextRouteType(npc.originalSpot);
-              npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
-              npc.routeIndex = 0;
-              npc.isWaiting = true;
+      // Проверяем столкновения и выполняем объезд
+      npcs.forEach(npc => {
+        if (!npc.isWaiting && !npc.isAvoiding) {
+          // Точка "носа" машины для точного обнаружения
+          const frontX = npc.x + Math.cos(npc.rotation - Math.PI/2) * 20;
+          const frontY = npc.y + Math.sin(npc.rotation - Math.PI/2) * 20;
+          
+          // Визуализация
+          sceneRef.debugGraphics.lineStyle(1, 0x00FF00);
+          sceneRef.debugGraphics.lineBetween(npc.x, npc.y, frontX, frontY);
+          sceneRef.debugGraphics.strokeCircle(frontX, frontY, 5);
 
-              // Задержка перед новым маршрутом
-              this.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
-                npc.isWaiting = false;
-                moveNPCToNextPoint(npc);
-              });
+          // Ищем только ближайшее препятствие
+          const obstacle = npcs.find(other => {
+            if (other === npc || other.isAvoiding || !other.active) return false;
+            const distance = Phaser.Math.Distance.Between(frontX, frontY, other.x, other.y);
+            return distance < DETECTION_RADIUS;
+          });
+
+          if (obstacle) {
+            // Решаем, кто объезжает (50/50)
+            if (Math.random() > 0.5) {
+              performAvoidance(npc, obstacle);
             } else {
-              moveNPCToNextPoint(npc);
+              // Ожидание с небольшим откатом
+              npc.setVelocity(-npc.body.velocity.x * 0.2, -npc.body.velocity.y * 0.2);
+              npc.isAvoiding = true;
+              npc.avoidTimer = sceneRef.time.delayedCall(1000, () => {
+                npc.isAvoiding = false;
+                moveNPCToNextPoint(npc);
+              }, [], sceneRef);
+            }
+          } else {
+            // Продолжаем движение по маршруту
+            const target = npc.route[npc.routeIndex];
+            if (Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y) < 5) {
+              advanceRoute(npc);
             }
           }
         }
       });
     }
 
+    function performAvoidance(npc, obstacle) {
+      npc.isAvoiding = true;
+      
+      // Вычисляем направление объезда
+      const angleToObstacle = Phaser.Math.Angle.Between(npc.x, npc.y, obstacle.x, obstacle.y);
+      const avoidAngle = angleToObstacle + (Math.random() > 0.5 ? AVOID_ANGLE : -AVOID_ANGLE);
+      
+      // Устанавливаем скорость объезда
+      npc.setVelocity(
+        Math.cos(avoidAngle) * AVOID_SPEED,
+        Math.sin(avoidAngle) * AVOID_SPEED
+      );
+
+      // Возвращаемся на маршрут через 0.5 сек
+      npc.avoidTimer = sceneRef.time.delayedCall(500, () => {
+        npc.isAvoiding = false;
+        moveNPCToNextPoint(npc);
+      }, [], sceneRef);
+    }
+
+    function advanceRoute(npc) {
+      npc.routeIndex++;
+      
+      if (npc.routeIndex >= npc.route.length) {
+        npc.setVelocity(0, 0);
+        npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
+        
+        const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
+        npc.route = nextRouteType(npc.originalSpot);
+        npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+        npc.routeIndex = 0;
+        npc.isWaiting = true;
+
+        sceneRef.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
+          npc.isWaiting = false;
+          moveNPCToNextPoint(npc);
+        }, [], sceneRef);
+      } else {
+        moveNPCToNextPoint(npc);
+      }
+    }
+
     function moveNPCToNextPoint(npc) {
       const target = npc.route[npc.routeIndex];
       const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
       
-      // Определение скорости
       const isFinalApproach = npc.routeIndex >= npc.route.length - 3;
       const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
       
-      // Восстановленная оригинальная логика поворотов:
       const isPreRotation = npc.routeIndex === npc.route.length - 3;
       const isFinalRotating = npc.routeIndex === npc.route.length - 2;
       const isParking = npc.routeIndex === npc.route.length - 1;
 
       if (isPreRotation) {
-        // Небольшой разворот "передом" в противоположную сторону
         npc.rotation = npc.isCounterClockwise 
           ? -Phaser.Math.DegToRad(0) 
           : Phaser.Math.DegToRad(0);
       } else if (isFinalRotating) {
-        // Окончательный разворот на 0 градусов
         npc.rotation = 0.1;
       } else if (isParking) {
-        // На парковочном месте - сохраняем ориентацию
         npc.rotation = 0;
       } else {
-        // Обычное движение
         npc.rotation = angle + Math.PI / 2;
       }
 
@@ -480,46 +359,40 @@
     }
 
     function createEntranceAndPavilion(scene) {
-      // Въезд
       const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
       scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
 
-      // Павильон
       const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
       scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
     }
 
     function createDecorativeLayer(scene) {
-      // Смещения для декоративных элементов
       const grassOffsetX = 0, grassOffsetY = 20;
       const treeOffsetX = 45, treeOffsetY = 35;
       const bushOffsetX = 35, bushOffsetY = 25;
       const oilOffsetX = 15, oilOffsetY = 23;
 
-      // Координаты элементов
-	  const lampTopCoords = scaleCoords(850+90, 223+170);
-	  const lampBottomCoords = scaleCoords(854+90, 1650-140);
+      const lampTopCoords = scaleCoords(850+90, 223+170);
+      const lampBottomCoords = scaleCoords(854+90, 1650-140);
       const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
       const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY);
-	  const tree2Coords = scaleCoords(100 + 10, 900 - 300);
+      const tree2Coords = scaleCoords(100 + 10, 900 - 300);
       const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
       const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
 
-      // Создание элементов
-	  const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
-	  const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
+      const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
+      const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
       const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
       const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
-	  const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);	  
+      const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);      
       const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
       const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
 
-      // Установка глубины отображения
-	  lampTop.setDepth(11);
-	  lampBottom.setDepth(11);
+      lampTop.setDepth(11);
+      lampBottom.setDepth(11);
       grass1.setDepth(10);
       tree1.setDepth(10);
-	  tree2.setDepth(10);	  
+      tree2.setDepth(10);      
       bush1.setDepth(10);
       oil.setDepth(2);
     }
