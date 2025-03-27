@@ -63,13 +63,13 @@
 
     // Конфигурация объезда
     const AVOID_CONFIG = {
-      DETECTION_RADIUS: 20,
-      WAIT_ZONE: 25,
-      AVOID_SPEED: 30,
+      DETECTION_RADIUS: 18,
+      WAIT_ZONE: 30,
+      AVOID_SPEED: 40,
       REACTION_TIME: 0,
       PATIENCE: 100,
       AVOID_ANGLE: Math.PI/4,
-      RESUME_DELAY: 1000
+      RESUME_DELAY: 100
     };
 
     // Парковочные места
@@ -337,8 +337,10 @@
         npc.resumeTimer = null;
 
         this.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
-          npc.isWaiting = false;
-          moveNPCToNextPoint(npc);
+          if (npc.active) {
+            npc.isWaiting = false;
+            moveNPCToNextPoint(npc);
+          }
         }, [], this);
         
         return npc;
@@ -350,7 +352,13 @@
       sceneRef.debugGraphics.clear();
       
       npcs.forEach(npc => {
-        if (npc.isWaiting || npc.isParked) return;
+        if (!npc.active || npc.isWaiting || npc.isParked) return;
+        
+        // Проверяем существует ли маршрут и текущая точка
+        if (!npc.route || !npc.route[npc.routeIndex]) {
+          resetNPCRoute(npc);
+          return;
+        }
         
         // Проверяем достигли ли текущей точки маршрута
         const target = npc.route[npc.routeIndex];
@@ -372,37 +380,7 @@
         
         // Если есть препятствия
         if (obstacles.length > 0) {
-          // Если уже объезжаем - ничего не делаем
-          if (npc.isAvoiding) return;
-          
-          // Если стоим в очереди - ждём
-          if (npc.isInQueue) {
-            npc.waitTime += delta;
-            if (npc.waitTime > AVOID_CONFIG.PATIENCE) {
-              forceAvoid(npc, obstacles);
-            }
-            return;
-          }
-          
-          // Проверяем, есть ли кто-то уже объезжающий
-          const hasActiveAvoiders = obstacles.some(o => o.isAvoiding);
-          
-          if (hasActiveAvoiders) {
-            // Встаём в очередь
-            npc.isInQueue = true;
-            npc.waitTime = 0;
-            npc.setVelocity(0);
-            
-            // Убедимся, что у всех объехавших машин есть таймер возобновления
-            obstacles.forEach(obstacle => {
-              if (obstacle.isAvoiding && !obstacle.resumeTimer) {
-                setupResumeTimer(obstacle);
-              }
-            });
-          } else {
-            // Начинаем объезд
-            startAvoidance(npc, obstacles);
-          }
+          handleObstacles(npc, obstacles, delta);
         } else {
           // Свободный путь - продолжаем движение
           if (!npc.isAvoiding && !npc.isInQueue) {
@@ -412,21 +390,78 @@
       });
     }
 
+    function resetNPCRoute(npc) {
+      if (!npc.routeSequence || npc.routeSequence.length === 0) {
+        npc.routeSequence = createShuffledRouteSequence();
+      }
+      npc.currentRouteIndex = 0;
+      npc.route = npc.routeSequence[npc.currentRouteIndex](npc.originalSpot);
+      npc.isCounterClockwise = npc.routeSequence[npc.currentRouteIndex].toString().includes('Counter');
+      npc.routeIndex = 0;
+      npc.isWaiting = true;
+      
+      sceneRef.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
+        if (npc.active) {
+          npc.isWaiting = false;
+          moveNPCToNextPoint(npc);
+        }
+      }, [], sceneRef);
+    }
+
+    function handleObstacles(npc, obstacles, delta) {
+      // Если уже объезжаем - ничего не делаем
+      if (npc.isAvoiding) return;
+      
+      // Если стоим в очереди - ждём
+      if (npc.isInQueue) {
+        npc.waitTime += delta;
+        if (npc.waitTime > AVOID_CONFIG.PATIENCE) {
+          forceAvoid(npc, obstacles);
+        }
+        return;
+      }
+      
+      // Проверяем, есть ли кто-то уже объезжающий
+      const hasActiveAvoiders = obstacles.some(o => o.isAvoiding);
+      
+      if (hasActiveAvoiders) {
+        // Встаём в очередь
+        npc.isInQueue = true;
+        npc.waitTime = 0;
+        npc.setVelocity(0);
+        
+        // Убедимся, что у всех объехавших машин есть таймер возобновления
+        obstacles.forEach(obstacle => {
+          if (obstacle.isAvoiding && !obstacle.resumeTimer && obstacle.active) {
+            setupResumeTimer(obstacle);
+          }
+        });
+      } else {
+        // Начинаем объезд
+        startAvoidance(npc, obstacles);
+      }
+    }
+
     function setupResumeTimer(npc) {
       // Очищаем предыдущий таймер если был
       if (npc.resumeTimer) {
         sceneRef.time.removeEvent(npc.resumeTimer);
+        npc.resumeTimer = null;
       }
       
       // Устанавливаем новый таймер возобновления движения
       npc.resumeTimer = sceneRef.time.delayedCall(AVOID_CONFIG.RESUME_DELAY, () => {
-        npc.isAvoiding = false;
-        npc.isInQueue = false;
-        moveNPCToNextPoint(npc);
+        if (npc.active) {
+          npc.isAvoiding = false;
+          npc.isInQueue = false;
+          moveNPCToNextPoint(npc);
+        }
       }, [], sceneRef);
     }
 
     function startAvoidance(npc, obstacles) {
+      if (!npc.active) return;
+      
       npc.isAvoiding = true;
       npc.setVelocity(0);
       
@@ -435,6 +470,8 @@
       
       // Плавный объезд через 0.5 сек
       sceneRef.time.delayedCall(AVOID_CONFIG.REACTION_TIME, () => {
+        if (!npc.active) return;
+        
         npc.setVelocity(
           Math.cos(avoidAngle) * AVOID_CONFIG.AVOID_SPEED,
           Math.sin(avoidAngle) * AVOID_CONFIG.AVOID_SPEED
@@ -445,10 +482,12 @@
         
         // Также возобновляем движение у всех машин, которые нас объехали
         obstacles.forEach(obstacle => {
-          if (!obstacle.isAvoiding && obstacle.isInQueue) {
+          if (obstacle.active && !obstacle.isAvoiding && obstacle.isInQueue) {
             sceneRef.time.delayedCall(AVOID_CONFIG.RESUME_DELAY / 2, () => {
-              obstacle.isInQueue = false;
-              moveNPCToNextPoint(obstacle);
+              if (obstacle.active) {
+                obstacle.isInQueue = false;
+                moveNPCToNextPoint(obstacle);
+              }
             }, [], sceneRef);
           }
         });
@@ -456,12 +495,18 @@
     }
 
     function forceAvoid(npc, obstacles) {
+      if (!npc.active) return;
+      
       npc.isInQueue = false;
       npc.waitTime = 0;
       startAvoidance(npc, obstacles);
     }
 
     function calculateBestAvoidanceAngle(npc, obstacles) {
+      if (!npc.route || !npc.route[npc.routeIndex]) {
+        return 0;
+      }
+      
       const baseAngle = Phaser.Math.Angle.Between(npc.x, npc.y, npc.route[npc.routeIndex].x, npc.route[npc.routeIndex].y);
       
       // Проверяем свободное пространство слева и справа
@@ -473,6 +518,8 @@
       let rightObstacles = 0;
       
       obstacles.forEach(obstacle => {
+        if (!obstacle.active) return;
+        
         const angleToObstacle = Phaser.Math.Angle.Between(npc.x, npc.y, obstacle.x, obstacle.y);
         const angleDiff = Phaser.Math.Angle.Wrap(angleToObstacle - baseAngle);
         
@@ -485,6 +532,8 @@
     }
 
     function advanceRoute(npc) {
+      if (!npc.active) return;
+      
       npc.routeIndex++;
       
       if (npc.routeIndex >= npc.route.length) {
@@ -494,6 +543,8 @@
         
         // Через 3-5 секунд выбираем новый маршрут
         sceneRef.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
+          if (!npc.active) return;
+          
           npc.isParked = false;
           npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
           const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
@@ -503,8 +554,10 @@
           npc.isWaiting = true;
 
           sceneRef.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
-            npc.isWaiting = false;
-            moveNPCToNextPoint(npc);
+            if (npc.active) {
+              npc.isWaiting = false;
+              moveNPCToNextPoint(npc);
+            }
           }, [], sceneRef);
         }, [], sceneRef);
       } else {
@@ -513,6 +566,11 @@
     }
 
     function moveNPCToNextPoint(npc) {
+      if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) {
+        resetNPCRoute(npc);
+        return;
+      }
+      
       const target = npc.route[npc.routeIndex];
       const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
       
