@@ -24,7 +24,7 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
         /*
-      ============================================
+      ===========================================
       ОПИСАНИЕ ИГРЫ "MASTER PARKING"
       ============================================
 
@@ -86,7 +86,7 @@
 
     // Парковочные места
     const upperLeftParkingSpots = [
-		{ x: 361, y: 380 }, { x: 454, y: 380 }, //{ x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
+		{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, //{ x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
 	//	{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
 	//	{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
 	//	{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
@@ -94,7 +94,7 @@
 	
     const upperRightParkingSpots = [
     //    { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
-		{ x: 1094, y: 674 }, //{ x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
+	//	{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
 	//	{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
 	//	{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
     ];
@@ -345,6 +345,12 @@
       npcs = allParkingSpots.map((spot, index) => {
         const { x, y } = scaleCoords(spot.x, spot.y);
         const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
+        
+        // Настройка физического тела с учетом размеров спрайта
+        npc.body.setSize(npc.displayWidth * 0.8, npc.displayHeight * 0.6);
+        npc.body.offset.x = npc.displayWidth * 0.1;
+        npc.body.offset.y = npc.displayHeight * 0.2;
+        
         npc.setCollideWorldBounds(true);
         
         // Система маршрутов
@@ -359,6 +365,8 @@
         
         npc.routeIndex = 0;
         npc.isWaiting = true;
+        npc.isHandlingCollision = false; // Флаг обработки столкновения
+        npc.preCollisionState = null; // Для хранения состояния до столкновения
 
         // Задержка перед началом движения
         this.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
@@ -368,11 +376,123 @@
         
         return npc;
       });
+
+      // Добавляем коллайдер для NPC с обработчиком столкновений
+      this.physics.add.collider(npcs, npcs, handleNPCCollision, null, this);
+    }
+
+    function handleNPCCollision(npc1, npc2) {
+        // Если один из NPC уже обрабатывает столкновение - пропускаем
+        if (npc1.isHandlingCollision || npc2.isHandlingCollision) return;
+        
+        // Определяем, кто будет стоять, а кто объезжать (по приоритету маршрута)
+        const standingNPC = (npc1.routeIndex > npc2.routeIndex) ? npc2 : npc1;
+        const avoidingNPC = (standingNPC === npc1) ? npc2 : npc1;
+        
+        // NPC, который стоит
+        standingNPC.setVelocity(0, 0);
+        standingNPC.isHandlingCollision = true;
+        standingNPC.isWaiting = true;
+        
+        // NPC, который объезжает
+        avoidCollision(avoidingNPC, standingNPC, this);
+    }
+
+    function avoidCollision(avoidingNPC, obstacleNPC, scene) {
+        avoidingNPC.isHandlingCollision = true;
+        
+        // Сохраняем исходное состояние
+        avoidingNPC.preCollisionState = {
+            route: [...avoidingNPC.route],
+            routeIndex: avoidingNPC.routeIndex,
+            velocity: { x: avoidingNPC.body.velocity.x, y: avoidingNPC.body.velocity.y }
+        };
+        
+        // Вычисляем точку обхода с учетом размеров спрайта
+        const avoidAngle = Phaser.Math.Angle.Between(
+            obstacleNPC.x, obstacleNPC.y,
+            avoidingNPC.x, avoidingNPC.y
+        );
+        
+        const avoidDistance = obstacleNPC.displayWidth * 0.8; // Дистанция объезда
+        
+        const avoidPoint = {
+            x: obstacleNPC.x + Math.cos(avoidAngle) * avoidDistance,
+            y: obstacleNPC.y + Math.sin(avoidAngle) * avoidDistance
+        };
+        
+        // Создаем временный маршрут обхода
+        avoidingNPC.route = [
+            { x: avoidPoint.x, y: avoidPoint.y }, // Точка обхода
+            avoidingNPC.route[avoidingNPC.routeIndex] // Возврат на исходный маршрут
+        ];
+        avoidingNPC.routeIndex = 0;
+        
+        // Движение к точке обхода
+        moveNPCToNextPoint(avoidingNPC);
+        
+        // После обхода возвращаем исходный маршрут
+        scene.time.delayedCall(2000, () => {
+            if (!avoidingNPC.active || !obstacleNPC.active) return;
+            
+            avoidingNPC.isHandlingCollision = false;
+            obstacleNPC.isHandlingCollision = false;
+            obstacleNPC.isWaiting = false;
+            
+            // Возвращаем исходный маршрут
+            avoidingNPC.route = [...avoidingNPC.preCollisionState.route];
+            avoidingNPC.routeIndex = avoidingNPC.preCollisionState.routeIndex;
+            moveNPCToNextPoint(avoidingNPC);
+            
+            // Продолжаем движение стоявшего NPC
+            moveNPCToNextPoint(obstacleNPC);
+        });
+    }
+
+    function moveNPCToNextPoint(npc) {
+        if (npc.isHandlingCollision || npc.isWaiting) return;
+        
+        const target = npc.route[npc.routeIndex];
+        const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+        const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+        
+        // Регулировка скорости в зависимости от расстояния
+        let speed = npcSpeed;
+        if (distance < 100) {
+            speed = Phaser.Math.Clamp(distance / 2, 20, npcSpeed);
+        }
+        
+        npc.setVelocity(
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed
+        );
+        
+        // Поворот только если движется
+        if (speed > 5) {
+            npc.rotation = angle + Math.PI / 2;
+        }
     }
 
     function update() {
+      // Оптимизированная проверка столкновений между NPC
+      for (let i = 0; i < npcs.length; i++) {
+        for (let j = i + 1; j < npcs.length; j++) {
+          const distance = Phaser.Math.Distance.Between(
+              npcs[i].x, npcs[i].y,
+              npcs[j].x, npcs[j].y
+          );
+          
+          // Проверяем только близкие NPC (сумма 80% их ширины)
+          const minDistance = (npcs[i].displayWidth + npcs[j].displayWidth) * 0.4;
+          if (distance < minDistance) {
+              this.physics.collide(npcs[i], npcs[j], handleNPCCollision, null, this);
+          }
+        }
+      }
+
+      // Оригинальная логика движения
       npcs.forEach(npc => {
-        if (!npc.isWaiting) {
+        if (!npc.isWaiting && !npc.isHandlingCollision) {
           const target = npc.route[npc.routeIndex];
           const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
@@ -380,18 +500,15 @@
             npc.routeIndex++;
             
             if (npc.routeIndex >= npc.route.length) {
-              // Переход к следующему маршруту
               npc.setVelocity(0, 0);
               npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
               
-              // Всегда используем оригинальное парковочное место
               const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
               npc.route = nextRouteType(npc.originalSpot);
               npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
               npc.routeIndex = 0;
               npc.isWaiting = true;
 
-              // Задержка перед новым маршрутом
               this.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
                 npc.isWaiting = false;
                 moveNPCToNextPoint(npc);
@@ -402,41 +519,6 @@
           }
         }
       });
-    }
-
-    function moveNPCToNextPoint(npc) {
-      const target = npc.route[npc.routeIndex];
-      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-      
-      // Определение скорости
-      const isFinalApproach = npc.routeIndex >= npc.route.length - 3;
-      const speed = isFinalApproach ? npcFinalApproachSpeed : npcSpeed;
-      
-      // Восстановленная оригинальная логика поворотов:
-      const isPreRotation = npc.routeIndex === npc.route.length - 3;
-      const isFinalRotating = npc.routeIndex === npc.route.length - 2;
-      const isParking = npc.routeIndex === npc.route.length - 1;
-
-      if (isPreRotation) {
-        // Небольшой разворот "передом" в противоположную сторону
-        npc.rotation = npc.isCounterClockwise 
-          ? -Phaser.Math.DegToRad(0) 
-          : Phaser.Math.DegToRad(0);
-      } else if (isFinalRotating) {
-        // Окончательный разворот на 0 градусов
-        npc.rotation = 0.1;
-      } else if (isParking) {
-        // На парковочном месте - сохраняем ориентацию
-        npc.rotation = 0;
-      } else {
-        // Обычное движение
-        npc.rotation = angle + Math.PI / 2;
-      }
-
-      npc.setVelocity(
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed
-      );
     }
 
     function createInvisibleParkingSpots(scene) {
