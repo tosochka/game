@@ -489,7 +489,7 @@
     }
 
 	function update() {
-	  const scene = this; // Сохраняем контекст сцены
+	  const scene = this;
 
 	  npcs.forEach(npc => {
 		if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
@@ -504,32 +504,27 @@
 			npc.routeIndex++;
 
 			if (npc.routeIndex >= npc.route.length) {
-			  // Плавное возвращение в начальную позицию
+			  // Плавное финальное позиционирование без изменения поворота
 			  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
 			  
 			  const finalApproach = () => {
 				const remainingDist = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
 				
 				if (remainingDist > 2) {
-				  // Двигаемся чуть ниже конечной точки
-				  const targetY = originalPos.y + (remainingDist > 10 ? 5 : 2);
-				  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, targetY);
+				  // Движение к точке с сохранением текущей ориентации
+				  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
 				  npc.setVelocity(
 					Math.cos(angle) * npcFinalApproachSpeed,
 					Math.sin(angle) * npcFinalApproachSpeed
 				  );
-				  npc.rotation = angle + Math.PI/2;
 				  
-				  // Продолжаем движение с правильным контекстом
 				  scene.time.delayedCall(50, finalApproach, [], scene);
 				} else {
-				  // Финализируем позицию
+				  // Фиксация позиции без изменения rotation
 				  npc.x = originalPos.x;
 				  npc.y = originalPos.y;
 				  npc.setVelocity(0, 0);
-				  npc.rotation = 0;
 				  
-				  // Продолжаем стандартную логику с правильным контекстом
 				  if (npc.isExiting) {
 					handleNpcExit.call(scene, npc);
 				  } else {
@@ -538,7 +533,6 @@
 				}
 			  };
 			  
-			  // Начинаем плавное возвращение
 			  finalApproach();
 			  return;
 			}
@@ -548,25 +542,27 @@
 	  });
 	}
 
-	// Вынесенная логика обработки выезда
 	function handleNpcExit(npc) {
-	  const scene = this; // Получаем контекст сцены
+	  const scene = this;
 	  npc.isExiting = false;
+	  
 	  scene.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
 		if (!npc.scene) return;
+		
 		npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
 		const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
 		npc.route = nextRouteType(npc.originalSpot);
 		npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
 		npc.routeIndex = 0;
 		npc.isWaiting = false;
+		
 		moveNPCToNextPoint(npc);
 	  });
 	}
 
-	// Вынесенная логика обработки парковки
 	function handleNpcParking(npc) {
-	  const scene = this; // Получаем контекст сцены
+	  const scene = this;
+	  
 	  npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
 	  const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
 	  npc.route = nextRouteType(npc.originalSpot);
@@ -587,59 +583,27 @@
 		});
 	  }
 	}
+	
 	function moveNPCToNextPoint(npc) {
-	  // Проверка на существование NPC и его свойств
-	  if (!npc || !npc.route || !npc.route[npc.routeIndex]) {
-		return;
-	  }
+	  if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
 
 	  const target = npc.route[npc.routeIndex];
-	  
-	  // Проверка целевой точки
-	  if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
-		console.error('Invalid target point for NPC:', npc, 'at index', npc.routeIndex);
-		return;
-	  }
-
-	  // Вычисляем угол между текущей позицией и целью
 	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-	  
-	  // Определение скорости
-	  let speed;
-	  const isFinalApproach = npc.routeIndex >= npc.route.length - 3;
-	  
-	  if (isFinalApproach) {
+	  let speed = npcSpeed;
+
+	  // Определяем скорость движения
+	  if (npc.routeIndex >= npc.route.length - 3) {
 		speed = npcFinalApproachSpeed;
-	  } else {
-		speed = npcSpeed;
 	  }
 
-	  // Определение поворота
-	  const isPreRotation = npc.routeIndex === npc.route.length - 3;
-	  const isFinalRotating = npc.routeIndex === npc.route.length - 2;
-	  const isParking = npc.routeIndex === npc.route.length - 1;
-
-	  if (isPreRotation) {
-		// Небольшой разворот "передом" в противоположную сторону
-		npc.rotation = npc.isCounterClockwise 
-		  ? -Phaser.Math.DegToRad(0) 
-		  : Phaser.Math.DegToRad(0);
-	  } else if (isFinalRotating) {
-		// Окончательный разворот на 0 градусов
-		npc.rotation = 0.1;
-	  } else if (isParking) {
-		// На парковочном месте - сохраняем ориентацию
-		npc.rotation = 0;
-	  } else {
-		// Обычное движение
-		npc.rotation = angle + Math.PI / 2;
-	  }
-
-	  // Установка скорости
+	  // Устанавливаем скорость и поворот
 	  npc.setVelocity(
 		Math.cos(angle) * speed,
 		Math.sin(angle) * speed
 	  );
+	  
+	  // Стандартный поворот (автоматически сохранит парковку задом)
+	  npc.rotation = angle + Math.PI/2;
 	}
 
     function createInvisibleParkingSpots(scene) {
