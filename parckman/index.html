@@ -489,93 +489,104 @@
     }
 
 	function update() {
+	  const scene = this; // Сохраняем контекст сцены
+
 	  npcs.forEach(npc => {
-		// Проверяем, что NPC существует и имеет необходимые свойства
-		if (!npc || !npc.route || !npc.route[npc.routeIndex]) {
-		  return; // Пропускаем проблемный NPC
-		}
+		if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
 
 		if ((!npc.isWaiting && !npc.isInExitQueue) || npc.isExiting) {
 		  const target = npc.route[npc.routeIndex];
-		  
-		  // Дополнительная проверка target
-		  if (!target || target.x === undefined || target.y === undefined) {
-			console.error('Invalid target for NPC:', npc);
-			return;
-		  }
+		  if (!target || target.x === undefined || target.y === undefined) return;
 
 		  const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
 		  if (distance < 5) {
 			npc.routeIndex++;
-			
-			if (npc.routeIndex >= npc.route.length) {
-			  // Принудительная установка точной позиции после завершения маршрута
-			  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
-			  npc.x = originalPos.x;
-			  npc.y = originalPos.y;
-			  npc.setVelocity(0, 0);
-			  
-			  if (npc.isExiting) {
-				// NPC завершил выезд
-				npc.isExiting = false;
-				
-				// Возвращаем NPC в обычный режим движения
-				this.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
-				  if (!npc.scene) return; // Проверка на уничтоженный объект
-				  
-				  npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
-				  const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
-				  if (!nextRouteType) {
-					console.error('Missing route type for NPC:', npc);
-					return;
-				  }
-				  
-				  npc.route = nextRouteType(npc.originalSpot);
-				  npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
-				  npc.routeIndex = 0;
-				  npc.isWaiting = false;
-				  moveNPCToNextPoint(npc);
-				});
-			  } else {
-				// Обычный цикл движения
-				npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
-				const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
-				
-				if (!nextRouteType) {
-				  console.error('Missing route type for NPC:', npc);
-				  return;
-				}
-				
-				npc.route = nextRouteType(npc.originalSpot);
-				npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
-				npc.routeIndex = 0;
-				npc.isWaiting = true;
 
-				// Добавляем в очередь выезда, если это парковочное место
-				if (allParkingSpots.some(spot => 
-				  spot && npc.originalSpot &&
-				  Math.abs(spot.x - npc.originalSpot.x) < 10 && 
-				  Math.abs(spot.y - npc.originalSpot.y) < 10)) {
-				  npc.isInExitQueue = true;
-				  exitQueue.push(npc);
+			if (npc.routeIndex >= npc.route.length) {
+			  // Плавное возвращение в начальную позицию
+			  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+			  
+			  const finalApproach = () => {
+				const remainingDist = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+				
+				if (remainingDist > 2) {
+				  // Двигаемся чуть ниже конечной точки
+				  const targetY = originalPos.y + (remainingDist > 10 ? 5 : 2);
+				  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, targetY);
+				  npc.setVelocity(
+					Math.cos(angle) * npcFinalApproachSpeed,
+					Math.sin(angle) * npcFinalApproachSpeed
+				  );
+				  npc.rotation = angle + Math.PI/2;
+				  
+				  // Продолжаем движение с правильным контекстом
+				  scene.time.delayedCall(50, finalApproach, [], scene);
 				} else {
-				  // Задержка перед новым маршрутом
-				  this.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
-					if (!npc.scene) return; // Проверка на уничтоженный объект
-					npc.isWaiting = false;
-					moveNPCToNextPoint(npc);
-				  });
+				  // Финализируем позицию
+				  npc.x = originalPos.x;
+				  npc.y = originalPos.y;
+				  npc.setVelocity(0, 0);
+				  npc.rotation = 0;
+				  
+				  // Продолжаем стандартную логику с правильным контекстом
+				  if (npc.isExiting) {
+					handleNpcExit.call(scene, npc);
+				  } else {
+					handleNpcParking.call(scene, npc);
+				  }
 				}
-			  }
-			} else {
-			  moveNPCToNextPoint(npc);
+			  };
+			  
+			  // Начинаем плавное возвращение
+			  finalApproach();
+			  return;
 			}
+			moveNPCToNextPoint(npc);
 		  }
 		}
 	  });
 	}
 
+	// Вынесенная логика обработки выезда
+	function handleNpcExit(npc) {
+	  const scene = this; // Получаем контекст сцены
+	  npc.isExiting = false;
+	  scene.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
+		if (!npc.scene) return;
+		npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
+		const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
+		npc.route = nextRouteType(npc.originalSpot);
+		npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+		npc.routeIndex = 0;
+		npc.isWaiting = false;
+		moveNPCToNextPoint(npc);
+	  });
+	}
+
+	// Вынесенная логика обработки парковки
+	function handleNpcParking(npc) {
+	  const scene = this; // Получаем контекст сцены
+	  npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
+	  const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
+	  npc.route = nextRouteType(npc.originalSpot);
+	  npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+	  npc.routeIndex = 0;
+	  npc.isWaiting = true;
+
+	  if (allParkingSpots.some(spot => 
+		Math.abs(spot.x - npc.originalSpot.x) < 10 && 
+		Math.abs(spot.y - npc.originalSpot.y) < 10)) {
+		npc.isInExitQueue = true;
+		exitQueue.push(npc);
+	  } else {
+		scene.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
+		  if (!npc.scene) return;
+		  npc.isWaiting = false;
+		  moveNPCToNextPoint(npc);
+		});
+	  }
+	}
 	function moveNPCToNextPoint(npc) {
 	  // Проверка на существование NPC и его свойств
 	  if (!npc || !npc.route || !npc.route[npc.routeIndex]) {
