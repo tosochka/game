@@ -20,6 +20,15 @@
       max-width: 100%;
       max-height: 100%;
     }
+    .debug-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      font-family: monospace;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
@@ -87,16 +96,16 @@
     // Парковочные места
     const upperLeftParkingSpots = [
 		{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
-	//	{ x: 361, y: 674 }, //{ x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
-	//	{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
-	//	{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
+		{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
+		{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
+		{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
     ];
 	
     const upperRightParkingSpots = [
-    //    { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
-		{ x: 1094, y: 674 }, //{ x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
-	//	{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
-	//	{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
+        { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
+		{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
+		{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
+		{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
     ];
 	
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
@@ -263,6 +272,10 @@
     const PARKING_EXIT_DELAY = 3000; // 3 сек между выездами
     let lastExitTime = 0;
     let exitQueue = []; // Очередь машин, ожидающих выезда
+    let debugGraphics;
+    let showDebug = false;
+    let roadsCollider;
+    let combinedCollider;
 
     function scaleCoords(x, y, isRoad = false) {
       const scaledX = (x / 2000) * 800 + offsetX;
@@ -327,7 +340,17 @@
       const background = this.add.image(400, 400, 'background');
       background.setDisplaySize(800, 800);
 
-      // Невидимые парковочные места и дороги
+      // Создание единого коллайдера для всех дорог и парковочных мест
+      createCombinedCollider(this);
+
+      // Дебаг графика для визуализации
+      debugGraphics = this.add.graphics();
+      debugGraphics.setDepth(20);
+      if (showDebug) {
+        drawDebugColliders(this);
+      }
+
+      // Оригинальные невидимые объекты (оставляем для совместимости)
       createInvisibleParkingSpots(this);
       createInvisibleRoads(this);
 
@@ -372,6 +395,96 @@
 
       // Запускаем обработчик очереди
       processExitQueue();
+
+      // Добавляем обработчик клавиш для отладки
+      this.input.keyboard.on('keydown-D', () => {
+        showDebug = !showDebug;
+        debugGraphics.clear();
+        if (showDebug) {
+          drawDebugColliders(this);
+        }
+      });
+    }
+
+    function createCombinedCollider(scene) {
+      // Создаем контейнер для всех коллайдеров
+      combinedCollider = scene.add.container();
+      
+      // 1. Добавляем дороги
+      const roads = [
+        { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
+        { x: 255 + 104/2, y: 236 + 1529/2, width: 104, height: 1529 },
+        { x: 1618 + 120/2, y: 237 + 1526/2, width: 120, height: 1526 },
+        { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
+        { x: 259 + 1479/2, y: 1622 + 141/2, width: 1479, height: 141 },
+        { x: 257 + 1482/2, y: 872 + 252/2, width: 1482, height: 252 },
+        { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },
+        { x: 259 + 1477/2, y: 579 + 94/2, width: 1477, height: 94 },
+        { x: 259 + 1477/2, y: 1326 + 94/2, width: 1477, height: 94 }
+      ];
+
+      roads.forEach(road => {
+        const { x, y } = scaleCoords(road.x, road.y, true);
+        const roadRect = scene.add.rectangle(
+          x, y,
+          road.width * scaleFactor,
+          road.height * scaleFactor,
+          0x000000,
+          0
+        ).setOrigin(0.5);
+        scene.physics.add.existing(roadRect, true);
+        combinedCollider.add(roadRect);
+      });
+
+      // 2. Добавляем парковочные места
+      allParkingSpots.forEach(spot => {
+        const { x, y } = scaleCoords(spot.x, spot.y);
+        const parkingSpot = scene.add.rectangle(
+          x, y,
+          parkingSpotWidth * scaleFactor,
+          parkingSpotHeight * scaleFactor,
+          0x000000,
+          0
+        ).setOrigin(0.5);
+        scene.physics.add.existing(parkingSpot, true);
+        combinedCollider.add(parkingSpot);
+      });
+
+      return combinedCollider;
+    }
+
+    function drawDebugColliders(scene) {
+      debugGraphics.clear();
+      
+      // Рисуем все дороги зеленым
+      debugGraphics.fillStyle(0x00ff00, 0.3);
+      debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+
+      combinedCollider.each(collider => {
+        // Все дороги (горизонтальные и вертикальные) - зеленые
+        if (collider.width > 100 || collider.height > 100) { 
+          debugGraphics.fillStyle(0x00ff00, 0.3);
+          debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+        } 
+        // Парковочные места - синие
+        else { 
+          debugGraphics.fillStyle(0x0000ff, 0.3);
+          debugGraphics.lineStyle(2, 0x0000ff, 0.6);
+        }
+        
+        debugGraphics.fillRect(
+          collider.x - collider.width / 2,
+          collider.y - collider.height / 2,
+          collider.width,
+          collider.height
+        );
+        debugGraphics.strokeRect(
+          collider.x - collider.width / 2,
+          collider.y - collider.height / 2,
+          collider.width,
+          collider.height
+        );
+      });
     }
 
 	function update() {
@@ -602,5 +715,9 @@
 </head>
 <body>
   <div id="game-container"></div>
+  <div class="debug-panel">
+    Debug: Press 'D' to toggle colliders visualization<br>
+    Green - roads, Blue - parking spots
+  </div>
 </body>
 </html>
