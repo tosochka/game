@@ -269,7 +269,7 @@
     const npcSpeed = 100;
     const npcParkingSpeed = 30;
     const npcFinalApproachSpeed = 40;
-    const PARKING_EXIT_DELAY = 3000; // 3 сек между выездами
+    const PARKING_EXIT_DELAY = 7000; // 3 сек между выездами
     let lastExitTime = 0;
     let exitQueue = []; // Очередь машин, ожидающих выезда
     let debugGraphics;
@@ -359,7 +359,8 @@
       createDecorativeLayer(this);
 
       // Создание NPC
-      npcs = allParkingSpots.map((spot, index) => {
+	  const shuffledSpots = Phaser.Utils.Array.Shuffle([...allParkingSpots]); // перемешиваем места
+      npcs = shuffledSpots.map((spot) => {
         const { x, y } = scaleCoords(spot.x, spot.y);
         const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
         npc.setCollideWorldBounds(true);
@@ -383,7 +384,7 @@
         exitQueue.push(npc);
 
         // Задержка перед началом движения
-        this.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
+        this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
           if (!npc.isInExitQueue) {
             npc.isWaiting = false;
             moveNPCToNextPoint(npc);
@@ -509,7 +510,10 @@
 			npc.routeIndex++;
 			
 			if (npc.routeIndex >= npc.route.length) {
-			  // Переход к следующему маршруту
+			  // Принудительная установка точной позиции после завершения маршрута
+			  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+			  npc.x = originalPos.x;
+			  npc.y = originalPos.y;
 			  npc.setVelocity(0, 0);
 			  
 			  if (npc.isExiting) {
@@ -708,7 +712,7 @@
       grass1.setDepth(10);
       tree1.setDepth(10);
       tree2.setDepth(10);	  
-      bush1.setDepth(10);
+      bush1.setDepth(2);
       oil.setDepth(2);
     }
   </script>
