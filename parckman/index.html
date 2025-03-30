@@ -101,6 +101,9 @@
       debugColor: 0xff0000,
       debugAlpha: 0.3
     };
+	
+	const PARKING_PHASE_POINTS = 3; // Число точек для отключения сенсоров	
+	const FINAL_APPROACH_POINTS = 3; // Число точек для снижения скорости (при парковке)
 
     // Парковочные места
     const upperLeftParkingSpots = [
@@ -278,7 +281,7 @@
     const npcSpeed = 100;
     const npcParkingSpeed = 30;
     const npcFinalApproachSpeed = 40;
-    const PARKING_EXIT_DELAY = 4000; // 3 сек между выездами
+    const PARKING_EXIT_DELAY = 4000; // 4 сек между выездами
     let lastExitTime = 0;
     let exitQueue = []; // Очередь машин, ожидающих выезда
     let debugGraphics;
@@ -331,26 +334,42 @@
     }
 
     // НОВЫЕ ФУНКЦИИ ДЛЯ СЕНСОРОВ
-    function updateSensors(npc) {
-      if (!npc.sensors) return;
-      
-      const rotation = npc.rotation - Math.PI/2; // Корректировка под поворот спрайта
-      
-      // Фронтальный сенсор
-      npc.sensors.front.x = npc.x + Math.cos(rotation) * npcSensors.front.offset;
-      npc.sensors.front.y = npc.y + Math.sin(rotation) * npcSensors.front.offset;
-      npc.sensors.front.rotation = rotation;
-      
-      // Левый сенсор
-      npc.sensors.left.x = npc.x + Math.cos(rotation + Math.PI/2) * npcSensors.left.offset;
-      npc.sensors.left.y = npc.y + Math.sin(rotation + Math.PI/2) * npcSensors.left.offset;
-      npc.sensors.left.rotation = rotation;
-      
-      // Правый сенсор
-      npc.sensors.right.x = npc.x + Math.cos(rotation - Math.PI/2) * npcSensors.right.offset;
-      npc.sensors.right.y = npc.y + Math.sin(rotation - Math.PI/2) * npcSensors.right.offset;
-      npc.sensors.right.rotation = rotation;
-    }
+	function updateSensors(npc) {
+	  if (!npc.sensors) return;
+	  
+	  // Определяем, находится ли NPC в зоне парковки/выезда
+	const isParkingPhase = (
+	  npc.routeIndex < PARKING_PHASE_POINTS || 
+	  npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
+	);
+	  
+	  // Обновляем видимость (если в дебаг-режиме)
+	  const shouldShow = showDebug && !isParkingPhase;
+	  Object.values(npc.sensors).forEach(sensor => {
+		sensor.visible = shouldShow;
+	  });
+
+	  // Не обновляем позиции сенсоров в парковочной фазе
+	  if (isParkingPhase) return;
+
+	  // Стандартное обновление позиций сенсоров
+	  const rotation = npc.rotation - Math.PI/2;
+	  
+	  // Фронтальный сенсор
+	  npc.sensors.front.x = npc.x + Math.cos(rotation) * npcSensors.front.offset;
+	  npc.sensors.front.y = npc.y + Math.sin(rotation) * npcSensors.front.offset;
+	  npc.sensors.front.rotation = rotation;
+	  
+	  // Левый сенсор
+	  npc.sensors.left.x = npc.x + Math.cos(rotation + Math.PI/2) * npcSensors.left.offset;
+	  npc.sensors.left.y = npc.y + Math.sin(rotation + Math.PI/2) * npcSensors.left.offset;
+	  npc.sensors.left.rotation = rotation;
+	  
+	  // Правый сенсор
+	  npc.sensors.right.x = npc.x + Math.cos(rotation - Math.PI/2) * npcSensors.right.offset;
+	  npc.sensors.right.y = npc.y + Math.sin(rotation - Math.PI/2) * npcSensors.right.offset;
+	  npc.sensors.right.rotation = rotation;
+	}
 
     function drawSensors(npc) {
       const debugGraphics = npc.scene.add.graphics();
@@ -370,31 +389,33 @@
       npc.scene.time.delayedCall(0, () => debugGraphics.destroy());
     }
 
-    function checkCollisions(npc) {
-      if (!npc.sensors) return [];
-      
-      const collisions = [];
-      
-      npcs.forEach(other => {
-        if (other === npc || !other.active) return;
-        
-        // Проверяем все сенсоры текущего NPC
-        Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
-          if (Phaser.Geom.Intersects.RectangleToRectangle(
-            sensor.getBounds(),
-            other.getBounds()
-          )) {
-            collisions.push({
-              npc: other,
-              sensor: sensorName,
-              distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
-            });
-          }
-        });
-      });
-      
-      return collisions;
-    }
+	function checkCollisions(npc) {
+	  if (!npc.sensors || 
+	  	npc.routeIndex < PARKING_PHASE_POINTS || 
+	  	npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)) {
+	    return [];
+	  }
+
+	  const collisions = [];
+	  const otherNpcs = npcs.filter(n => n !== npc && n.active);
+	  
+	  otherNpcs.forEach(other => {
+		Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
+		  if (Phaser.Geom.Intersects.RectangleToRectangle(
+			sensor.getBounds(),
+			other.getBounds()
+		  )) {
+			collisions.push({
+			  npc: other,
+			  sensor: sensorName,
+			  distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
+			});
+		  }
+		});
+	  });
+	  
+	  return collisions;
+	}
 
     function preload() {
       this.load.image('lamp_top', 'assets/lamp_top.png');
@@ -409,6 +430,7 @@
       this.load.image('oil', 'assets/oil.png');
       this.load.image('npcCar', 'assets/npc_car.png');
     }
+		
 
 	function create() {
 	  // Фон
@@ -425,11 +447,100 @@
 		drawDebugColliders(this);
 	  }
 
-	  // Оригинальные невидимые объекты
+	  // Функция создания невидимых парковочных мест
+	  const createInvisibleParkingSpots = (scene) => {
+		allParkingSpots.forEach(spot => {
+		  const { x, y } = scaleCoords(spot.x, spot.y);
+		  const parkingSpot = scene.add.rectangle(
+			x, y,
+			parkingSpotWidth * scaleFactor,
+			parkingSpotHeight * scaleFactor,
+			0x000000,
+			0
+		  ).setOrigin(0.5);
+		  scene.physics.add.existing(parkingSpot, true);
+		});
+	  };
+
+	  // Функция создания невидимых дорог
+	  const createInvisibleRoads = (scene) => {
+		const roads = [
+		  { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
+		  { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
+		  { x: 1618 + 120/2, y: 237 + 1526/2, width: 120, height: 1526 },
+		  { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
+		  { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
+		  { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
+		  { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },
+		  { x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },
+		  { x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }
+		];
+
+		roads.forEach(road => {
+		  const { x, y } = scaleCoords(road.x, road.y, true);
+		  const roadRect = scene.add.rectangle(
+			x, y,
+			road.width * scaleFactor,
+			road.height * scaleFactor,
+			0x000000,
+			0
+		  ).setOrigin(0.5);
+		  scene.physics.add.existing(roadRect, true);
+		});
+	  };
+
+	  // Создаем невидимые объекты
 	  createInvisibleParkingSpots(this);
 	  createInvisibleRoads(this);
 
-	  // Декоративные элементы
+	  // Функция создания входа и павильона
+	  const createEntranceAndPavilion = (scene) => {
+		// Въезд
+		const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
+		scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
+
+		// Павильон
+		const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
+		scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
+	  };
+
+	  // Функция создания декоративных элементов
+	  const createDecorativeLayer = (scene) => {
+		// Смещения для декоративных элементов
+		const grassOffsetX = 0, grassOffsetY = 20;
+		const treeOffsetX = 45, treeOffsetY = 35;
+		const bushOffsetX = 35, bushOffsetY = 25;
+		const oilOffsetX = 15, oilOffsetY = 23;
+
+		// Координаты элементов
+		const lampTopCoords = scaleCoords(850+90, 223+170);
+		const lampBottomCoords = scaleCoords(854+90, 1650-140);
+		const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
+		const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY);
+		const tree2Coords = scaleCoords(100 + 10, 900 - 300);
+		const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
+		const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
+
+		// Создание элементов
+		const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
+		const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
+		const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
+		const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
+		const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);
+		const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
+		const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
+
+		// Установка глубины отображения
+		lampTop.setDepth(11);
+		lampBottom.setDepth(11);
+		grass1.setDepth(2);
+		tree1.setDepth(10);
+		tree2.setDepth(10);
+		bush1.setDepth(10);
+		oil.setDepth(2);
+	  };
+
+	  // Создаем декорации
 	  createEntranceAndPavilion(this);
 	  createDecorativeLayer(this);
 
@@ -440,13 +551,16 @@
 		const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
 		npc.setCollideWorldBounds(true);
 		
-		// Система маршрутов (оригинальная логика)
+		// Система маршрутов
 		npc.originalSpot = spot;
 		npc.routeSequence = createShuffledRouteSequence();
 		npc.currentRouteIndex = 0;
+		
+		// Определяем направление перед началом движения
 		const firstRouteType = npc.routeSequence[npc.currentRouteIndex];
 		npc.route = firstRouteType(npc.originalSpot);
 		npc.isCounterClockwise = firstRouteType.toString().includes('Counter');
+		
 		npc.routeIndex = 0;
 		npc.isWaiting = true;
 		npc.isInExitQueue = true;
@@ -468,6 +582,7 @@
 		// Добавляем в очередь выезда
 		exitQueue.push(npc);
 
+		// Задержка перед началом движения
 		this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
 		  if (!npc.isInExitQueue) {
 			npc.isWaiting = false;
@@ -478,26 +593,30 @@
 		return npc;
 	  });
 
-	  // Обработчик очереди
+	  // Запускаем обработчик очереди
 	  processExitQueue();
 
-	  // Дебаг-режим (включает/выключает коллайдеры и сенсоры)
+	  // Добавляем обработчик клавиш для отладки
 	  this.input.keyboard.on('keydown-D', () => {
 		showDebug = !showDebug;
 		debugGraphics.clear();
 		
-		// Переключаем видимость коллайдеров
 		if (showDebug) {
 		  drawDebugColliders(this);
 		}
 		
-		// Переключаем видимость сенсоров у всех NPC
+		// Переключаем видимость сенсоров с учётом парковочной фазы
 		npcs.forEach(npc => {
-		  if (npc.sensors) {
-			Object.values(npc.sensors).forEach(sensor => {
-			  sensor.visible = showDebug;
-			});
-		  }
+		  if (!npc.sensors) return;
+		  
+		const isParkingPhase = (
+		  npc.routeIndex < PARKING_PHASE_POINTS || 
+		  npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
+		);
+		  
+		  Object.values(npc.sensors).forEach(sensor => {
+			sensor.visible = showDebug && !isParkingPhase;
+		  });
 		});
 	  });
 	}
@@ -686,112 +805,38 @@
       }
     }
     
-    function moveNPCToNextPoint(npc) {
-      if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
+	function moveNPCToNextPoint(npc) {
+	  // 1. Управление сенсорами (зависит от PARKING_PHASE_POINTS)
+	  const isParkingPhase = (
+		npc.routeIndex < PARKING_PHASE_POINTS || 
+		npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
+	  );
+	  
+	  if (npc.sensors) {
+		Object.values(npc.sensors).forEach(s => {
+		  s.visible = showDebug && !isParkingPhase;
+		});
+	  }
 
-      const target = npc.route[npc.routeIndex];
-      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-      let speed = npcSpeed;
+	  // 2. Логика движения (независимая от сенсоров)
+	  if (!npc.route || !npc.route[npc.routeIndex]) return;
 
-      // Определяем скорость движения
-      if (npc.routeIndex >= npc.route.length - 3) {
-        speed = npcFinalApproachSpeed;
-      }
+	  const target = npc.route[npc.routeIndex];
+	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+	  let speed = npcSpeed;
 
-      // Устанавливаем скорость и поворот
-      npc.setVelocity(
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed
-      );
-      
-      // Стандартный поворот (автоматически сохранит парковку задом)
-      npc.rotation = angle + Math.PI/2;
-    }
+	  // 3. Отдельное условие для скорости (использует FINAL_APPROACH_POINTS)
+	  if (npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS) {
+		speed = npcFinalApproachSpeed;
+	  }
 
-    function createInvisibleParkingSpots(scene) {
-      allParkingSpots.forEach(spot => {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        const parkingSpot = scene.add.rectangle(
-          x, y,
-          parkingSpotWidth * scaleFactor,
-          parkingSpotHeight * scaleFactor,
-          0x000000,
-          0
-        ).setOrigin(0.5);
-        scene.physics.add.existing(parkingSpot, true);
-      });
-    }
+	  npc.setVelocity(
+		Math.cos(angle) * speed,
+		Math.sin(angle) * speed
+	  );
+	  npc.rotation = angle + Math.PI/2;
+	}
 
-    function createInvisibleRoads(scene) {
-      const roads = [
-        { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
-        { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
-        { x: 1618 + 120/2, y: 237 + 1526/2, width: 120, height: 1526 },
-        { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
-        { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
-        { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
-        { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },
-        { x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },
-        { x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }
-      ];
-
-      roads.forEach(road => {
-        const { x, y } = scaleCoords(road.x, road.y, true);
-        const roadRect = scene.add.rectangle(
-          x, y,
-          road.width * scaleFactor,
-          road.height * scaleFactor,
-          0x000000,
-          0
-        ).setOrigin(0.5);
-        scene.physics.add.existing(roadRect, true);
-      });
-    }
-
-    function createEntranceAndPavilion(scene) {
-      // Въезд
-      const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
-      scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
-
-      // Павильон
-      const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
-      scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
-    }
-
-    function createDecorativeLayer(scene) {
-      // Смещения для декоративных элементов
-      const grassOffsetX = 0, grassOffsetY = 20;
-      const treeOffsetX = 45, treeOffsetY = 35;
-      const bushOffsetX = 35, bushOffsetY = 25;
-      const oilOffsetX = 15, oilOffsetY = 23;
-
-      // Координаты элементов
-      const lampTopCoords = scaleCoords(850+90, 223+170);
-      const lampBottomCoords = scaleCoords(854+90, 1650-140);
-      const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
-      const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY);
-      const tree2Coords = scaleCoords(100 + 10, 900 - 300);
-      const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
-      const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
-
-      // Создание элементов
-      const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
-      const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
-      const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
-      const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
-      const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);	  
-      const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
-      const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
-
-      // Установка глубины отображения
-      lampTop.setDepth(11);
-      lampBottom.setDepth(11);
-      grass1.setDepth(2);
-      tree1.setDepth(10);
-      tree2.setDepth(10);	  
-      bush1.setDepth(10);
-      oil.setDepth(2);
-    }
   </script>
 </head>
 <body>
