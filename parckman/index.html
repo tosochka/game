@@ -290,6 +290,7 @@
     let showDebug = false;
     let roadsCollider;
     let combinedCollider;
+	let showCollisionHighlights = true; // Новая переменная для управления подсветкой
 
     function scaleCoords(x, y, isRoad = false) {
       const scaledX = (x / 2000) * 800 + offsetX;
@@ -392,31 +393,44 @@
     }
 
 	function checkCollisions(npc) {
-	  if (!npc.sensors || 
-	  	npc.routeIndex < PARKING_PHASE_POINTS || 
-	  	npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)) {
-	    return [];
-	  }
+		if (!npc.sensors || 
+			npc.routeIndex < PARKING_PHASE_POINTS || 
+			npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)) {
+			return [];
+		}
 
-	  const collisions = [];
-	  const otherNpcs = npcs.filter(n => n !== npc && n.active);
-	  
-	  otherNpcs.forEach(other => {
-		Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
-		  if (Phaser.Geom.Intersects.RectangleToRectangle(
-			sensor.getBounds(),
-			other.getBounds()
-		  )) {
-			collisions.push({
-			  npc: other,
-			  sensor: sensorName,
-			  distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
+		const collisions = [];
+		const otherNpcs = npcs.filter(n => n !== npc && n.active);
+		
+		otherNpcs.forEach(other => {
+			Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
+				if (Phaser.Geom.Intersects.RectangleToRectangle(
+					sensor.getBounds(),
+					other.getBounds()
+				)) {
+					collisions.push({
+						npc: other,
+						sensor: sensorName,
+						distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
+					});
+
+					// Добавляем подсветку только если включен дебаг и подсветка активна
+					if (showDebug && showCollisionHighlights) {
+						const debugGraphics = npc.scene.add.graphics();
+						debugGraphics.fillStyle(0xffff00, 0.5);
+						debugGraphics.fillRect(
+							other.x - other.width/2,
+							other.y - other.height/2,
+							other.width,
+							other.height
+						);
+						npc.scene.time.delayedCall(100, () => debugGraphics.destroy());
+					}
+				}
 			});
-		  }
 		});
-	  });
-	  
-	  return collisions;
+		
+		return collisions;
 	}
 
     function preload() {
@@ -596,6 +610,7 @@
 
 	  // Запускаем обработчик очереди
 	  processExitQueue();
+	  
 
 	  // Добавляем обработчик клавиш для отладки
 	  this.input.keyboard.on('keydown-D', () => {
@@ -620,6 +635,14 @@
 		  });
 		});
 	  });
+	  
+      this.input.keyboard.on('keydown-H', () => {
+          if (showDebug) {
+              showCollisionHighlights = !showCollisionHighlights;
+              console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
+          }
+      });
+	  
 	}
 
     function createCombinedCollider(scene) {
@@ -704,32 +727,42 @@
     }
 
     // НОВЫЕ ФУНКЦИИ ДЛЯ ОБРАБОТКИ СТОЛКНОВЕНИЙ
-    function handleFrontCollision(npc, collision) {
-        // Запоминаем текущую скорость перед остановкой
-        npc.preCollisionSpeed = npc.body.velocity.clone();
-        
-        // Останавливаем NPC
-        npc.setVelocity(0, 0);
-        npc.isWaiting = true;
-        
-        // Ждем 1 секунду и проверяем снова
-        npc.scene.time.delayedCall(1000, () => {
-            if (!npc.scene) return;
-            
-            const newCollisions = checkCollisions(npc);
-            if (newCollisions.some(c => c.sensor === 'front')) {
-                tryOvertake(npc, collision.npc);
-            } else {
-                npc.isWaiting = false;
-                // Восстанавливаем скорость или продолжаем движение
-                if (npc.preCollisionSpeed) {
-                    npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
-                } else {
-                    moveNPCToNextPoint(npc);
-                }
-            }
-        });
-    }
+	function handleFrontCollision(npc, collision) {
+		// Подсветка только если включен дебаг и подсветка активна
+		if (showDebug && showCollisionHighlights) {
+			const obstacle = collision.npc;
+			const debugGraphics = npc.scene.add.graphics();
+			debugGraphics.fillStyle(0xff0000, 0.5);
+			debugGraphics.fillRect(
+				obstacle.x - obstacle.width/2,
+				obstacle.y - obstacle.height/2,
+				obstacle.width,
+				obstacle.height
+			);
+			npc.scene.time.delayedCall(1000, () => debugGraphics.destroy());
+		}
+
+		// Остальной код функции без изменений
+		npc.preCollisionSpeed = npc.body.velocity.clone();
+		npc.setVelocity(0, 0);
+		npc.isWaiting = true;
+		
+		npc.scene.time.delayedCall(1000, () => {
+			if (!npc.scene) return;
+			
+			const newCollisions = checkCollisions(npc);
+			if (newCollisions.some(c => c.sensor === 'front')) {
+				tryOvertake(npc, collision.npc);
+			} else {
+				npc.isWaiting = false;
+				if (npc.preCollisionSpeed) {
+					npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+				} else {
+					moveNPCToNextPoint(npc);
+				}
+			}
+		});
+	}
 
     function tryOvertake(npc, obstacle) {
         console.log(`NPC at (${npc.x.toFixed(0)}, ${npc.y.toFixed(0)}) пытается объехать препятствие`);
@@ -890,10 +923,11 @@
 </head>
 <body>
   <div id="game-container"></div>
-  <div class="debug-panel">
-    Debug: Press 'D' to toggle colliders visualization<br>
-    Green - roads, Blue - parking spots<br>
-    Red - NPC sensors (front/left/right)
-  </div>
+	<div class="debug-panel">
+		Debug: Press 'D' to toggle colliders visualization<br>
+		Press 'H' to toggle collision highlights (when debug is on)<br>
+		Green - roads, Blue - parking spots<br>
+		Red - NPC sensors (front/left/right)
+	</div>
 </body>
 </html>
