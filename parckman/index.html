@@ -130,20 +130,20 @@
       function clockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 675 - npcOffset },
-          { x: 115 + npcOffset, y: 675 - npcOffset }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+          { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
+          { x: 690 - npcOffset, y: y - 37 }, { x: 690 - npcOffset, y: 665 - npcOffset },
+          { x: 110 + npcOffset, y: 665 - npcOffset }, { x: 110 + npcOffset, y: y - 37 },
+          { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
       // 2. Полный круг против часовой стрелки
       function counterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 700 - npcOffset },
-          { x: 703 - npcOffset, y: 700 - npcOffset }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
+          { x, y }, { x, y: y - 60 }, { x, y: y - 60 },
+          { x: 80 + npcOffset, y: y - 60 }, { x: 80 + npcOffset, y: 710 - npcOffset },
+          { x: 730 - npcOffset, y: 710 - npcOffset }, { x: 730 - npcOffset, y: y - 60 },
+          { x, y: y - 60 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
 	  
