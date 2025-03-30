@@ -104,6 +104,8 @@
 	
 	const PARKING_PHASE_POINTS = 3; // Число точек для отключения сенсоров	
 	const FINAL_APPROACH_POINTS = 3; // Число точек для снижения скорости (при парковке)
+	const npcExitSpeed = 30; // Новая скорость для выезда (между обычной и парковочной)
+	const EXIT_PHASE_POINTS = 3; // На скольки первых точках маршрута применять скорость выезда
 
     // Парковочные места
     const upperLeftParkingSpots = [
@@ -431,7 +433,6 @@
       this.load.image('npcCar', 'assets/npc_car.png');
     }
 		
-
 	function create() {
 	  // Фон
 	  const background = this.add.image(400, 400, 'background');
@@ -702,19 +703,60 @@
       });
     }
 
+    // НОВЫЕ ФУНКЦИИ ДЛЯ ОБРАБОТКИ СТОЛКНОВЕНИЙ
+    function handleFrontCollision(npc, collision) {
+        // Запоминаем текущую скорость перед остановкой
+        npc.preCollisionSpeed = npc.body.velocity.clone();
+        
+        // Останавливаем NPC
+        npc.setVelocity(0, 0);
+        npc.isWaiting = true;
+        
+        // Ждем 1 секунду и проверяем снова
+        npc.scene.time.delayedCall(1000, () => {
+            if (!npc.scene) return;
+            
+            const newCollisions = checkCollisions(npc);
+            if (newCollisions.some(c => c.sensor === 'front')) {
+                tryOvertake(npc, collision.npc);
+            } else {
+                npc.isWaiting = false;
+                // Восстанавливаем скорость или продолжаем движение
+                if (npc.preCollisionSpeed) {
+                    npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+                } else {
+                    moveNPCToNextPoint(npc);
+                }
+            }
+        });
+    }
+
+    function tryOvertake(npc, obstacle) {
+        console.log(`NPC at (${npc.x.toFixed(0)}, ${npc.y.toFixed(0)}) пытается объехать препятствие`);
+        
+        // Временное решение - просто продолжаем движение
+        npc.isWaiting = false;
+        moveNPCToNextPoint(npc);
+    }
+
 	function update() {
 	  const scene = this;
 
 	  npcs.forEach(npc => {
 		if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
 
-		// Обновляем позиции сенсоров (работает всегда, но они видны только в дебаг-режиме)
+		// Обновляем позиции сенсоров
 		updateSensors(npc);
 
-		// Проверка столкновений (работает всегда, независимо от видимости)
+		// Проверка столкновений
 		const collisions = checkCollisions(npc);
-		if (collisions.length > 0 && showDebug) {
-		  console.log(`NPC at (${npc.x.toFixed(0)}, ${npc.y.toFixed(0)}) detected collision`);
+		
+		// Обработка фронтальных столкновений
+		if (collisions.length > 0 && !npc.isWaiting && !npc.isInExitQueue) {
+		  const frontCollision = collisions.find(c => c.sensor === 'front');
+		  if (frontCollision) {
+			handleFrontCollision(npc, frontCollision);
+		  }
 		}
 
 		// Оригинальная логика движения
@@ -806,7 +848,7 @@
     }
     
 	function moveNPCToNextPoint(npc) {
-	  // 1. Управление сенсорами (зависит от PARKING_PHASE_POINTS)
+	  // Управление видимостью сенсоров (остаётся без изменений)
 	  const isParkingPhase = (
 		npc.routeIndex < PARKING_PHASE_POINTS || 
 		npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
@@ -818,16 +860,23 @@
 		});
 	  }
 
-	  // 2. Логика движения (независимая от сенсоров)
+	  // Логика движения
 	  if (!npc.route || !npc.route[npc.routeIndex]) return;
 
 	  const target = npc.route[npc.routeIndex];
 	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-	  let speed = npcSpeed;
+	  let speed = npcSpeed; // Стандартная скорость по умолчанию
 
-	  // 3. Отдельное условие для скорости (использует FINAL_APPROACH_POINTS)
-	  if (npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS) {
-		speed = npcFinalApproachSpeed;
+	  // Определение фаз движения
+	  const isApproachPhase = npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS;
+	  const isExitPhase = npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS;
+
+	  // Приоритеты: Парковка > Выезд > Обычное движение
+	  if (isApproachPhase) {
+		speed = npcFinalApproachSpeed; // Медленная скорость при парковке
+	  } 
+	  else if (isExitPhase) {
+		speed = npcExitSpeed; // Средняя скорость при выезде
 	  }
 
 	  npc.setVelocity(
