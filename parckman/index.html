@@ -110,16 +110,16 @@
     // Парковочные места
     const upperLeftParkingSpots = [
 		{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
-		{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
-		{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
-		{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
+	//	{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
+	//	{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
+	//	{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
     ];
 	
     const upperRightParkingSpots = [
         { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
-		{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
-		{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
-		{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
+	//	{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
+	//	{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
+	//	{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
     ];
 	
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
@@ -146,136 +146,7 @@
           { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 3. Верхняя половина по часовой стрелке
-      function upperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
-          { x: 115 + npcOffset, y: 380 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 4. Верхняя половина против часовой стрелки
-      function upperHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 400 },
-          { x: 703 - npcOffset, y: 400 }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 5. Левая верхняя четверть по часовой стрелке
-      function leftHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 385- npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 360 },
-          { x: 115 + npcOffset, y: 360 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 6. Левая верхняя четверть против часовой стрелки
-      function leftHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 385 },
-          { x: 390, y: 385 }, { x: 390, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 7. Правая половина по часовой стрелке
-      function rightHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 675 - npcOffset },
-          { x: 424, y: 675 - npcOffset }, { x: 424, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 10. Правая половина против часовой стрелки
-      function rightHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 399, y: y - 55 }, { x: 399, y: 700 - npcOffset },
-          { x: 703 - npcOffset, y: 700 - npcOffset }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },	
-      // 8. Правая верхняя четверть по часовой стрелке
-      function rightUpperQuarterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 380 },
-          { x: 424, y: 380 }, { x: 424, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 9. Правая верхняя четверть против часовой стрелки
-      function rightUpperQuarterCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 399, y: y - 55 }, { x: 399, y: 400 },
-          { x: 703 - npcOffset, y: 400 }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 11. Правая верхняя малая половина по часовой стрелке
-      function leftUpperSmallClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 677 - npcOffset, y: y - 35 }, { x: 677 - npcOffset, y: 224 },
-          { x: 424, y: 224 }, { x: 424, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      //11.1 Правая верхняя малая половина против часовой стрелки
-      function rightUpperQuarterCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 399, y: y - 55 }, { x: 399, y: 250 },
-          { x: 703 - npcOffset, y: 250 }, { x: 703 - npcOffset, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-     // 12. Левая верхняя малая половина по часовой стрелке
-      function rightUpperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 35 }, { x, y: y - 35 },
-          { x: 385 - npcOffset, y: y - 35 }, { x: 385 - npcOffset, y: 224 },
-          { x: 115 + npcOffset, y: 224 }, { x: 115 + npcOffset, y: y - 35 },
-          { x, y: y - 35 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 12.1 Левая верхняя малая половина против часовой стрелки
-      function leftSmallCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 50 }, { x: 85 + npcOffset, y: 250 },
-          { x: 399, y: 250 }, { x: 399, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 13. Левая половина против часовой стрелки
-      function leftSmallCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 55 }, { x, y: y - 55 },
-          { x: 85 + npcOffset, y: y - 55 }, { x: 85 + npcOffset, y: 700 - npcOffset },
-          { x: 399, y: 700 - npcOffset }, { x: 399, y: y - 55 },
-          { x, y: y - 55 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      }	  
+	  
     ];
 
     // Глобальные переменные
@@ -480,15 +351,15 @@
 	  // Функция создания невидимых дорог
 	  const createInvisibleRoads = (scene) => {
 		const roads = [
-		  { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
-		  { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
-		  { x: 1618 + 120/2, y: 237 + 1526/2, width: 120, height: 1526 },
-		  { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
-		  { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
-		  { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
-		  { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },
-		  { x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },
-		  { x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }
+		  { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },  // 1. Горизонтальная дорога у входа (нижняя часть карты)
+		  { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },  // 2. Левая вертикальная дорога (от входа до верха)
+		  { x: 1618 + 40 + 120/2, y: 237 + 1526/2, width: 120 + 80, height: 1526 },  // 3. Правая вертикальная дорога (от низа до верха)
+		  { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },  // 4. Верхняя горизонтальная дорога (левая часть)
+		  { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },  // 5. Нижняя горизонтальная дорога (левая часть)
+		  { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },  // 6. Центральная горизонтальная дорога (соединяет левую и правую части)
+		  { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },  // 7. Центральная вертикальная дорога (соединяет верхние и нижние части)
+		  { x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },  // 8. Верхняя горизонтальная разделительная полоса (между парковками)
+		  { x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }  // 9. Нижняя горизонтальная разделительная полоса (между парковками)
 		];
 
 		roads.forEach(road => {
@@ -653,7 +524,7 @@
       const roads = [
         { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
         { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
-        { x: 1618 + 120/2, y: 237 + 1526/2, width: 120, height: 1526 },
+		{ x: 1618 + 40 + 120/2, y: 237 + 1526/2, width: 120 + 80, height: 1526 },
         { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
         { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
         { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
