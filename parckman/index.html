@@ -106,20 +106,21 @@
 	const FINAL_APPROACH_POINTS = 3; // Число точек для снижения скорости (при парковке)
 	const npcExitSpeed = 30; // Новая скорость для выезда (между обычной и парковочной)
 	const EXIT_PHASE_POINTS = 3; // На скольки первых точках маршрута применять скорость выезда
+    const PRIORITY_ROUTES = [0, 1, 2, 3]; // Маршруты с приоритетом движения
 
     // Парковочные места
     const upperLeftParkingSpots = [
-		{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
+		{ x: 361, y: 380 }, //{ x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
 	//	{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
 	//	{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
-	//	{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
+		{ x: 361, y: 1420 }, //{ x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
     ];
 	
     const upperRightParkingSpots = [
-    //    { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
+        { x: 1094, y: 380 }, //{ x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
 	//	{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
-	//	{ x: 1094, y: 1130 }, //{ x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
-	//	{ x: 1094, y: 1420 }, //{ x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
+	//	{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
+	//	{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
     ];
 	
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
@@ -336,102 +337,346 @@
       moveNPCToNextPoint(npc);
     }
 
-    // НОВЫЕ ФУНКЦИИ ДЛЯ СЕНСОРОВ
-	function updateSensors(npc) {
-	  if (!npc.sensors) return;
-	  
-	  // Определяем, находится ли NPC в зоне парковки/выезда
-	const isParkingPhase = (
-	  npc.routeIndex < PARKING_PHASE_POINTS || 
-	  npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
-	);
-	  
-	  // Обновляем видимость (если в дебаг-режиме)
-	  const shouldShow = showDebug && !isParkingPhase;
-	  Object.values(npc.sensors).forEach(sensor => {
-		sensor.visible = shouldShow;
-	  });
+    // НОВЫЕ ФУНКЦИИ ДЛЯ ОБЪЕЗДА ПРЕПЯТСТВИЙ
+	function tryOvertake(npc, obstacle) {
+		// Определяем направление движения (горизонтальное/вертикальное)
+		const nextPoint = npc.route[npc.routeIndex];
+		const isHorizontalMove = Math.abs(nextPoint.x - npc.x) > Math.abs(nextPoint.y - npc.y);
+		
+		// Варианты объезда (влево/вправо или вверх/вниз)
+		const overtakeOptions = isHorizontalMove ? 
+			[{x: npc.x, y: npc.y - npc.width}, {x: npc.x, y: npc.y + npc.width}] : // Верх/низ
+			[{x: npc.x - npc.width, y: npc.y}, {x: npc.x + npc.width, y: npc.y}];  // Лево/право
 
-	  // Не обновляем позиции сенсоров в парковочной фазе
-	  if (isParkingPhase) return;
-
-	  // Стандартное обновление позиций сенсоров
-	  const rotation = npc.rotation - Math.PI/2;
-	  
-	  // Фронтальный сенсор
-	  npc.sensors.front.x = npc.x + Math.cos(rotation) * npcSensors.front.offset;
-	  npc.sensors.front.y = npc.y + Math.sin(rotation) * npcSensors.front.offset;
-	  npc.sensors.front.rotation = rotation;
-	  
-	  // Левый сенсор
-	  npc.sensors.left.x = npc.x + Math.cos(rotation + Math.PI/2) * npcSensors.left.offset;
-	  npc.sensors.left.y = npc.y + Math.sin(rotation + Math.PI/2) * npcSensors.left.offset;
-	  npc.sensors.left.rotation = rotation;
-	  
-	  // Правый сенсор
-	  npc.sensors.right.x = npc.x + Math.cos(rotation - Math.PI/2) * npcSensors.right.offset;
-	  npc.sensors.right.y = npc.y + Math.sin(rotation - Math.PI/2) * npcSensors.right.offset;
-	  npc.sensors.right.rotation = rotation;
-	}
-
-    function drawSensors(npc) {
-      const debugGraphics = npc.scene.add.graphics();
-      
-      // Рисуем сенсоры
-      Object.values(npc.sensors).forEach(sensor => {
-        debugGraphics.fillStyle(npcSensors.debugColor, npcSensors.debugAlpha);
-        debugGraphics.fillRect(
-          sensor.x - sensor.width/2,
-          sensor.y - sensor.height/2,
-          sensor.width,
-          sensor.height
-        );
-      });
-      
-      // Автоматическое удаление через кадр
-      npc.scene.time.delayedCall(0, () => debugGraphics.destroy());
-    }
-
-	function checkCollisions(npc) {
-		if (!npc.sensors || 
-			npc.routeIndex < PARKING_PHASE_POINTS || 
-			npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)) {
-			return [];
+		// Ищем свободное направление
+		let chosenOvertake = null;
+		for (const option of overtakeOptions) {
+			if (isPathClear(npc, option)) {
+				chosenOvertake = option;
+				break;
+			}
 		}
 
-		const collisions = [];
-		const otherNpcs = npcs.filter(n => n !== npc && n.active);
-		
-		otherNpcs.forEach(other => {
-			Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
-				if (Phaser.Geom.Intersects.RectangleToRectangle(
-					sensor.getBounds(),
-					other.getBounds()
-				)) {
-					collisions.push({
-						npc: other,
-						sensor: sensorName,
-						distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
-					});
+		if (!chosenOvertake) {
+			performEmergencyReverse(npc);
+			return;
+		}
 
-					// Добавляем подсветку только если включен дебаг и подсветка активна
-					if (showDebug && showCollisionHighlights) {
-						const debugGraphics = npc.scene.add.graphics();
-						debugGraphics.fillStyle(0xffff00, 0.5);
-						debugGraphics.fillRect(
-							other.x - other.width/2,
-							other.y - other.height/2,
-							other.width,
-							other.height
-						);
-						npc.scene.time.delayedCall(100, () => debugGraphics.destroy());
-					}
-				}
-			});
-		});
-		
-		return collisions;
+		// Временный маршрут объезда
+		const originalRoute = [...npc.route];
+		const originalIndex = npc.routeIndex;
+		const returnPoint = isHorizontalMove ? 
+			{x: nextPoint.x, y: chosenOvertake.y} : 
+			{x: chosenOvertake.x, y: nextPoint.y};
+
+		npc.route = [
+			{x: npc.x, y: npc.y},  // Текущая позиция
+			chosenOvertake,         // Точка смещения
+			returnPoint,            // Возврат на линию маршрута
+			nextPoint               // Исходная цель
+		];
+		npc.routeIndex = 0;
+
+		// Контроль выполнения
+		const cleanup = () => {
+			if (npc.routeIndex >= 2) { // После возврата на маршрут
+				npc.route = originalRoute;
+				npc.routeIndex = originalIndex;
+				moveNPCToNextPoint(npc);
+			} else {
+				npc.scene.time.delayedCall(100, cleanup);
+			}
+		};
+		cleanup();
 	}
+
+	function isPathClear(npc, target) {
+		const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+		const steps = Math.ceil(distance / 5);
+		
+		for (let i = 0; i <= steps; i++) {
+			const checkX = npc.x + Math.cos(angle) * distance * (i/steps);
+			const checkY = npc.y + Math.sin(angle) * distance * (i/steps);
+			
+			// Проверка столкновений с NPC
+			if (npcs.some(other => 
+				other !== npc && 
+				other.active &&
+				Phaser.Math.Distance.Between(checkX, checkY, other.x, other.y) < npc.width
+			)) return false;
+			
+			// Проверка на дороге (если у вас есть коллайдер дорог)
+			if (!isOnRoad(checkX, checkY)) return false;
+		}
+		return true;
+	}
+
+	function isOnRoad(x, y) {
+		return combinedCollider.list.some(collider => 
+			x >= collider.x - collider.width/2 &&
+			x <= collider.x + collider.width/2 &&
+			y >= collider.y - collider.height/2 &&
+			y <= collider.y + collider.height/2
+		);
+	}
+
+    function checkSensorCollisions(npc, sensorName) {
+        if (!npc.sensors || !npc.sensors[sensorName]) return false;
+        
+        const sensor = npc.sensors[sensorName];
+        const sensorBounds = sensor.getBounds();
+        
+        return npcs.some(other => {
+            if (other === npc || !other.active) return false;
+            return Phaser.Geom.Intersects.RectangleToRectangle(
+                sensorBounds,
+                other.getBounds()
+            );
+        });
+    }
+
+    function visualizeOvertakeOptions(npc, leftClear, rightClear) {
+        const graphics = npc.scene.add.graphics();
+        
+        // Визуализация безопасных зон
+        if (leftClear) {
+            graphics.fillStyle(0xffffff, 0.5);
+            graphics.fillRect(
+                npc.x - npc.width - 20,
+                npc.y - npc.height/2,
+                20,
+                npc.height
+            );
+        }
+        
+        if (rightClear) {
+            graphics.fillStyle(0xffffff, 0.5);
+            graphics.fillRect(
+                npc.x + npc.width,
+                npc.y - npc.height/2,
+                20,
+                npc.height
+            );
+        }
+        
+        npc.scene.time.delayedCall(1000, () => graphics.destroy());
+    }
+
+	function performOvertake(npc, obstacle, direction) {
+		console.log(`NPC at (${npc.x.toFixed(0)}, ${npc.y.toFixed(0)}) объезжает ${direction} препятствие`);
+		
+		// Сохраняем оригинальный маршрут и текущую точку
+		const originalRoute = npc.route;
+		const originalIndex = npc.routeIndex;
+		const originalTarget = originalRoute[originalIndex];
+		
+		// Вычисляем точку объезда
+		const angleToObstacle = Phaser.Math.Angle.Between(npc.x, npc.y, obstacle.x, obstacle.y);
+		const overtakeDistance = npc.width * 2; // Увеличиваем дистанцию объезда
+		const overtakeAngle = angleToObstacle + (direction === 'left' ? -Math.PI/2 : Math.PI/2);
+		
+		// Точка смещения в сторону
+		const sidePoint = {
+			x: npc.x + Math.cos(overtakeAngle) * overtakeDistance,
+			y: npc.y + Math.sin(overtakeAngle) * overtakeDistance
+		};
+		
+		// Точка перед препятствием (сбоку)
+		const forwardPoint = {
+			x: sidePoint.x + Math.cos(angleToObstacle) * overtakeDistance,
+			y: sidePoint.y + Math.sin(angleToObstacle) * overtakeDistance
+		};
+		
+		// Точка возврата на маршрут
+		const returnPoint = {
+			x: forwardPoint.x - Math.cos(overtakeAngle) * overtakeDistance,
+			y: forwardPoint.y - Math.sin(overtakeAngle) * overtakeDistance
+		};
+		
+		// Временный маршрут объезда
+		npc.route = [
+			{ x: npc.x, y: npc.y },    // Текущая позиция
+			sidePoint,                  // Смещение в сторону
+			forwardPoint,               // Проезд вперед
+			returnPoint,                // Возврат на линию маршрута
+			originalTarget              // Оригинальная цель
+		];
+		npc.routeIndex = 0;
+		
+		// Восстановление оригинального маршрута
+		const cleanup = () => {
+			if (!npc.scene) return;
+			
+			// Проверяем, достигли ли мы точки возврата
+			if (npc.routeIndex >= 3) { // После проезда returnPoint
+				npc.route = originalRoute;
+				npc.routeIndex = originalIndex;
+				moveNPCToNextPoint(npc);
+			} else {
+				// Продолжаем движение по временному маршруту
+				npc.scene.time.delayedCall(100, cleanup);
+			}
+		};
+		
+		// Запускаем проверку завершения объезда
+		cleanup();
+	}
+
+	function performEmergencyReverse(npc) {
+		const originalRoute = [...npc.route];
+		const originalIndex = npc.routeIndex;
+		
+		// Точка заднего хода (на 2 длины NPC назад)
+		const reverseAngle = npc.rotation - Math.PI/2;
+		const reversePoint = {
+			x: npc.x + Math.cos(reverseAngle) * npc.width * 2,
+			y: npc.y + Math.sin(reverseAngle) * npc.width * 2
+		};
+		
+		// Временный маршрут
+		npc.route = [
+			{x: npc.x, y: npc.y},
+			reversePoint,
+			{x: npc.x, y: npc.y}  // Возврат на исходную позицию
+		];
+		npc.routeIndex = 0;
+
+		// Возврат на исходный маршрут через 2 секунды
+		npc.scene.time.delayedCall(2000, () => {
+			if (!npc.scene) return;
+			npc.route = originalRoute;
+			npc.routeIndex = originalIndex;
+			moveNPCToNextPoint(npc);
+		});
+	}
+
+    function updateSensors(npc) {
+      if (!npc.sensors) return;
+      
+      // Определяем, находится ли NPC в зоне парковки/выезда
+    const isParkingPhase = (
+      npc.routeIndex < PARKING_PHASE_POINTS || 
+      npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
+    );
+      
+      // Обновляем видимость (если в дебаг-режиме)
+      const shouldShow = showDebug && !isParkingPhase;
+      Object.values(npc.sensors).forEach(sensor => {
+        sensor.visible = shouldShow;
+      });
+
+      // Не обновляем позиции сенсоров в парковочной фазе
+      if (isParkingPhase) return;
+
+      // Стандартное обновление позиций сенсоров
+      const rotation = npc.rotation - Math.PI/2;
+      
+      // Фронтальный сенсор
+      npc.sensors.front.x = npc.x + Math.cos(rotation) * npcSensors.front.offset;
+      npc.sensors.front.y = npc.y + Math.sin(rotation) * npcSensors.front.offset;
+      npc.sensors.front.rotation = rotation;
+      
+      // Левый сенсор
+      npc.sensors.left.x = npc.x + Math.cos(rotation + Math.PI/2) * npcSensors.left.offset;
+      npc.sensors.left.y = npc.y + Math.sin(rotation + Math.PI/2) * npcSensors.left.offset;
+      npc.sensors.left.rotation = rotation;
+      
+      // Правый сенсор
+      npc.sensors.right.x = npc.x + Math.cos(rotation - Math.PI/2) * npcSensors.right.offset;
+      npc.sensors.right.y = npc.y + Math.sin(rotation - Math.PI/2) * npcSensors.right.offset;
+      npc.sensors.right.rotation = rotation;
+    }
+
+    function checkCollisions(npc) {
+        if (!npc.sensors || 
+            npc.routeIndex < PARKING_PHASE_POINTS || 
+            npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)) {
+            return [];
+        }
+
+        const collisions = [];
+        const npcBounds = npc.getBounds();
+        
+        // Оптимизация: проверяем только NPC в радиусе 200px
+        const nearbyNpcs = npcs.filter(other => {
+            return other !== npc && other.active && 
+                   Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y) < 200;
+        });
+
+        nearbyNpcs.forEach(other => {
+            Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
+                if (Phaser.Geom.Intersects.RectangleToRectangle(
+                    sensor.getBounds(),
+                    other.getBounds()
+                )) {
+                    collisions.push({
+                        npc: other,
+                        sensor: sensorName,
+                        distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
+                    });
+
+                    if (showDebug && showCollisionHighlights) {
+                        const debugGraphics = npc.scene.add.graphics();
+                        debugGraphics.fillStyle(0xffff00, 0.5);
+                        debugGraphics.fillRect(
+                            other.x - other.width/2,
+                            other.y - other.height/2,
+                            other.width,
+                            other.height
+                        );
+                        npc.scene.time.delayedCall(100, () => debugGraphics.destroy());
+                    }
+                }
+            });
+        });
+        
+        return collisions;
+    }
+
+    function handleFrontCollision(npc, collision) {
+        if (showDebug && showCollisionHighlights) {
+            const debugGraphics = npc.scene.add.graphics();
+            debugGraphics.fillStyle(0xff0000, 0.5);
+            debugGraphics.fillRect(
+                collision.npc.x - collision.npc.width/2,
+                collision.npc.y - collision.npc.height/2,
+                collision.npc.width,
+                collision.npc.height
+            );
+            npc.scene.time.delayedCall(1000, () => debugGraphics.destroy());
+        }
+
+        // Проверка приоритета
+        if (collision.npc.hasPriority && !npc.hasPriority) {
+            npc.scene.time.delayedCall(2000, () => {
+                if (!npc.scene) return;
+                npc.isWaiting = false;
+                moveNPCToNextPoint(npc);
+            });
+            return;
+        }
+
+        npc.preCollisionSpeed = npc.body.velocity.clone();
+        npc.setVelocity(0, 0);
+        npc.isWaiting = true;
+        
+        npc.scene.time.delayedCall(1000, () => {
+            if (!npc.scene) return;
+            
+            const newCollisions = checkCollisions(npc);
+            if (newCollisions.some(c => c.sensor === 'front')) {
+                tryOvertake(npc, collision.npc);
+            } else {
+                npc.isWaiting = false;
+                if (npc.preCollisionSpeed) {
+                    npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+                } else {
+                    moveNPCToNextPoint(npc);
+                }
+            }
+        });
+    }
 
     function preload() {
       this.load.image('lamp_top', 'assets/lamp_top.png');
@@ -577,6 +822,7 @@
 			const firstRouteType = npc.routeSequence[npc.currentRouteIndex];
 			npc.route = firstRouteType(npc.originalSpot);
 			npc.isCounterClockwise = firstRouteType.toString().includes('Counter');
+			npc.hasPriority = PRIORITY_ROUTES.includes(npc.currentRouteIndex);
 			
 			npc.routeIndex = 0;
 			npc.isWaiting = true;
@@ -726,117 +972,71 @@
       });
     }
 
-    // НОВЫЕ ФУНКЦИИ ДЛЯ ОБРАБОТКИ СТОЛКНОВЕНИЙ
-	function handleFrontCollision(npc, collision) {
-		// Подсветка только если включен дебаг и подсветка активна
-		if (showDebug && showCollisionHighlights) {
-			const obstacle = collision.npc;
-			const debugGraphics = npc.scene.add.graphics();
-			debugGraphics.fillStyle(0xff0000, 0.5);
-			debugGraphics.fillRect(
-				obstacle.x - obstacle.width/2,
-				obstacle.y - obstacle.height/2,
-				obstacle.width,
-				obstacle.height
-			);
-			npc.scene.time.delayedCall(1000, () => debugGraphics.destroy());
-		}
+    function update() {
+      const scene = this;
 
-		// Остальной код функции без изменений
-		npc.preCollisionSpeed = npc.body.velocity.clone();
-		npc.setVelocity(0, 0);
-		npc.isWaiting = true;
-		
-		npc.scene.time.delayedCall(1000, () => {
-			if (!npc.scene) return;
-			
-			const newCollisions = checkCollisions(npc);
-			if (newCollisions.some(c => c.sensor === 'front')) {
-				tryOvertake(npc, collision.npc);
-			} else {
-				npc.isWaiting = false;
-				if (npc.preCollisionSpeed) {
-					npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
-				} else {
-					moveNPCToNextPoint(npc);
-				}
-			}
-		});
-	}
+      npcs.forEach(npc => {
+        if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
 
-    function tryOvertake(npc, obstacle) {
-        console.log(`NPC at (${npc.x.toFixed(0)}, ${npc.y.toFixed(0)}) пытается объехать препятствие`);
+        // Обновляем позиции сенсоров
+        updateSensors(npc);
+
+        // Проверка столкновений
+        const collisions = checkCollisions(npc);
         
-        // Временное решение - просто продолжаем движение
-        npc.isWaiting = false;
-        moveNPCToNextPoint(npc);
+        // Обработка фронтальных столкновений
+        if (collisions.length > 0 && !npc.isWaiting && !npc.isInExitQueue) {
+          const frontCollision = collisions.find(c => c.sensor === 'front');
+          if (frontCollision) {
+            handleFrontCollision(npc, frontCollision);
+          }
+        }
+
+        // Оригинальная логика движения
+        if ((!npc.isWaiting && !npc.isInExitQueue) || npc.isExiting) {
+          const target = npc.route[npc.routeIndex];
+          if (!target || target.x === undefined || target.y === undefined) return;
+
+          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+
+          if (distance < 5) {
+            npc.routeIndex++;
+
+            if (npc.routeIndex >= npc.route.length) {
+              const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+              
+              const finalApproach = () => {
+                const remainingDist = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+                
+                if (remainingDist > 2) {
+                  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+                  npc.setVelocity(
+                    Math.cos(angle) * npcFinalApproachSpeed,
+                    Math.sin(angle) * npcFinalApproachSpeed
+                  );
+                  
+                  scene.time.delayedCall(50, finalApproach, [], scene);
+                } else {
+                  npc.x = originalPos.x;
+                  npc.y = originalPos.y;
+                  npc.setVelocity(0, 0);
+                  
+                  if (npc.isExiting) {
+                    handleNpcExit.call(scene, npc);
+                  } else {
+                    handleNpcParking.call(scene, npc);
+                  }
+                }
+              };
+              
+              finalApproach();
+              return;
+            }
+            moveNPCToNextPoint(npc);
+          }
+        }
+      });
     }
-
-	function update() {
-	  const scene = this;
-
-	  npcs.forEach(npc => {
-		if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
-
-		// Обновляем позиции сенсоров
-		updateSensors(npc);
-
-		// Проверка столкновений
-		const collisions = checkCollisions(npc);
-		
-		// Обработка фронтальных столкновений
-		if (collisions.length > 0 && !npc.isWaiting && !npc.isInExitQueue) {
-		  const frontCollision = collisions.find(c => c.sensor === 'front');
-		  if (frontCollision) {
-			handleFrontCollision(npc, frontCollision);
-		  }
-		}
-
-		// Оригинальная логика движения
-		if ((!npc.isWaiting && !npc.isInExitQueue) || npc.isExiting) {
-		  const target = npc.route[npc.routeIndex];
-		  if (!target || target.x === undefined || target.y === undefined) return;
-
-		  const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
-
-		  if (distance < 5) {
-			npc.routeIndex++;
-
-			if (npc.routeIndex >= npc.route.length) {
-			  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
-			  
-			  const finalApproach = () => {
-				const remainingDist = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
-				
-				if (remainingDist > 2) {
-				  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
-				  npc.setVelocity(
-					Math.cos(angle) * npcFinalApproachSpeed,
-					Math.sin(angle) * npcFinalApproachSpeed
-				  );
-				  
-				  scene.time.delayedCall(50, finalApproach, [], scene);
-				} else {
-				  npc.x = originalPos.x;
-				  npc.y = originalPos.y;
-				  npc.setVelocity(0, 0);
-				  
-				  if (npc.isExiting) {
-					handleNpcExit.call(scene, npc);
-				  } else {
-					handleNpcParking.call(scene, npc);
-				  }
-				}
-			  };
-			  
-			  finalApproach();
-			  return;
-			}
-			moveNPCToNextPoint(npc);
-		  }
-		}
-	  });
-	}
 
     function handleNpcExit(npc) {
       const scene = this;
@@ -849,6 +1049,7 @@
         const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
         npc.route = nextRouteType(npc.originalSpot);
         npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+        npc.hasPriority = PRIORITY_ROUTES.includes(npc.currentRouteIndex);
         npc.routeIndex = 0;
         npc.isWaiting = false;
         
@@ -863,6 +1064,7 @@
       const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
       npc.route = nextRouteType(npc.originalSpot);
       npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+      npc.hasPriority = PRIORITY_ROUTES.includes(npc.currentRouteIndex);
       npc.routeIndex = 0;
       npc.isWaiting = true;
 
@@ -880,44 +1082,44 @@
       }
     }
     
-	function moveNPCToNextPoint(npc) {
-	  // Управление видимостью сенсоров (остаётся без изменений)
-	  const isParkingPhase = (
-		npc.routeIndex < PARKING_PHASE_POINTS || 
-		npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
-	  );
-	  
-	  if (npc.sensors) {
-		Object.values(npc.sensors).forEach(s => {
-		  s.visible = showDebug && !isParkingPhase;
-		});
-	  }
+    function moveNPCToNextPoint(npc) {
+      // Управление видимостью сенсоров
+      const isParkingPhase = (
+        npc.routeIndex < PARKING_PHASE_POINTS || 
+        npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
+      );
+      
+      if (npc.sensors) {
+        Object.values(npc.sensors).forEach(s => {
+          s.visible = showDebug && !isParkingPhase;
+        });
+      }
 
-	  // Логика движения
-	  if (!npc.route || !npc.route[npc.routeIndex]) return;
+      // Логика движения
+      if (!npc.route || !npc.route[npc.routeIndex]) return;
 
-	  const target = npc.route[npc.routeIndex];
-	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-	  let speed = npcSpeed; // Стандартная скорость по умолчанию
+      const target = npc.route[npc.routeIndex];
+      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+      let speed = npcSpeed; // Стандартная скорость по умолчанию
 
-	  // Определение фаз движения
-	  const isApproachPhase = npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS;
-	  const isExitPhase = npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS;
+      // Определение фаз движения
+      const isApproachPhase = npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS;
+      const isExitPhase = npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS;
 
-	  // Приоритеты: Парковка > Выезд > Обычное движение
-	  if (isApproachPhase) {
-		speed = npcFinalApproachSpeed; // Медленная скорость при парковке
-	  } 
-	  else if (isExitPhase) {
-		speed = npcExitSpeed; // Средняя скорость при выезде
-	  }
+      // Приоритеты: Парковка > Выезд > Обычное движение
+      if (isApproachPhase) {
+        speed = npcFinalApproachSpeed; // Медленная скорость при парковке
+      } 
+      else if (isExitPhase) {
+        speed = npcExitSpeed; // Средняя скорость при выезде
+      }
 
-	  npc.setVelocity(
-		Math.cos(angle) * speed,
-		Math.sin(angle) * speed
-	  );
-	  npc.rotation = angle + Math.PI/2;
-	}
+      npc.setVelocity(
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed
+      );
+      npc.rotation = angle + Math.PI/2;
+    }
 
   </script>
 </head>
