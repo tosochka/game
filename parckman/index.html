@@ -110,21 +110,21 @@
     // Парковочные места
     const upperLeftParkingSpots = [
 		{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
-		{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
-		{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
-		{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
+	//	{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
+	//	{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
+	//	{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
     ];
 	
     const upperRightParkingSpots = [
-        { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
-		{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
-		{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
-		{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
+    //    { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
+	//	{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
+	//	{ x: 1094, y: 1130 }, //{ x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
+	//	{ x: 1094, y: 1420 }, //{ x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
     ];
 	
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
 
-    // Все 13 маршрутов
+    // Все 15 маршрутов
     const allPossibleRoutes = [
       // 1. Полный круг по часовой стрелке
       function clockwiseRoute(spot) {
@@ -196,7 +196,7 @@
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 10. Правая половина против часовой стрелки
+      // 8. Правая половина против часовой стрелки
       function rightHalfCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -206,7 +206,7 @@
           { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 8. Правая верхняя четверть по часовой стрелке
+      // 9. Правая верхняя четверть по часовой стрелке
       function rightUpperQuarterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -216,7 +216,7 @@
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 9. Правая верхняя четверть против часовой стрелки
+      //10. Правая верхняя четверть против часовой стрелки
       function rightUpperQuarterCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -236,7 +236,7 @@
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      //11.1 Правая верхняя малая половина против часовой стрелки
+      // 12. Правая верхняя малая половина против часовой стрелки
       function rightUpperQuarterCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -246,7 +246,7 @@
           { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-     // 12. Левая верхняя малая половина по часовой стрелке
+     // 13. Левая верхняя малая половина по часовой стрелке
       function rightUpperHalfClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -256,7 +256,7 @@
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 12.1 Левая верхняя малая половина против часовой стрелки
+      // 14 Левая верхняя малая половина против часовой стрелки
       function leftSmallCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
@@ -266,8 +266,8 @@
           { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },	  
-      // 13. Левая половина против часовой стрелки
-      function leftSmallCounterClockwiseRoute(spot) {
+      // 15. Левая половина против часовой стрелки
+      function leftBigHalfCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
@@ -448,201 +448,201 @@
     }
 		
 	function create() {
-	  // Фон
-	  const background = this.add.image(400, 400, 'background');
-	  background.setDisplaySize(800, 800);
+		// Фон
+		const background = this.add.image(400, 400, 'background');
+		background.setDisplaySize(800, 800);
 
-	  // Создание единого коллайдера для всех дорог и парковочных мест
-	  createCombinedCollider(this);
+		// Создание единого коллайдера для всех дорог и парковочных мест
+		createCombinedCollider(this);
 
-	  // Дебаг графика для визуализации
-	  debugGraphics = this.add.graphics();
-	  debugGraphics.setDepth(20);
-	  if (showDebug) {
-		drawDebugColliders(this);
-	  }
+		// Дебаг графика для визуализации
+		debugGraphics = this.add.graphics();
+		debugGraphics.setDepth(20);
+		if (showDebug) {
+			drawDebugColliders(this);
+		}
 
-	  // Функция создания невидимых парковочных мест
-	  const createInvisibleParkingSpots = (scene) => {
-		allParkingSpots.forEach(spot => {
-		  const { x, y } = scaleCoords(spot.x, spot.y);
-		  const parkingSpot = scene.add.rectangle(
-			x, y,
-			parkingSpotWidth * scaleFactor,
-			parkingSpotHeight * scaleFactor,
-			0x000000,
-			0
-		  ).setOrigin(0.5);
-		  scene.physics.add.existing(parkingSpot, true);
-		});
-	  };
-
-	  // Функция создания невидимых дорог
-	  const createInvisibleRoads = (scene) => {
-		const roads = [
-		  { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },  // 1. Горизонтальная дорога у входа (нижняя часть карты)
-		  { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },  // 2. Левая вертикальная дорога (от входа до верха)
-		  { x: 1618 + 32 + 120/2, y: 237 + 1526/2, width: 120 + 64, height: 1526 },  // 3. Правая вертикальная дорога (от низа до верха)
-		  { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },  // 4. Верхняя горизонтальная дорога (левая часть)
-		  { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },  // 5. Нижняя горизонтальная дорога (левая часть)
-		  { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },  // 6. Центральная горизонтальная дорога (соединяет левую и правую части)
-		  { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },  // 7. Центральная вертикальная дорога (соединяет верхние и нижние части)
-		  { x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },  // 8. Верхняя горизонтальная разделительная полоса (между парковками)
-		  { x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }  // 9. Нижняя горизонтальная разделительная полоса (между парковками)
-		];
-
-		roads.forEach(road => {
-		  const { x, y } = scaleCoords(road.x, road.y, true);
-		  const roadRect = scene.add.rectangle(
-			x, y,
-			road.width * scaleFactor,
-			road.height * scaleFactor,
-			0x000000,
-			0
-		  ).setOrigin(0.5);
-		  scene.physics.add.existing(roadRect, true);
-		});
-	  };
-
-	  // Создаем невидимые объекты
-	  createInvisibleParkingSpots(this);
-	  createInvisibleRoads(this);
-
-	  // Функция создания входа и павильона
-	  const createEntranceAndPavilion = (scene) => {
-		// Въезд
-		const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
-		scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
-
-		// Павильон
-		const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
-		scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
-	  };
-
-	  // Функция создания декоративных элементов
-	  const createDecorativeLayer = (scene) => {
-		// Смещения для декоративных элементов
-		const grassOffsetX = 0, grassOffsetY = 20;
-		const treeOffsetX = 45, treeOffsetY = 35;
-		const bushOffsetX = 35, bushOffsetY = 25;
-		const oilOffsetX = 15, oilOffsetY = 23;
-
-		// Координаты элементов
-		const lampTopCoords = scaleCoords(850+90, 223+170);
-		const lampBottomCoords = scaleCoords(854+90, 1650-140);
-		const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
-		const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY);
-		const tree2Coords = scaleCoords(100 + 10, 900 - 300);
-		const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
-		const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
-
-		// Создание элементов
-		const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
-		const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
-		const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
-		const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
-		const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);
-		const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
-		const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
-
-		// Установка глубины отображения
-		lampTop.setDepth(11);
-		lampBottom.setDepth(11);
-		grass1.setDepth(2);
-		tree1.setDepth(10);
-		tree2.setDepth(10);
-		bush1.setDepth(10);
-		oil.setDepth(2);
-	  };
-
-	  // Создаем декорации
-	  createEntranceAndPavilion(this);
-	  createDecorativeLayer(this);
-
-	  // Создание NPC с сенсорами
-	  const shuffledSpots = Phaser.Utils.Array.Shuffle([...allParkingSpots]);
-	  npcs = shuffledSpots.map((spot) => {
-		const { x, y } = scaleCoords(spot.x, spot.y);
-		const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
-		npc.setCollideWorldBounds(true);
-		
-		// Система маршрутов
-		npc.originalSpot = spot;
-		npc.routeSequence = createShuffledRouteSequence();
-		npc.currentRouteIndex = 0;
-		
-		// Определяем направление перед началом движения
-		const firstRouteType = npc.routeSequence[npc.currentRouteIndex];
-		npc.route = firstRouteType(npc.originalSpot);
-		npc.isCounterClockwise = firstRouteType.toString().includes('Counter');
-		
-		npc.routeIndex = 0;
-		npc.isWaiting = true;
-		npc.isInExitQueue = true;
-		npc.isExiting = false;
-
-		// Добавляем сенсоры (скрытые по умолчанию)
-		npc.sensors = {
-		  front: this.add.rectangle(0, 0, npcSensors.front.width, npcSensors.front.height, npcSensors.debugColor, npcSensors.debugAlpha)
-			.setVisible(false)
-			.setDepth(15),
-		  left: this.add.rectangle(0, 0, npcSensors.left.width, npcSensors.left.height, npcSensors.debugColor, npcSensors.debugAlpha)
-			.setVisible(false)
-			.setDepth(15),
-		  right: this.add.rectangle(0, 0, npcSensors.right.width, npcSensors.right.height, npcSensors.debugColor, npcSensors.debugAlpha)
-			.setVisible(false)
-			.setDepth(15)
+		// Функция создания невидимых парковочных мест
+		const createInvisibleParkingSpots = (scene) => {
+			allParkingSpots.forEach(spot => {
+				const { x, y } = scaleCoords(spot.x, spot.y);
+				const parkingSpot = scene.add.rectangle(
+					x, y,
+					parkingSpotWidth * scaleFactor,
+					parkingSpotHeight * scaleFactor,
+					0x000000,
+					0
+				).setOrigin(0.5);
+				scene.physics.add.existing(parkingSpot, true);
+			});
 		};
 
-		// Добавляем в очередь выезда
-		exitQueue.push(npc);
+		// Функция создания невидимых дорог
+		const createInvisibleRoads = (scene) => {
+			const roads = [
+				{ x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
+				{ x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
+				{ x: 1618 + 32 + 120/2, y: 237 + 1526/2, width: 120 + 64, height: 1526 },
+				{ x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
+				{ x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
+				{ x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
+				{ x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },
+				{ x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },
+				{ x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }
+			];
 
-		// Задержка перед началом движения
-		this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
-		  if (!npc.isInExitQueue) {
-			npc.isWaiting = false;
-			moveNPCToNextPoint(npc);
-		  }
+			roads.forEach(road => {
+				const { x, y } = scaleCoords(road.x, road.y, true);
+				const roadRect = scene.add.rectangle(
+					x, y,
+					road.width * scaleFactor,
+					road.height * scaleFactor,
+					0x000000,
+					0
+				).setOrigin(0.5);
+				scene.physics.add.existing(roadRect, true);
+			});
+		};
+
+		// Создаем невидимые объекты
+		createInvisibleParkingSpots(this);
+		createInvisibleRoads(this);
+
+		// Функция создания входа и павильона
+		const createEntranceAndPavilion = (scene) => {
+			// Въезд
+			const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
+			scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
+
+			// Павильон
+			const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
+			scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
+		};
+
+		// Функция создания декоративных элементов
+		const createDecorativeLayer = (scene) => {
+			// Смещения для декоративных элементов
+			const grassOffsetX = 0, grassOffsetY = 20;
+			const treeOffsetX = 45, treeOffsetY = 35;
+			const bushOffsetX = 35, bushOffsetY = 25;
+			const oilOffsetX = 15, oilOffsetY = 23;
+
+			// Координаты элементов
+			const lampTopCoords = scaleCoords(850+90, 223+170);
+			const lampBottomCoords = scaleCoords(854+90, 1650-140);
+			const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
+			const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY);
+			const tree2Coords = scaleCoords(100 + 10, 900 - 300);
+			const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
+			const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
+
+			// Создание элементов
+			const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
+			const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
+			const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
+			const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
+			const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);
+			const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
+			const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
+
+			// Установка глубины отображения
+			lampTop.setDepth(11);
+			lampBottom.setDepth(11);
+			grass1.setDepth(2);
+			tree1.setDepth(10);
+			tree2.setDepth(10);
+			bush1.setDepth(10);
+			oil.setDepth(2);
+		};
+
+		// Создаем декорации
+		createEntranceAndPavilion(this);
+		createDecorativeLayer(this);
+
+		// Создание NPC с сенсорами
+		const shuffledSpots = Phaser.Utils.Array.Shuffle([...allParkingSpots]);
+		npcs = shuffledSpots.map((spot) => {
+			const { x, y } = scaleCoords(spot.x, spot.y);
+			const npc = this.physics.add.sprite(x, y, 'npcCar')
+				.setScale(0.5)
+				.setDepth(3)
+				.setCollideWorldBounds(true);
+			
+			// Система маршрутов
+			npc.originalSpot = spot;
+			npc.routeSequence = createShuffledRouteSequence();
+			npc.currentRouteIndex = 0;
+			
+			// Определяем направление перед началом движения
+			const firstRouteType = npc.routeSequence[npc.currentRouteIndex];
+			npc.route = firstRouteType(npc.originalSpot);
+			npc.isCounterClockwise = firstRouteType.toString().includes('Counter');
+			
+			npc.routeIndex = 0;
+			npc.isWaiting = true;
+			npc.isInExitQueue = true;
+			npc.isExiting = false;
+
+			// Добавляем сенсоры (скрытые по умолчанию)
+			npc.sensors = {
+				front: this.add.rectangle(0, 0, npcSensors.front.width, npcSensors.front.height, npcSensors.debugColor, npcSensors.debugAlpha)
+					.setVisible(false)
+					.setDepth(15),
+				left: this.add.rectangle(0, 0, npcSensors.left.width, npcSensors.left.height, npcSensors.debugColor, npcSensors.debugAlpha)
+					.setVisible(false)
+					.setDepth(15),
+				right: this.add.rectangle(0, 0, npcSensors.right.width, npcSensors.right.height, npcSensors.debugColor, npcSensors.debugAlpha)
+					.setVisible(false)
+					.setDepth(15)
+			};
+
+			// Добавляем в очередь выезда
+			exitQueue.push(npc);
+
+			// Задержка перед началом движения
+			this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
+				if (!npc.isInExitQueue) {
+					npc.isWaiting = false;
+					moveNPCToNextPoint(npc);
+				}
+			});
+			
+			return npc;
+		});
+
+		// Запускаем обработчик очереди
+		processExitQueue();
+		
+		// Добавляем обработчик клавиш для отладки
+		this.input.keyboard.on('keydown-D', () => {
+			showDebug = !showDebug;
+			debugGraphics.clear();
+			
+			if (showDebug) {
+				drawDebugColliders(this);
+			}
+			
+			// Переключаем видимость сенсоров с учётом парковочной фазы
+			npcs.forEach(npc => {
+				if (!npc.sensors) return;
+				
+				const isParkingPhase = (
+					npc.routeIndex < PARKING_PHASE_POINTS || 
+					npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
+				);
+				
+				Object.values(npc.sensors).forEach(sensor => {
+					sensor.visible = showDebug && !isParkingPhase;
+				});
+			});
 		});
 		
-		return npc;
-	  });
-
-	  // Запускаем обработчик очереди
-	  processExitQueue();
-	  
-
-	  // Добавляем обработчик клавиш для отладки
-	  this.input.keyboard.on('keydown-D', () => {
-		showDebug = !showDebug;
-		debugGraphics.clear();
-		
-		if (showDebug) {
-		  drawDebugColliders(this);
-		}
-		
-		// Переключаем видимость сенсоров с учётом парковочной фазы
-		npcs.forEach(npc => {
-		  if (!npc.sensors) return;
-		  
-		const isParkingPhase = (
-		  npc.routeIndex < PARKING_PHASE_POINTS || 
-		  npc.routeIndex > npc.route.length - (PARKING_PHASE_POINTS + 1)
-		);
-		  
-		  Object.values(npc.sensors).forEach(sensor => {
-			sensor.visible = showDebug && !isParkingPhase;
-		  });
+		this.input.keyboard.on('keydown-H', () => {
+			if (showDebug) {
+				showCollisionHighlights = !showCollisionHighlights;
+				console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
+			}
 		});
-	  });
-	  
-      this.input.keyboard.on('keydown-H', () => {
-          if (showDebug) {
-              showCollisionHighlights = !showCollisionHighlights;
-              console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
-          }
-      });
-	  
 	}
 
     function createCombinedCollider(scene) {
