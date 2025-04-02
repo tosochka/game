@@ -33,7 +33,7 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
     // Конфигурация NPC
-    const npcSpeed = 60;
+    const npcSpeed = 90;
     const npcParkingSpeed = 30;
     const npcFinalApproachSpeed = 40;
     const npcExitSpeed = 20;
@@ -634,7 +634,7 @@
       npcs = shuffledSpots.map((spot) => {
         const { x, y } = scaleCoords(spot.x, spot.y);
         const npc = this.physics.add.sprite(x, y, 'npcCar')
-          .setScale(0.4)
+          .setScale(0.45)
           .setDepth(3)
           .setCollideWorldBounds(true);
         
