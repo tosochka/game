@@ -42,7 +42,7 @@
     const REVERSE_CHECK_DELAY = 5000;
     const MAX_REVERSE_ATTEMPTS = 3;
     const SCENE_BOUNDS_PADDING = 50;
-    const COLLISION_WAIT_TIME = 2250;
+    const COLLISION_WAIT_TIME = 1200; // Уменьшено до 1 секунды
     const NO_REVERSE_WAIT_TIME = 2000;
     const PARKING_START_POINTS = 1;
     const PARKING_END_POINTS = 3;
@@ -173,87 +173,112 @@
       return collisions;
     }
 
-    // Объезд препятствия
-	function avoidObstacle(npc, obstacle) {
-		if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex]) return;
-		
-		npc.isAvoiding = true;
-		// Сохраняем не только скорость, но и текущую точку маршрута
-		npc.preAvoidState = {
-			velocity: npc.body.velocity.clone(),
-			routeIndex: npc.routeIndex,
-			target: {...npc.route[npc.routeIndex]}
-		};
-		
-		// Определяем направление объезда
-		let avoidAngle;
-		if (obstacle.sensor === 'left') {
-			avoidAngle = npc.rotation - Math.PI/4; // Вправо
-		} else if (obstacle.sensor === 'right') {
-			avoidAngle = npc.rotation + Math.PI/4; // Влево
-		} else {
-			// Для фронтальных - случайное направление
-			avoidAngle = npc.rotation + (Math.random() > 0.5 ? Math.PI/4 : -Math.PI/4);
-		}
-		
-		// Задаем временную скорость для объезда (70% от обычной скорости)
-		const avoidSpeed = npcSpeed * 0.7;
-		npc.setVelocity(
-			Math.cos(avoidAngle - Math.PI/2) * avoidSpeed,
-			Math.sin(avoidAngle - Math.PI/2) * avoidSpeed
-		);
-		
-		// Проверка на выход за границы во время объезда
-		const boundsCheck = () => {
-			if (!npc.active) return;
-			
-			if (isOutOfBounds(npc)) {
-				npc.isAvoiding = false;
-				returnToSafePosition(npc);
-				return;
-			}
-			
-			if (npc.isAvoiding) {
-				npc.scene.time.delayedCall(100, boundsCheck, [], npc.scene);
-			}
-		};
-		
-		boundsCheck();
-		
-		// Возврат к нормальному движению через 500 мс
-		npc.scene.time.delayedCall(500, () => {
-			if (npc.active && npc.isAvoiding) {
-				npc.isAvoiding = false;
-				
-				// Восстанавливаем движение к текущей точке маршрута, а не просто скорость
-				if (npc.preAvoidState && npc.route && npc.route[npc.routeIndex]) {
-					const target = npc.route[npc.routeIndex];
-					const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-					
-					// Определяем правильную скорость в зависимости от фазы движения
-					let speed;
-					const isExitPhase = npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS;
-					const isApproachPhase = npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS;
-					
-					if (isExitPhase) {
-						speed = npcExitSpeed;
-					} else if (isApproachPhase) {
-						speed = npcFinalApproachSpeed;
-					} else {
-						speed = npcSpeed;
-					}
-					
-					npc.setVelocity(
-						Math.cos(angle) * speed,
-						Math.sin(angle) * speed
-					);
-					npc.rotation = angle + Math.PI/2;
-				}
-			}
-		});
-	}
+    // Обработка фронтального столкновения
+    function handleFrontCollision(npc, collision) {
+      if (npc.isWaiting || npc.isReversing || npc.isAvoiding) return;
+      
+      // 1. Мгновенная остановка
+      npc.preCollisionSpeed = npc.body.velocity.clone();
+      npc.setVelocity(0, 0);
+      npc.isWaiting = true;
+      
+      // 2. Короткая пауза (1 секунда)
+      npc.scene.time.delayedCall(COLLISION_WAIT_TIME, () => {
+        if (!npc.scene || !npc.active) return;
+        
+        // 3. Проверка после паузы
+        const newCollisions = checkSensors(npc);
+        if (newCollisions.some(c => c.sensor === 'front')) {
+          // Если препятствие осталось - запускаем объезд
+          avoidObstacle(npc, newCollisions.find(c => c.sensor === 'front'));
+        } else {
+          // Если путь свободен - продолжаем движение
+          npc.isWaiting = false;
+          if (npc.preCollisionSpeed) {
+            npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+          } else {
+            moveNPCToNextPoint(npc);
+          }
+        }
+      });
+    }
 
-    // ========== ОРИГИНАЛЬНЫЕ ФУНКЦИИ С ДОПОЛНЕНИЯМИ ==========
+    // Объезд препятствия
+    function avoidObstacle(npc, obstacle) {
+      if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex]) return;
+      
+      npc.isAvoiding = true;
+      npc.preAvoidState = {
+        velocity: npc.body.velocity.clone(),
+        routeIndex: npc.routeIndex,
+        target: {...npc.route[npc.routeIndex]}
+      };
+      
+      // Определяем направление объезда
+      let avoidAngle;
+      if (obstacle.sensor === 'left') {
+        avoidAngle = npc.rotation - Math.PI/4; // Вправо
+      } else if (obstacle.sensor === 'right') {
+        avoidAngle = npc.rotation + Math.PI/4; // Влево
+      } else {
+        avoidAngle = npc.rotation + (Math.random() > 0.5 ? Math.PI/4 : -Math.PI/4);
+      }
+      
+      const avoidSpeed = npcSpeed * 0.7;
+      npc.setVelocity(
+        Math.cos(avoidAngle - Math.PI/2) * avoidSpeed,
+        Math.sin(avoidAngle - Math.PI/2) * avoidSpeed
+      );
+      
+      // Проверка на выход за границы
+      const boundsCheck = () => {
+        if (!npc.active) return;
+        
+        if (isOutOfBounds(npc)) {
+          npc.isAvoiding = false;
+          returnToSafePosition(npc);
+          return;
+        }
+        
+        if (npc.isAvoiding) {
+          npc.scene.time.delayedCall(100, boundsCheck, [], npc.scene);
+        }
+      };
+      
+      boundsCheck();
+      
+      // Возврат к нормальному движению через 500 мс
+      npc.scene.time.delayedCall(500, () => {
+        if (npc.active && npc.isAvoiding) {
+          npc.isAvoiding = false;
+          
+          if (npc.preAvoidState && npc.route && npc.route[npc.routeIndex]) {
+            const target = npc.route[npc.routeIndex];
+            const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+            
+            let speed;
+            const isExitPhase = npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS;
+            const isApproachPhase = npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS;
+            
+            if (isExitPhase) {
+              speed = npcExitSpeed;
+            } else if (isApproachPhase) {
+              speed = npcFinalApproachSpeed;
+            } else {
+              speed = npcSpeed;
+            }
+            
+            npc.setVelocity(
+              Math.cos(angle) * speed,
+              Math.sin(angle) * speed
+            );
+            npc.rotation = angle + Math.PI/2;
+          }
+        }
+      });
+    }
+
+    // ========== ОРИГИНАЛЬНЫЕ ФУНКЦИИ ==========
 
     function scaleCoords(x, y, isRoad = false) {
       const parkingSpotWidth = 59;
@@ -634,7 +659,7 @@
       npcs = shuffledSpots.map((spot) => {
         const { x, y } = scaleCoords(spot.x, spot.y);
         const npc = this.physics.add.sprite(x, y, 'npcCar')
-          .setScale(0.47)
+          .setScale(0.48)
           .setDepth(3)
           .setCollideWorldBounds(true);
         
@@ -709,13 +734,11 @@
         npcs,
         npcs,
         (npc1, npc2) => {
-          // Проверяем, кто из NPC должен объехать
           if (npc1.isAvoiding || npc2.isAvoiding) return;
           
           const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
           const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
           
-          // Проверяем сенсоры для определения направления объезда
           const sensorCollisions = checkSensors(avoidingNpc);
           const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
           const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
@@ -725,7 +748,6 @@
           } else if (rightCollision) {
             avoidObstacle(avoidingNpc, rightCollision);
           } else {
-            // Если нет данных с сенсоров - случайное направление
             avoidObstacle(avoidingNpc, { sensor: 'front' });
           }
         }
@@ -807,81 +829,76 @@
       });
     }
 
-	function update() {
-		const scene = this;
+    function update() {
+      const scene = this;
 
-		npcs.forEach(npc => {
-			if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
+      npcs.forEach(npc => {
+        if (!npc || !npc.route || !npc.route[npc.routeIndex]) return;
 
-			// Обновляем сенсоры
-			updateSensors(npc);
-			
-			// Пропускаем обработку для NPC в режиме отката или объезда
-			if (npc.isReversing || npc.isAvoiding) {
-				return;
-			}
+        updateSensors(npc);
+        
+        if (npc.isReversing || npc.isAvoiding) {
+          return;
+        }
 
-			// Проверка столкновений сенсоров
-			const sensorCollisions = checkSensors(npc);
-			if (sensorCollisions.length > 0 && !npc.isWaiting && !npc.isInExitQueue) {
-				const frontCollision = sensorCollisions.find(c => c.sensor === 'front');
-				if (frontCollision && !npc.isAvoiding) {
-					avoidObstacle(npc, frontCollision);
-				}
-			}
+        const sensorCollisions = checkSensors(npc);
+        if (sensorCollisions.length > 0 && !npc.isWaiting && !npc.isInExitQueue) {
+          const frontCollision = sensorCollisions.find(c => c.sensor === 'front');
+          if (frontCollision && !npc.isAvoiding) {
+            handleFrontCollision(npc, frontCollision);
+          }
+        }
 
-			// Логика движения
-			if ((!npc.isWaiting && !npc.isInExitQueue) || npc.isExiting) {
-				const target = npc.route[npc.routeIndex];
-				if (!target || target.x === undefined || target.y === undefined) return;
+        if ((!npc.isWaiting && !npc.isInExitQueue) || npc.isExiting) {
+          const target = npc.route[npc.routeIndex];
+          if (!target || target.x === undefined || target.y === undefined) return;
 
-				const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
-				if (distance < 5) {
-					npc.routeIndex++;
+          if (distance < 5) {
+            npc.routeIndex++;
 
-					if (npc.routeIndex >= npc.route.length) {
-						handleRouteCompletion(npc);
-						return;
-					}
-					
-					// Обновляем движение к следующей точке
-					moveNPCToNextPoint(npc);
-				}
-			}
-		});
-	}
-	
-	function handleRouteCompletion(npc) {
-		const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
-		const finalApproach = () => {
-			const remainingDist = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
-			
-			if (remainingDist > 2) {
-				const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
-				npc.setVelocity(
-					Math.cos(angle) * npcFinalApproachSpeed,
-					Math.sin(angle) * npcFinalApproachSpeed
-				);
-				npc.rotation = angle + Math.PI/2;
-				
-				npc.scene.time.delayedCall(50, finalApproach, [], npc.scene);
-			} else {
-				npc.x = originalPos.x;
-				npc.y = originalPos.y;
-				npc.setVelocity(0, 0);
-				npc.isExiting = false;
-				
-				if (npc.isExiting) {
-					handleNpcExit.call(npc.scene, npc);
-				} else {
-					handleNpcParking.call(npc.scene, npc);
-				}
-			}
-		};
-		
-		finalApproach();
-	}	
+            if (npc.routeIndex >= npc.route.length) {
+              handleRouteCompletion(npc);
+              return;
+            }
+            
+            moveNPCToNextPoint(npc);
+          }
+        }
+      });
+    }
+    
+    function handleRouteCompletion(npc) {
+      const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+      const finalApproach = () => {
+        const remainingDist = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+        
+        if (remainingDist > 2) {
+          const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+          npc.setVelocity(
+            Math.cos(angle) * npcFinalApproachSpeed,
+            Math.sin(angle) * npcFinalApproachSpeed
+          );
+          npc.rotation = angle + Math.PI/2;
+          
+          npc.scene.time.delayedCall(50, finalApproach, [], npc.scene);
+        } else {
+          npc.x = originalPos.x;
+          npc.y = originalPos.y;
+          npc.setVelocity(0, 0);
+          npc.isExiting = false;
+          
+          if (npc.isExiting) {
+            handleNpcExit.call(npc.scene, npc);
+          } else {
+            handleNpcParking.call(npc.scene, npc);
+          }
+        }
+      };
+      
+      finalApproach();
+    }	
 
     function handleNpcExit(npc) {
       const scene = this;
@@ -966,17 +983,12 @@
 
     // Парковочные места
     const upperLeftParkingSpots = [
-      { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, //{ x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },
-    //  { x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 },
-    //  { x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 },
-    //  { x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 }  
+      { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 },
     ];
     
     const upperRightParkingSpots = [
-      { x: 1094, y: 380 }, //{ x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 },
-      { x: 1094, y: 674 }, //{ x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 },
-      { x: 1094, y: 1130 }, //{ x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 },
-      { x: 1094, y: 1420 }, //{ x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 }
+      { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 },
+      { x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 }
     ];
     
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
