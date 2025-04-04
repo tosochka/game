@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Rush</title>
+  <title>Parking Rush с объездами</title>
   <style>
     body, html {
       margin: 0;
@@ -32,31 +32,35 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
-        /*
-      ============================================
-      ОПИСАНИЕ ИГРЫ "MASTER PARKING"
-      ============================================
+    // Конфигурация NPC
+    const npcSpeed = 60;
+    const npcParkingSpeed = 30;
+    const npcFinalApproachSpeed = 40;
+    const npcExitSpeed = 20;
+    const REVERSE_SPEED = 40;
+    const MAX_REVERSE_TIME = 1;
+    const REVERSE_CHECK_DELAY = 5000;
+    const MAX_REVERSE_ATTEMPTS = 3;
+    const SCENE_BOUNDS_PADDING = 50;
+    const COLLISION_WAIT_TIME = 1000;
+    const NO_REVERSE_WAIT_TIME = 2000;
+    const PARKING_START_POINTS = 1;
+    const PARKING_END_POINTS = 3;
+    const FINAL_APPROACH_POINTS = 3;
+    const EXIT_PHASE_POINTS = 3;
+    const PARKING_EXIT_DELAY = 4000;
+    const NPC_PER_ROW = 2;
+    const ROWS_COUNT = 8;
 
-      Цель игры:
-      Игрок должен как можно быстрее и точнее припарковать автомобиль на заданное парковочное место.
-      На пути игрока встречаются препятствия: другие автомобили (NPC), мотоциклисты, пешеходы и т.д.
+    // Конфигурация сенсоров
+    const npcSensors = {
+      front: { width: 27, height: 17, offset: 25 },
+      left: { width: 20, height: 10, offset: 10 },
+      right: { width: 20, height:10, offset:10 },
+      debugColor: 0xff0000,
+      debugAlpha: 0.3
+    };
 
-      Базовая механика:
-      1. Игрок управляет автомобилем, который может двигаться только по дорогам.
-      2. На карте есть парковочные места, на которые нужно припарковаться.
-      3. NPC (другие автомобили, мотоциклисты, пешеходы) двигаются по своим маршрутам и создают препятствия.
-      4. Игрок должен избегать столкновений с NPC и другими объектами.
-      5. Победа засчитывается, когда игрок успешно паркуется на заданное место за минимальное время.
-
-      Особенности:
-      - Дороги: все объекты (игрок и NPC) могут двигаться только по дорогам.
-      - Парковочные места: на них могут стоять NPC, и на одно из них нужно припарковаться.
-      - NPC: двигаются по заданным маршрутам, могут заезжать и выезжать с парковочных мест.
-      - Физика: реализована с использованием движка Phaser 3 (arcade physics).
-
-      ============================================
-     */ 
-  
     const config = {
       type: Phaser.AUTO,
       width: 800,
@@ -81,204 +85,99 @@
     };
 
     const game = new Phaser.Game(config);
-
-    // Конфигурация
-    const parkingSpotWidth = 59;
-    const parkingSpotHeight = 85;
-    const scaleFactor = 0.4;
-    const offsetX = (parkingSpotWidth / 2) * scaleFactor;
-    const offsetY = (parkingSpotHeight / 2) * scaleFactor;
-    const roadOffsetX = -12;
-    const roadOffsetY = -16;
-    const npcWidth = 40;
-    const npcOffset = npcWidth / 2;
-
+    let npcs = [];
+    let lastExitTime = 0;
+    let exitQueue = [];
+    let debugGraphics;
+    let showDebug = false;
+    let showCollisionHighlights = true;
+    let combinedCollider;
 
     // Парковочные места
     const upperLeftParkingSpots = [
-		{ x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },	// 1-й левый верхний ряд 6 мест
-		{ x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 }, // 2-й левый верхний ряд 6 мест
-		{ x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 }, // 3-й левый верхний ряд 6 мест
-		{ x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 } // 4-й левый верхний ряд 6 мест  
+      { x: 361, y: 380 }, { x: 454, y: 380 }, { x: 546, y: 380 }, { x: 641, y: 380 }, { x: 729, y: 380 }, { x: 823, y: 380 },
+      { x: 361, y: 674 }, { x: 454, y: 674 }, { x: 546, y: 674 }, { x: 641, y: 674 }, { x: 729, y: 674 }, { x: 823, y: 674 },
+      { x: 361, y: 1130 }, { x: 454, y: 1130 }, { x: 546, y: 1130 }, { x: 641, y: 1130 }, { x: 729, y: 1130 }, { x: 823, y: 1130 },
+      { x: 361, y: 1420 }, { x: 454, y: 1420 }, { x: 546, y: 1420 }, { x: 641, y: 1420 }, { x: 729, y: 1420 }, { x: 823, y: 1420 }  
     ];
-	
+    
     const upperRightParkingSpots = [
-        { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 }, // 1-й правый верхний ряд 6 мест
-		{ x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 }, // 2-й правый верхний ряд 6 мест
-		{ x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 }, // 3-й правый нижний ряд 6 мест 
-		{ x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 } // 4-й правый нижний ряд 6 мест  
+      { x: 1094, y: 380 }, { x: 1189, y: 380 }, { x: 1279, y: 380 }, { x: 1371, y: 380 }, { x: 1462, y: 380 }, { x: 1555, y: 380 },
+      { x: 1094, y: 674 }, { x: 1189, y: 674 }, { x: 1279, y: 674 }, { x: 1371, y: 674 }, { x: 1462, y: 674 }, { x: 1555, y: 674 },
+      { x: 1094, y: 1130 }, { x: 1189, y: 1130 }, { x: 1279, y: 1130 }, { x: 1371, y: 1130 }, { x: 1462, y: 1130 }, { x: 1555, y: 1130 },
+      { x: 1094, y: 1420 }, { x: 1189, y: 1420 }, { x: 1279, y: 1420 }, { x: 1371, y: 1420 }, { x: 1462, y: 1420 }, { x: 1555, y: 1420 }
     ];
-	
+    
     const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
 
-    // Все 15 маршрутов
+    // Маршруты
     const allPossibleRoutes = [
-      // 1. Полный круг по часовой стрелке
       function clockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 690 - npcOffset, y: y - 37 }, { x: 690 - npcOffset, y: 665 - npcOffset },
-          { x: 110 + npcOffset, y: 665 - npcOffset }, { x: 110 + npcOffset, y: y - 37 },
+          { x: 690 - 20, y: y - 37 }, { x: 690 - 20, y: 665 - 20 },
+          { x: 110 + 20, y: 665 - 20 }, { x: 110 + 20, y: y - 37 },
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 2. Полный круг против часовой стрелки
       function counterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 82 + npcOffset, y: y - 62 }, { x: 82 + npcOffset, y: 710 - npcOffset },
-          { x: 725 - npcOffset, y: 710 - npcOffset }, { x: 725 - npcOffset, y: y - 62 },
+          { x: 82 + 20, y: y - 62 }, { x: 82 + 20, y: 710 - 20 },
+          { x: 725 - 20, y: 710 - 20 }, { x: 725 - 20, y: y - 62 },
           { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 3. Верхняя половина по часовой стрелке
-      function upperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 690 - npcOffset, y: y - 37 }, { x: 690 - npcOffset, y: 370 },
-          { x: 110 + npcOffset, y: 370 }, { x: 110 + npcOffset, y: y - 37 },
-          { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 4. Верхняя половина против часовой стрелки
       function upperHalfCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 82 + npcOffset, y: y - 62 }, { x: 82 + npcOffset, y: 405 },
-          { x: 725 - npcOffset, y: 405 }, { x: 725 - npcOffset, y: y - 62 },
+          { x: 82 + 20, y: y - 62 }, { x: 82 + 20, y: 405 },
+          { x: 725 - 20, y: 405 }, { x: 725 - 20, y: y - 62 },
           { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
-      },	  
-      // 5. Левая верхняя четверть по часовой стрелке
+      },
       function leftHalfClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 390 - npcOffset, y: y - 37 }, { x: 390 - npcOffset, y: 360 },
-          { x: 110 + npcOffset, y: 360 }, { x: 110 + npcOffset, y: y - 37 },
+          { x: 390 - 20, y: y - 37 }, { x: 390 - 20, y: 360 },
+          { x: 110 + 20, y: 360 }, { x: 110 + 20, y: y - 37 },
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 6. Левая верхняя четверть против часовой стрелки
       function leftHalfCounterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 82 + npcOffset, y: y - 62 }, { x: 82 + npcOffset, y: 390 },
+          { x: 82 + 20, y: y - 62 }, { x: 82 + 20, y: 390 },
           { x: 395, y: 390 }, { x: 395, y: y - 62 },
           { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
-      // 7. Правая половина по часовой стрелке
-      function rightHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 690 - npcOffset, y: y - 37 }, { x: 690 - npcOffset, y: 665 - npcOffset },
-          { x: 420, y: 665 - npcOffset }, { x: 420, y: y - 37 },
-          { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 8. Правая половина против часовой стрелки
-      function rightHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 395, y: y - 62 }, { x: 395, y: 710 - npcOffset },
-          { x: 725 - npcOffset, y: 710 - npcOffset }, { x: 725 - npcOffset, y: y - 62 },
-          { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 9. Правая верхняя четверть по часовой стрелке
       function rightUpperQuarterClockwiseRoute(spot) {
         const { x, y } = scaleCoords(spot.x, spot.y);
         return [
           { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 690 - npcOffset, y: y - 37 }, { x: 690 - npcOffset, y: 370 },
+          { x: 690 - 20, y: y - 37 }, { x: 690 - 20, y: 370 },
           { x: 420, y: 370 }, { x: 420, y: y - 37 },
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
-      },
-      //10. Правая верхняя четверть против часовой стрелки
-      function rightUpperQuarterCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 394, y: y - 62 }, { x: 394, y: 400 },
-          { x: 725 - npcOffset, y: 400 }, { x: 725 - npcOffset, y: y - 62 },
-          { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },	  
-      // 11. Правая верхняя малая половина по часовой стрелке
-      function leftUpperSmallClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 690 - npcOffset, y: y - 37 }, { x: 690 - npcOffset, y: 220 },
-          { x: 420, y: 220 }, { x: 420, y: y - 37 },
-          { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 12. Правая верхняя малая половина против часовой стрелки
-      function rightUpperQuarterCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 394, y: y - 62 }, { x: 394, y: 245 },
-          { x: 725 - npcOffset, y: 245 }, { x: 725 - npcOffset, y: y - 62 },
-          { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-     // 13. Левая верхняя малая половина по часовой стрелке
-      function rightUpperHalfClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 37 }, { x, y: y - 37 },
-          { x: 390 - npcOffset, y: y - 37 }, { x: 390 - npcOffset, y: 220 },
-          { x: 110 + npcOffset, y: 220 }, { x: 110 + npcOffset, y: y - 37 },
-          { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },
-      // 14 Левая верхняя малая половина против часовой стрелки
-      function leftSmallCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 82 + npcOffset, y: y - 62 }, { x: 82 + npcOffset, y: 245 },
-          { x: 399, y: 245 }, { x: 399, y: y - 62 },
-          { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      },	  
-      // 15. Левая половина против часовой стрелки
-      function leftBigHalfCounterClockwiseRoute(spot) {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        return [
-          { x, y }, { x, y: y - 62 }, { x, y: y - 62 },
-          { x: 82 + npcOffset, y: y - 62 }, { x: 82 + npcOffset, y: 710 - npcOffset },
-          { x: 399, y: 710 - npcOffset }, { x: 399, y: y - 62 },
-          { x, y: y - 62 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
-        ];
-      }	  
+      }
     ];
 
-    // Глобальные переменные
-    let npcs = [];
-    const npcSpeed = 100;
-    const npcParkingSpeed = 30;
-    const npcFinalApproachSpeed = 40;
-    const PARKING_EXIT_DELAY = 3000; // 3 сек между выездами
-    let lastExitTime = 0;
-    let exitQueue = []; // Очередь машин, ожидающих выезда
-    let debugGraphics;
-    let showDebug = false;
-    let roadsCollider;
-    let combinedCollider;
-
+    // Вспомогательные функции
     function scaleCoords(x, y, isRoad = false) {
+      const parkingSpotWidth = 59;
+      const parkingSpotHeight = 85;
+      const scaleFactor = 0.4;
+      const offsetX = (parkingSpotWidth / 2) * scaleFactor;
+      const offsetY = (parkingSpotHeight / 2) * scaleFactor;
+      const roadOffsetX = -12;
+      const roadOffsetY = -16;
+      
       const scaledX = (x / 2000) * 800 + offsetX;
       const scaledY = (y / 2000) * 800 + offsetY;
       if (isRoad) return { x: scaledX + roadOffsetX, y: scaledY + roadOffsetY };
@@ -294,128 +193,389 @@
       return routes;
     }
 
-    function processExitQueue() {
-      if (exitQueue.length > 0 && Date.now() - lastExitTime > PARKING_EXIT_DELAY) {
-        const nextNpc = exitQueue.shift();
-        nextNpc.isExiting = true;
-        nextNpc.isInExitQueue = false;
-        lastExitTime = Date.now();
+    function selectNonAdjacentSpots(rowSpots) {
+      const indexes = [0, 1, 2, 3, 4, 5];
+      const firstIndex = Phaser.Math.Between(0, 5);
+      let secondIndex;
+      
+      do {
+        secondIndex = Phaser.Math.Between(0, 5);
+      } while (
+        Math.abs(secondIndex - firstIndex) <= 1 || 
+        Math.abs(secondIndex - firstIndex) === 5
+      );
+      
+      return [rowSpots[firstIndex], rowSpots[secondIndex]];
+    }
 
-        // Запускаем выезд
-        startNpcExit(nextNpc);
+    function createSensors(scene, npc) {
+      npc.sensors = {
+        front: scene.add.rectangle(0, 0, npcSensors.front.width, npcSensors.front.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false),
+        left: scene.add.rectangle(0, 0, npcSensors.left.width, npcSensors.left.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false),
+        right: scene.add.rectangle(0, 0, npcSensors.right.width, npcSensors.right.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false)
+      };
+    }
+
+    function updateSensors(npc) {
+      if (!npc.sensors || npc.routeIndex < PARKING_START_POINTS || npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)) {
+        return;
       }
 
-      // Продолжаем проверять очередь
-      game.scene.scenes[0].time.delayedCall(100, processExitQueue, [], game.scene.scenes[0]);
-    }
-
-    function startNpcExit(npc) {
-      npc.isWaiting = false;
-      npc.routeIndex = 0;
+      const rotation = npc.rotation - Math.PI/2;
       
-      // Выбираем случайный маршрут для выезда
-      const randomRouteIndex = Math.floor(Math.random() * allPossibleRoutes.length);
-      const routeType = allPossibleRoutes[randomRouteIndex];
-      npc.route = routeType(npc.originalSpot);
-      npc.isCounterClockwise = routeType.toString().includes('Counter');
+      // Передний сенсор
+      npc.sensors.front.x = npc.x + Math.cos(rotation) * npcSensors.front.offset;
+      npc.sensors.front.y = npc.y + Math.sin(rotation) * npcSensors.front.offset;
+      npc.sensors.front.rotation = rotation;
       
-      moveNPCToNextPoint(npc);
+      // Левый сенсор
+      npc.sensors.left.x = npc.x + Math.cos(rotation + Math.PI/2) * npcSensors.left.offset;
+      npc.sensors.left.y = npc.y + Math.sin(rotation + Math.PI/2) * npcSensors.left.offset;
+      npc.sensors.left.rotation = rotation;
+      
+      // Правый сенсор
+      npc.sensors.right.x = npc.x + Math.cos(rotation - Math.PI/2) * npcSensors.right.offset;
+      npc.sensors.right.y = npc.y + Math.sin(rotation - Math.PI/2) * npcSensors.right.offset;
+      npc.sensors.right.rotation = rotation;
+
+      const shouldShow = showDebug && !npc.isReversing;
+      npc.sensors.front.visible = shouldShow;
+      npc.sensors.left.visible = shouldShow;
+      npc.sensors.right.visible = shouldShow;
     }
 
-    function preload() {
-      this.load.image('lamp_top', 'assets/lamp_top.png');
-      this.load.image('lamp_bottom', 'assets/lamp_bottom.png');	
-      this.load.image('background', 'assets/parking_map.png');
-      this.load.image('entrance', 'assets/entrance.png');
-      this.load.image('pavilion', 'assets/pavilion.png');
-      this.load.image('grass1', 'assets/grass1.png');
-      this.load.image('tree1', 'assets/tree1.png');
-      this.load.image('tree2', 'assets/tree2.png');
-      this.load.image('bush1', 'assets/bush1.png');
-      this.load.image('oil', 'assets/oil.png');
-      this.load.image('npcCar', 'assets/npc_car.png');
-    }
-
-    function create() {
-      // Фон
-      const background = this.add.image(400, 400, 'background');
-      background.setDisplaySize(800, 800);
-
-      // Создание единого коллайдера для всех дорог и парковочных мест
-      createCombinedCollider(this);
-
-      // Дебаг графика для визуализации
-      debugGraphics = this.add.graphics();
-      debugGraphics.setDepth(20);
-      if (showDebug) {
-        drawDebugColliders(this);
+    function checkSensors(npc) {
+      if (!npc.sensors || npc.routeIndex < PARKING_START_POINTS || npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)) {
+        return [];
       }
 
-      // Оригинальные невидимые объекты (оставляем для совместимости)
-      createInvisibleParkingSpots(this);
-      createInvisibleRoads(this);
+      const collisions = [];
+      const otherNpcs = npcs.filter(n => n !== npc && n.active);
+      
+      otherNpcs.forEach(other => {
+        Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
+          if (Phaser.Geom.Intersects.RectangleToRectangle(
+            sensor.getBounds(),
+            other.getBounds()
+          )) {
+            collisions.push({
+              npc: other,
+              sensor: sensorName,
+              distance: Phaser.Math.Distance.Between(npc.x, npc.y, other.x, other.y)
+            });
 
-      // Декоративные элементы
-      createEntranceAndPavilion(this);
-      createDecorativeLayer(this);
-
-      // Создание NPC
-      npcs = allParkingSpots.map((spot, index) => {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
-        npc.setCollideWorldBounds(true);
-        
-        // Система маршрутов
-        npc.originalSpot = spot;
-        npc.routeSequence = createShuffledRouteSequence();
-        npc.currentRouteIndex = 0;
-        
-        // Определяем направление перед началом движения
-        const firstRouteType = npc.routeSequence[npc.currentRouteIndex];
-        npc.route = firstRouteType(npc.originalSpot);
-        npc.isCounterClockwise = firstRouteType.toString().includes('Counter');
-        
-        npc.routeIndex = 0;
-        npc.isWaiting = true;
-        npc.isInExitQueue = true;
-        npc.isExiting = false;
-
-        // Добавляем в очередь выезда
-        exitQueue.push(npc);
-
-        // Задержка перед началом движения
-        this.time.delayedCall(Phaser.Math.Between(1000, 3000), () => {
-          if (!npc.isInExitQueue) {
-            npc.isWaiting = false;
-            moveNPCToNextPoint(npc);
+            if (showDebug && showCollisionHighlights) {
+              const debugGraphics = npc.scene.add.graphics();
+              debugGraphics.fillStyle(0xffff00, 0.5);
+              debugGraphics.fillRect(
+                other.x - other.width/2,
+                other.y - other.height/2,
+                other.width,
+                other.height
+              );
+              npc.scene.time.delayedCall(100, () => debugGraphics.destroy());
+            }
           }
         });
-        
-        return npc;
       });
+      
+      return collisions;
+    }
 
-      // Запускаем обработчик очереди
-      processExitQueue();
-
-      // Добавляем обработчик клавиш для отладки
-      this.input.keyboard.on('keydown-D', () => {
-        showDebug = !showDebug;
-        debugGraphics.clear();
-        if (showDebug) {
-          drawDebugColliders(this);
+    function handleFrontCollision(npc, collision) {
+      if (npc.isWaiting || npc.isReversing || npc.isAvoiding) return;
+      
+      npc.preCollisionSpeed = npc.body.velocity.clone();
+      npc.setVelocity(0, 0);
+      npc.isWaiting = true;
+      
+      npc.scene.time.delayedCall(COLLISION_WAIT_TIME, () => {
+        if (!npc.scene || !npc.active) return;
+        
+        const newCollisions = checkSensors(npc);
+        if (newCollisions.some(c => c.sensor === 'front')) {
+          avoidObstacle(npc, newCollisions.find(c => c.sensor === 'front'));
+        } else {
+          npc.isWaiting = false;
+          if (npc.preCollisionSpeed) {
+            npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+          } else {
+            moveNPCToNextPoint(npc);
+          }
         }
       });
     }
 
-    function createCombinedCollider(scene) {
-      // Создаем контейнер для всех коллайдеров
-      combinedCollider = scene.add.container();
+    function avoidObstacle(npc, obstacle) {
+      if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex]) return;
       
-      // 1. Добавляем дороги
+      npc.isAvoiding = true;
+      npc.preAvoidState = {
+        velocity: npc.body.velocity.clone(),
+        routeIndex: npc.routeIndex,
+        target: {...npc.route[npc.routeIndex]}
+      };
+      
+      let avoidAngle;
+      if (obstacle.sensor === 'left') {
+        avoidAngle = npc.rotation - Math.PI/4;
+      } else if (obstacle.sensor === 'right') {
+        avoidAngle = npc.rotation + Math.PI/4;
+      } else {
+        avoidAngle = npc.rotation + (Math.random() > 0.5 ? Math.PI/4 : -Math.PI/4);
+      }
+      
+      const avoidSpeed = npcSpeed * 0.7;
+      npc.setVelocity(
+        Math.cos(avoidAngle - Math.PI/2) * avoidSpeed,
+        Math.sin(avoidAngle - Math.PI/2) * avoidSpeed
+      );
+      
+      const boundsCheck = () => {
+        if (!npc.active) return;
+        
+        if (isOutOfBounds(npc)) {
+          npc.isAvoiding = false;
+          returnToSafePosition(npc);
+          return;
+        }
+        
+        if (npc.isAvoiding) {
+          npc.scene.time.delayedCall(100, boundsCheck, [], npc.scene);
+        }
+      };
+      
+      boundsCheck();
+      
+      npc.scene.time.delayedCall(500, () => {
+        if (npc.active && npc.isAvoiding) {
+          npc.isAvoiding = false;
+          
+          if (npc.preAvoidState && npc.route && npc.route[npc.routeIndex]) {
+            const target = npc.route[npc.routeIndex];
+            const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+            
+            let speed;
+            const isExitPhase = npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS;
+            const isApproachPhase = npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS;
+            
+            if (isExitPhase) {
+              speed = npcExitSpeed;
+            } else if (isApproachPhase) {
+              speed = npcFinalApproachSpeed;
+            } else {
+              speed = npcSpeed;
+            }
+            
+            npc.setVelocity(
+              Math.cos(angle) * speed,
+              Math.sin(angle) * speed
+            );
+            npc.rotation = angle + Math.PI/2;
+          }
+        }
+      });
+    }
+
+    function isOutOfBounds(npc) {
+      return npc.x < SCENE_BOUNDS_PADDING || 
+             npc.x > config.width - SCENE_BOUNDS_PADDING ||
+             npc.y < SCENE_BOUNDS_PADDING || 
+             npc.y > config.height - SCENE_BOUNDS_PADDING;
+    }
+
+    function returnToSafePosition(npc) {
+      let safeIndex = npc.routeIndex;
+      while (safeIndex >= 0) {
+        const point = npc.route[safeIndex];
+        if (point.x > SCENE_BOUNDS_PADDING && 
+            point.x < config.width - SCENE_BOUNDS_PADDING &&
+            point.y > SCENE_BOUNDS_PADDING && 
+            point.y < config.height - SCENE_BOUNDS_PADDING) {
+          break;
+        }
+        safeIndex--;
+      }
+      
+      if (safeIndex >= 0) {
+        npc.routeIndex = safeIndex;
+        npc.x = npc.route[safeIndex].x;
+        npc.y = npc.route[safeIndex].y;
+        npc.setVelocity(0, 0);
+        npc.isReversing = false;
+        npc.isWaiting = false;
+        moveNPCToNextPoint(npc);
+      } else {
+        const {x, y} = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+        npc.x = x;
+        npc.y = y;
+        npc.routeIndex = 0;
+        npc.setVelocity(0, 0);
+        npc.isReversing = false;
+        npc.isWaiting = true;
+        npc.scene.time.delayedCall(2000, () => {
+          npc.isWaiting = false;
+          moveNPCToNextPoint(npc);
+        });
+      }
+    }
+
+    function moveNPCBackward(npc) {
+      if (!npc.isReversing || npc.routeIndex <= 0) {
+        npc.isReversing = false;
+        return;
+      }
+
+      const currentPoint = npc.route[npc.routeIndex];
+      const prevPoint = npc.route[npc.routeIndex - 1];
+      
+      const angle = Phaser.Math.Angle.Between(currentPoint.x, currentPoint.y, prevPoint.x, prevPoint.y);
+      
+      npc.setVelocity(
+        Math.cos(angle) * REVERSE_SPEED,
+        Math.sin(angle) * REVERSE_SPEED
+      );
+      npc.rotation = angle + Math.PI/2;
+
+      const distance = Phaser.Math.Distance.Between(npc.x, npc.y, prevPoint.x, prevPoint.y);
+      if (distance < 5) {
+        npc.routeIndex--;
+        npc.x = prevPoint.x;
+        npc.y = prevPoint.y;
+        npc.setVelocity(0, 0);
+        
+        if (npc.routeIndex > 0) {
+          npc.scene.time.delayedCall(100, () => moveNPCBackward(npc), [], npc.scene);
+        } else {
+          finishReversing(npc);
+        }
+      } else {
+        npc.scene.time.delayedCall(100, () => moveNPCBackward(npc), [], npc.scene);
+      }
+    }
+
+    function finishReversing(npc) {
+      npc.isReversing = false;
+      npc.setVelocity(0, 0);
+      
+      npc.scene.time.delayedCall(REVERSE_CHECK_DELAY, () => {
+        if (!npc.scene) return;
+        
+        const collisions = checkSensors(npc);
+        if (collisions.some(c => c.sensor === 'front')) {
+          tryOvertake(npc, collisions.find(c => c.sensor === 'front').npc);
+        } else {
+          npc.isWaiting = false;
+          moveNPCToNextPoint(npc);
+        }
+      });
+    }
+
+    function tryOvertake(npc, obstacle) {
+      npc.reverseAttempts = (npc.reverseAttempts || 0) + 1;
+      
+      if (npc.reverseAttempts > MAX_REVERSE_ATTEMPTS) {
+        forceChangeRoute(npc);
+        return;
+      }
+
+      if (isOutOfBounds(npc)) {
+        returnToSafePosition(npc);
+        return;
+      }
+
+      if (npc.routeIndex > 0) {
+        npc.setVelocity(0, 0);
+        npc.isReversing = true;
+        npc.reversingStartTime = Date.now();
+        
+        if (showDebug) {
+          const debugGraphics = npc.scene.add.graphics();
+          debugGraphics.fillStyle(0xff00ff, 0.5);
+          debugGraphics.fillRect(
+            npc.x - npc.width/2,
+            npc.y - npc.height/2,
+            npc.width,
+            npc.height
+          );
+          npc.scene.time.delayedCall(NO_REVERSE_WAIT_TIME, () => debugGraphics.destroy());
+        }
+        
+        moveNPCBackward(npc);
+      } else {
+        npc.isWaiting = true;
+        npc.scene.time.delayedCall(NO_REVERSE_WAIT_TIME, () => {
+          npc.isWaiting = false;
+          moveNPCToNextPoint(npc);
+        });
+      }
+    }
+
+    function forceChangeRoute(npc) {
+      const parkingSpot = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+      const distanceToSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+      
+      if (distanceToSpot < 10) {
+        npc.x = parkingSpot.x;
+        npc.y = parkingSpot.y;
+        changeRouteImmediately(npc);
+      } else {
+        returnToParkingSpot(npc, () => {
+          changeRouteImmediately(npc);
+        });
+      }
+    }
+    
+    function returnToParkingSpot(npc, callback) {
+      const parkingSpot = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+      
+      npc.setVelocity(
+        Math.cos(angle) * REVERSE_SPEED,
+        Math.sin(angle) * REVERSE_SPEED
+      );
+      npc.rotation = angle + Math.PI/2;
+      
+      const checkDistance = () => {
+        const currentDistance = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+        if (currentDistance < 5) {
+          npc.setVelocity(0, 0);
+          npc.x = parkingSpot.x;
+          npc.y = parkingSpot.y;
+          callback();
+        } else {
+          npc.scene.time.delayedCall(100, checkDistance, [], npc.scene);
+        }
+      };
+      
+      checkDistance();
+    }
+
+    function changeRouteImmediately(npc) {
+      npc.reverseAttempts = 0;
+      npc.isReversing = false;
+      npc.setVelocity(0, 0);
+      
+      npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
+      const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
+      npc.route = nextRouteType(npc.originalSpot);
+      npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+      npc.routeIndex = 0;
+      
+      npc.isWaiting = true;
+      npc.scene.time.delayedCall(2000, () => {
+        npc.isWaiting = false;
+        moveNPCToNextPoint(npc);
+      });
+    }
+
+    function createCombinedCollider(scene) {
+      const collider = scene.add.container();
+      
       const roads = [
         { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
         { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
-		{ x: 1618 + 32 + 120/2, y: 237 + 1526/2, width: 120 + 64, height: 1526 },
+        { x: 1618 + 32 + 120/2, y: 237 + 1526/2, width: 120 + 64, height: 1526 },
         { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
         { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
         { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
@@ -428,46 +588,42 @@
         const { x, y } = scaleCoords(road.x, road.y, true);
         const roadRect = scene.add.rectangle(
           x, y,
-          road.width * scaleFactor,
-          road.height * scaleFactor,
+          road.width * 0.4,
+          road.height * 0.4,
           0x000000,
           0
         ).setOrigin(0.5);
         scene.physics.add.existing(roadRect, true);
-        combinedCollider.add(roadRect);
+        collider.add(roadRect);
       });
 
-      // 2. Добавляем парковочные места
       allParkingSpots.forEach(spot => {
         const { x, y } = scaleCoords(spot.x, spot.y);
         const parkingSpot = scene.add.rectangle(
           x, y,
-          parkingSpotWidth * scaleFactor,
-          parkingSpotHeight * scaleFactor,
+          59 * 0.4,
+          85 * 0.4,
           0x000000,
           0
         ).setOrigin(0.5);
         scene.physics.add.existing(parkingSpot, true);
-        combinedCollider.add(parkingSpot);
+        collider.add(parkingSpot);
       });
 
-      return combinedCollider;
+      return collider;
     }
 
     function drawDebugColliders(scene) {
       debugGraphics.clear();
       
-      // Рисуем все дороги зеленым
       debugGraphics.fillStyle(0x00ff00, 0.3);
       debugGraphics.lineStyle(2, 0x00ff00, 0.6);
 
       combinedCollider.each(collider => {
-        // Все дороги (горизонтальные и вертикальные) - зеленые
         if (collider.width > 100 || collider.height > 100) { 
           debugGraphics.fillStyle(0x00ff00, 0.3);
           debugGraphics.lineStyle(2, 0x00ff00, 0.6);
         } 
-        // Парковочные места - синие
         else { 
           debugGraphics.fillStyle(0x0000ff, 0.3);
           debugGraphics.lineStyle(2, 0x0000ff, 0.6);
@@ -488,204 +644,20 @@
       });
     }
 
-	function update() {
-	  npcs.forEach(npc => {
-		// Проверяем, что NPC существует и имеет необходимые свойства
-		if (!npc || !npc.route || !npc.route[npc.routeIndex]) {
-		  return; // Пропускаем проблемный NPC
-		}
-
-		if ((!npc.isWaiting && !npc.isInExitQueue) || npc.isExiting) {
-		  const target = npc.route[npc.routeIndex];
-		  
-		  // Дополнительная проверка target
-		  if (!target || target.x === undefined || target.y === undefined) {
-			console.error('Invalid target for NPC:', npc);
-			return;
-		  }
-
-		  const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
-
-		  if (distance < 5) {
-			npc.routeIndex++;
-			
-			if (npc.routeIndex >= npc.route.length) {
-			  // Переход к следующему маршруту
-			  npc.setVelocity(0, 0);
-			  
-			  if (npc.isExiting) {
-				// NPC завершил выезд
-				npc.isExiting = false;
-				
-				// Возвращаем NPC в обычный режим движения
-				this.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
-				  if (!npc.scene) return; // Проверка на уничтоженный объект
-				  
-				  npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
-				  const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
-				  if (!nextRouteType) {
-					console.error('Missing route type for NPC:', npc);
-					return;
-				  }
-				  
-				  npc.route = nextRouteType(npc.originalSpot);
-				  npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
-				  npc.routeIndex = 0;
-				  npc.isWaiting = false;
-				  moveNPCToNextPoint(npc);
-				});
-			  } else {
-				// Обычный цикл движения
-				npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
-				const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
-				
-				if (!nextRouteType) {
-				  console.error('Missing route type for NPC:', npc);
-				  return;
-				}
-				
-				npc.route = nextRouteType(npc.originalSpot);
-				npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
-				npc.routeIndex = 0;
-				npc.isWaiting = true;
-
-				// Добавляем в очередь выезда, если это парковочное место
-				if (allParkingSpots.some(spot => 
-				  spot && npc.originalSpot &&
-				  Math.abs(spot.x - npc.originalSpot.x) < 10 && 
-				  Math.abs(spot.y - npc.originalSpot.y) < 10)) {
-				  npc.isInExitQueue = true;
-				  exitQueue.push(npc);
-				} else {
-				  // Задержка перед новым маршрутом
-				  this.time.delayedCall(Phaser.Math.Between(2000, 5000), () => {
-					if (!npc.scene) return; // Проверка на уничтоженный объект
-					npc.isWaiting = false;
-					moveNPCToNextPoint(npc);
-				  });
-				}
-			  }
-			} else {
-			  moveNPCToNextPoint(npc);
-			}
-		  }
-		}
-	  });
-	}
-
-	function moveNPCToNextPoint(npc) {
-	  // Проверка на существование NPC и его свойств
-	  if (!npc || !npc.route || !npc.route[npc.routeIndex]) {
-		return;
-	  }
-
-	  const target = npc.route[npc.routeIndex];
-	  
-	  // Проверка целевой точки
-	  if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
-		console.error('Invalid target point for NPC:', npc, 'at index', npc.routeIndex);
-		return;
-	  }
-
-	  // Вычисляем угол между текущей позицией и целью
-	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
-	  
-	  // Определение скорости
-	  let speed;
-	  const isFinalApproach = npc.routeIndex >= npc.route.length - 3;
-	  
-	  if (isFinalApproach) {
-		speed = npcFinalApproachSpeed;
-	  } else {
-		speed = npcSpeed;
-	  }
-
-	  // Определение поворота
-	  const isPreRotation = npc.routeIndex === npc.route.length - 3;
-	  const isFinalRotating = npc.routeIndex === npc.route.length - 2;
-	  const isParking = npc.routeIndex === npc.route.length - 1;
-
-	  if (isPreRotation) {
-		// Небольшой разворот "передом" в противоположную сторону
-		npc.rotation = npc.isCounterClockwise 
-		  ? -Phaser.Math.DegToRad(0) 
-		  : Phaser.Math.DegToRad(0);
-	  } else if (isFinalRotating) {
-		// Окончательный разворот на 0 градусов
-		npc.rotation = 0.1;
-	  } else if (isParking) {
-		// На парковочном месте - сохраняем ориентацию
-		npc.rotation = 0;
-	  } else {
-		// Обычное движение
-		npc.rotation = angle + Math.PI / 2;
-	  }
-
-	  // Установка скорости
-	  npc.setVelocity(
-		Math.cos(angle) * speed,
-		Math.sin(angle) * speed
-	  );
-	}
-
-    function createInvisibleParkingSpots(scene) {
-      allParkingSpots.forEach(spot => {
-        const { x, y } = scaleCoords(spot.x, spot.y);
-        const parkingSpot = scene.add.rectangle(
-          x, y,
-          parkingSpotWidth * scaleFactor,
-          parkingSpotHeight * scaleFactor,
-          0x000000,
-          0
-        ).setOrigin(0.5);
-        scene.physics.add.existing(parkingSpot, true);
-      });
-    }
-
-      const createInvisibleRoads = (scene) => {
-        const roads = [
-          { x: 3 + 252/2, y: 893 + 216/2, width: 252, height: 216 },
-          { x: 237 + 104/2, y: 236 + 1529/2, width: 140, height: 1529 },
-          { x: 1618 + 32 + 120/2, y: 237 + 1526/2, width: 120 + 64, height: 1526 },
-          { x: 257 + 1485/2, y: 234 + 143/2, width: 1485, height: 143 },
-          { x: 259 + 1479/2, y: 1622 - 40 + 141/2, width: 1479, height: 221 },
-          { x: 257 + 1482/2, y: 872 - 40 + 252/2, width: 1482, height: 332 },
-          { x: 887 + 203/2, y: 236 + 1528/2, width: 203, height: 1528 },
-          { x: 259 + 1477/2, y: 579 - 42 + 94/2, width: 1477, height: 94 + 84 },
-          { x: 259 + 1477/2, y: 1326 - 42 + 94/2, width: 1477, height: 94 + 84 }
-        ];
-
-      roads.forEach(road => {
-        const { x, y } = scaleCoords(road.x, road.y, true);
-        const roadRect = scene.add.rectangle(
-          x, y,
-          road.width * scaleFactor,
-          road.height * scaleFactor,
-          0x000000,
-          0
-        ).setOrigin(0.5);
-        scene.physics.add.existing(roadRect, true);
-      });
-    }
-
     function createEntranceAndPavilion(scene) {
-      // Въезд
       const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
       scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
 
-      // Павильон
       const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
       scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
     }
 
     function createDecorativeLayer(scene) {
-      // Смещения для декоративных элементов
       const grassOffsetX = 0, grassOffsetY = 20;
       const treeOffsetX = 45, treeOffsetY = 35;
       const bushOffsetX = 35, bushOffsetY = 25;
       const oilOffsetX = 15, oilOffsetY = 23;
 
-      // Координаты элементов
       const lampTopCoords = scaleCoords(850+90, 223+170);
       const lampBottomCoords = scaleCoords(854+90, 1650-140);
       const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY);
@@ -694,31 +666,399 @@
       const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
       const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
 
-      // Создание элементов
       const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
       const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
       const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5);
       const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5);
-      const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);	  
+      const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);
       const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
       const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
 
-      // Установка глубины отображения
       lampTop.setDepth(11);
       lampBottom.setDepth(11);
-      grass1.setDepth(10);
+      grass1.setDepth(2);
       tree1.setDepth(10);
-      tree2.setDepth(10);	  
+      tree2.setDepth(10);
       bush1.setDepth(10);
       oil.setDepth(2);
     }
+
+	function processExitQueue() {
+	  if (exitQueue.length === 0 || Date.now() - lastExitTime < PARKING_EXIT_DELAY) {
+		game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+		return;
+	  }
+
+	  const nextNpc = exitQueue.shift();
+	  if (!nextNpc.active || nextNpc.isDestroyed) {
+		game.scene.scenes[0].time.delayedCall(100, processExitQueue, [], game.scene.scenes[0]);
+		return;
+	  }
+
+	  if (nextNpc.body.velocity.length() > 5) {
+		exitQueue.push(nextNpc);
+		game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+		return;
+	  }
+
+	  lastExitTime = Date.now();
+	  nextNpc.isInExitQueue = false;
+	  
+	  const delay = Phaser.Math.Between(100, 500);
+	  nextNpc.scene.time.delayedCall(delay, () => {
+		if (nextNpc.active) {
+		  startNpcExit(nextNpc);
+		}
+	  });
+
+	  game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+	}
+
+	function startNpcExit(npc) {
+	  if (!npc.active || npc.isDestroyed) return;
+
+	  npc.isExiting = true;
+	  npc.isInExitQueue = false;
+	  npc.isWaiting = false;
+	  
+	  const randomRouteIndex = Math.floor(Math.random() * allPossibleRoutes.length);
+	  const routeType = allPossibleRoutes[randomRouteIndex];
+	  npc.route = routeType(npc.originalSpot);
+	  npc.isCounterClockwise = routeType.toString().includes('Counter');
+	  npc.routeIndex = 0;
+	  npc.lastExitTime = Date.now();
+	  
+	  moveNPCToNextPoint(npc);
+	}
+
+	function moveNPCToNextPoint(npc) {
+	  if (!npc.active || !npc.route || npc.routeIndex >= npc.route.length) {
+		return;
+	  }
+
+	  const isParkingPhase = (
+		npc.routeIndex < PARKING_START_POINTS || 
+		npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)
+	  );
+
+	  // Обновляем видимость сенсоров
+	  if (npc.sensors) {
+		Object.values(npc.sensors).forEach(s => {
+		  s.visible = showDebug && !isParkingPhase && !npc.isReversing;
+		});
+	  }
+
+	  const target = npc.route[npc.routeIndex];
+	  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+	  
+	  // Определяем скорость в зависимости от фазы движения
+	  let speed;
+	  if (npc.isExiting && npc.routeIndex < EXIT_PHASE_POINTS) {
+		speed = npcExitSpeed;
+	  } else if (npc.routeIndex >= npc.route.length - FINAL_APPROACH_POINTS) {
+		speed = npcFinalApproachSpeed;
+	  } else if (npc.isReversing) {
+		speed = REVERSE_SPEED;
+	  } else {
+		speed = npcSpeed;
+	  }
+
+	  // Устанавливаем скорость и поворот
+	  npc.setVelocity(
+		Math.cos(angle) * speed,
+		Math.sin(angle) * speed
+	  );
+	  npc.rotation = angle + Math.PI/2;
+	}
+
+	function handleRouteCompletion(npc) {
+	  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+	  
+	  // Финальное приближение к парковочному месту
+	  const finalApproach = () => {
+		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+		
+		if (distance > 2) {
+		  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+		  npc.setVelocity(
+			Math.cos(angle) * npcFinalApproachSpeed,
+			Math.sin(angle) * npcFinalApproachSpeed
+		  );
+		  npc.rotation = angle + Math.PI/2;
+		  
+		  npc.scene.time.delayedCall(50, finalApproach);
+		} else {
+		  // Парковка завершена
+		  npc.setVelocity(0, 0);
+		  npc.x = originalPos.x;
+		  npc.y = originalPos.y;
+		  
+		  // Добавляем в очередь на выезд
+		  npc.isExiting = false;
+		  npc.isInExitQueue = true;
+		  exitQueue.push(npc);
+		}
+	  };
+
+	  finalApproach();
+	}
+
+    function handleNpcExit(npc) {
+      const scene = this;
+      npc.isExiting = true;
+      npc.lastExitTime = Date.now();
+      
+      const delay = Phaser.Math.Between(2000, 5000);
+      scene.time.delayedCall(delay, () => {
+        if (!npc.scene || !npc.active) return;
+        
+        npc.currentRouteIndex = (npc.currentRouteIndex + 1) % npc.routeSequence.length;
+        const nextRouteType = npc.routeSequence[npc.currentRouteIndex];
+        npc.route = nextRouteType(npc.originalSpot);
+        npc.isCounterClockwise = nextRouteType.toString().includes('Counter');
+        npc.routeIndex = 0;
+        npc.isWaiting = false;
+        
+        moveNPCToNextPoint(npc);
+      });
+    }
+
+    function handleNpcParking(npc) {
+      const scene = this;
+      
+      npc.setVelocity(0, 0);
+      npc.isWaiting = true;
+      npc.isExiting = false;
+      npc.isReversing = false;
+      npc.reverseAttempts = 0;
+
+      const delay = Phaser.Math.Between(2000, 5000);
+      
+      scene.time.delayedCall(delay, () => {
+        if (!npc.active || npc.isInExitQueue || npc.isExiting) return;
+        
+        npc.isInExitQueue = true;
+        exitQueue.push(npc);
+      });
+    }
+
+	function update() {
+	  npcs.forEach(npc => {
+		if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
+
+		updateSensors(npc);
+
+		if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
+
+		const target = npc.route[npc.routeIndex];
+		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+
+		// Если достигли текущей точки маршрута
+		if (distance < 5) {
+		  npc.routeIndex++;
+		  
+		  // Если маршрут завершен
+		  if (npc.routeIndex >= npc.route.length) {
+			handleRouteCompletion(npc);
+			return;
+		  }
+		  
+		  // Переходим к следующей точке
+		  moveNPCToNextPoint(npc);
+		}
+	  });
+	}
+
+    function updateSensorsVisibility() {
+      npcs.forEach(npc => {
+        if (!npc.sensors) return;
+        const isParkingPhase = (
+          npc.routeIndex < PARKING_START_POINTS || 
+          npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)
+        );
+        Object.values(npc.sensors).forEach(sensor => {
+          sensor.visible = showDebug && !isParkingPhase && !npc.isReversing;
+        });
+      });
+    }
+
+    function preload() {
+      this.load.image('lamp_top', 'assets/lamp_top.png');
+      this.load.image('lamp_bottom', 'assets/lamp_bottom.png');  
+      this.load.image('background', 'assets/parking_map.png');
+      this.load.image('entrance', 'assets/entrance.png');
+      this.load.image('pavilion', 'assets/pavilion.png');
+      this.load.image('grass1', 'assets/grass1.png');
+      this.load.image('tree1', 'assets/tree1.png');
+      this.load.image('tree2', 'assets/tree2.png');
+      this.load.image('bush1', 'assets/bush1.png');
+      this.load.image('oil', 'assets/oil.png');
+      this.load.image('npcCar', 'assets/npc_car.png');
+    }
+	
+	function createNPC(scene, spot) {
+	  const { x, y } = scaleCoords(spot.x, spot.y);
+	  const npc = scene.physics.add.sprite(x, y, 'npcCar')
+		.setScale(0.47)
+		.setDepth(3)
+		.setCollideWorldBounds(true);
+	  
+	  // Сенсоры
+	  npc.sensors = {
+		front: scene.add.rectangle(0, 0, npcSensors.front.width, npcSensors.front.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false),
+		left: scene.add.rectangle(0, 0, npcSensors.left.width, npcSensors.left.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false),
+		right: scene.add.rectangle(0, 0, npcSensors.right.width, npcSensors.right.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false)
+	  };
+
+	  npc.originalSpot = spot;
+	  npc.routeSequence = createShuffledRouteSequence();
+	  npc.currentRouteIndex = 0;
+	  npc.route = npc.routeSequence[0](npc.originalSpot);
+	  npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
+	  
+	  // Начальные состояния
+	  npc.routeIndex = 0;
+	  npc.isWaiting = true;
+	  npc.isInExitQueue = true; // Все NPC сразу в очереди на выезд
+	  npc.isExiting = false;
+	  npc.isReversing = false;
+	  npc.isAvoiding = false;
+	  npc.reverseAttempts = 0;
+	  npc.lastExitTime = 0;
+
+	  npcs.push(npc);
+	  exitQueue.push(npc); // Добавляем в очередь выезда
+	  
+	  return npc;
+	}	
+
+	function create() {
+	  // Создаем фон
+	  const background = this.add.image(400, 400, 'background');
+	  background.setDisplaySize(800, 800);
+
+	  // Создаем коллайдеры
+	  combinedCollider = createCombinedCollider(this);
+
+	  // Настройка отладки
+	  debugGraphics = this.add.graphics();
+	  debugGraphics.setDepth(20);
+	  if (showDebug) drawDebugColliders(this);
+
+	  // Инициализация рядов парковочных мест
+	  const leftRows = [
+		upperLeftParkingSpots.slice(0, 6),   // 1-й левый ряд
+		upperLeftParkingSpots.slice(6, 12),  // 2-й левый ряд 
+		upperLeftParkingSpots.slice(12, 18), // 3-й левый ряд
+		upperLeftParkingSpots.slice(18, 24)  // 4-й левый ряд
+	  ];
+
+	  const rightRows = [
+		upperRightParkingSpots.slice(0, 6),   // 1-й правый ряд
+		upperRightParkingSpots.slice(6, 12),  // 2-й правый ряд
+		upperRightParkingSpots.slice(12, 18), // 3-й правый ряд
+		upperRightParkingSpots.slice(18, 24)  // 4-й правый ряд
+	  ];
+
+	  // Очищаем массивы перед созданием NPC
+	  npcs = [];
+	  exitQueue = [];
+	  lastExitTime = 0;
+
+	  // Создаем по 2 NPC в каждом ряду (не соседних)
+	  const allRows = [...leftRows, ...rightRows];
+	  allRows.forEach(row => {
+		const selectedSpots = selectNonAdjacentSpots(row);
+		selectedSpots.forEach(spot => {
+		  const npc = this.physics.add.sprite(
+			scaleCoords(spot.x, spot.y).x,
+			scaleCoords(spot.x, spot.y).y,
+			'npcCar'
+		  )
+		  .setScale(0.47)
+		  .setDepth(3)
+		  .setCollideWorldBounds(true);
+
+		  // Инициализация сенсоров
+		  createSensors(this, npc);
+
+		  npc.originalSpot = spot;
+		  npc.routeSequence = createShuffledRouteSequence();
+		  npc.currentRouteIndex = 0;
+		  npc.route = npc.routeSequence[0](npc.originalSpot);
+		  npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
+		  npc.routeIndex = 0;
+		  npc.isWaiting = true;
+		  npc.isInExitQueue = true; // Добавляем в очередь выезда
+		  npc.isExiting = false;
+		  npc.isReversing = false;
+		  npc.isAvoiding = false;
+		  npc.reverseAttempts = 0;
+		  npc.lastExitTime = 0;
+
+		  npcs.push(npc);
+		  exitQueue.push(npc); // Добавляем в очередь
+		});
+	  });
+
+	  // Запускаем обработчик очереди выезда
+	  processExitQueue();
+
+	  // Создаем декорации
+	  createEntranceAndPavilion(this);
+	  createDecorativeLayer(this);
+
+	  // Настройка клавиш отладки
+	  this.input.keyboard.on('keydown-D', () => {
+		showDebug = !showDebug;
+		debugGraphics.clear();
+		if (showDebug) {
+		  drawDebugColliders(this);
+		}
+		updateSensorsVisibility();
+	  });
+
+	  this.input.keyboard.on('keydown-H', () => {
+		if (showDebug) {
+		  showCollisionHighlights = !showCollisionHighlights;
+		  console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
+		}
+	  });
+
+	  // Коллайдер для обработки столкновений между NPC
+	  this.physics.add.collider(
+		npcs,
+		npcs,
+		(npc1, npc2) => {
+		  if (npc1.isAvoiding || npc2.isAvoiding) return;
+		  
+		  const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
+		  const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
+		  
+		  const sensorCollisions = checkSensors(avoidingNpc);
+		  const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
+		  const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
+		  
+		  if (leftCollision) {
+			avoidObstacle(avoidingNpc, leftCollision);
+		  } else if (rightCollision) {
+			avoidObstacle(avoidingNpc, rightCollision);
+		  } else {
+			avoidObstacle(avoidingNpc, { sensor: 'front' });
+		  }
+		}
+	  );
+	}
   </script>
 </head>
 <body>
   <div id="game-container"></div>
   <div class="debug-panel">
-    Debug: Press 'D' to toggle colliders visualization<br>
-    Green - roads, Blue - parking spots
+    Debug: Нажмите 'D' для отображения коллайдеров<br>
+    Нажмите 'H' для переключения подсветки столкновений (когда debug включен)<br>
+    Зеленый - дороги, Синий - парковочные места<br>
+    Красный - сенсоры NPC (передние/левые/правые)<br>
+    Фиолетовый - NPC в режиме отката
   </div>
 </body>
 </html>
