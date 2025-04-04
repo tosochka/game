@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -33,34 +34,36 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
     // Конфигурация NPC
-    const npcSpeed = 110;
-    const npcParkingSpeed = 50;
-    const npcFinalApproachSpeed = 60;
-    const npcExitSpeed = 40;
+    const npcSpeed = 75;
+    const npcParkingSpeed = 30;
+    const npcFinalApproachSpeed = 40;
+    const npcExitSpeed = 20;
     const REVERSE_SPEED = 40;
     const MAX_REVERSE_TIME = 1;
     const REVERSE_CHECK_DELAY = 5000;
     const MAX_REVERSE_ATTEMPTS = 3;
     const SCENE_BOUNDS_PADDING = 50;
-    const COLLISION_WAIT_TIME = 1200;
+    const COLLISION_WAIT_TIME = 1500;
     const NO_REVERSE_WAIT_TIME = 2000;
     const PARKING_START_POINTS = 1;
     const PARKING_END_POINTS = 3;
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
     const PARKING_EXIT_DELAY = 4000;
-    const NPC_PER_ROW = 1;  // Увеличено с 2 до 3
+    const NPC_PER_ROW = 2;  // Увеличено с 2 до 3
     const MAX_NPC_PER_ROW = 5;  // Новый параметр - максимальное количество
     const ROWS_COUNT = 8;
 
     // Конфигурация сенсоров
-    const npcSensors = {
-      front: { width: 27, height: 17, offset: 25 },
-      left: { width: 20, height: 10, offset: 10 },
-      right: { width: 20, height:10, offset:10 },
-      debugColor: 0xff0000,
-      debugAlpha: 0.8
-    };
+	const npcSensors = {
+	  front: { width: 27, height: 17, offset: 27, angle: 0 },
+	  frontLeft: { width: 5, height: 5, offset: 5, angle: Math.PI/4 },
+	  frontRight: { width: 5, height: 5, offset: 5, angle: -Math.PI/4 },
+	  left: { width: 10, height: 15, offset: 5, angle: Math.PI/2 },
+	  right: { width: 10, height: 15, offset: 5, angle: -Math.PI/2 },
+	  debugColor: 0xff0000,
+	  debugAlpha: 0.75 // 0.75
+	};
 
     const config = {
       type: Phaser.AUTO,
@@ -298,52 +301,51 @@
       return shuffled.slice(0, spotsToSelect);
     }
 
-    function createSensors(scene, npc) {
-      npc.sensors = {
-        front: scene.add.rectangle(0, 0, npcSensors.front.width, npcSensors.front.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false),
-        left: scene.add.rectangle(0, 0, npcSensors.left.width, npcSensors.left.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false),
-        right: scene.add.rectangle(0, 0, npcSensors.right.width, npcSensors.right.height, npcSensors.debugColor, npcSensors.debugAlpha).setVisible(false)
-      };
-    }
+	function createSensors(scene, npc) {
+	  // Удаляем старые сенсоры, если они есть
+	  if (npc.sensors) {
+		Object.values(npc.sensors).forEach(sensor => sensor.destroy());
+	  }
+
+	  // Создаем новые сенсоры
+	  npc.sensors = {
+		front: createSensorRect(scene, npcSensors.front),
+		frontLeft: createSensorRect(scene, npcSensors.frontLeft),
+		frontRight: createSensorRect(scene, npcSensors.frontRight),
+		left: createSensorRect(scene, npcSensors.left),
+		right: createSensorRect(scene, npcSensors.right)
+	  };
+	}
+
+	// Вспомогательная функция для создания сенсоров
+	function createSensorRect(scene, config) {
+	  return scene.add.rectangle(
+		0, 0, 
+		config.width, 
+		config.height, 
+		npcSensors.debugColor, 
+		npcSensors.debugAlpha
+	  ).setVisible(false);
+	}
 
 	function updateSensors(npc) {
-	  if (!npc.sensors) return;
-	  
-	  // Проверяем, находится ли NPC в парковочной фазе
-	  const isParkingPhase = (
-		npc.routeIndex < PARKING_START_POINTS || 
-		npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)
-	  );
-	  
-	  // Отключаем сенсоры в парковочной фазе и при движении назад
-	  if (isParkingPhase || npc.isReversing) {
-		Object.values(npc.sensors).forEach(sensor => sensor.visible = false);
+	  if (!npc.sensors || npc.routeIndex < PARKING_START_POINTS || 
+		  npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)) {
 		return;
 	  }
 
-	  // Обновляем позиции сенсоров, если не в парковочной фазе
 	  const rotation = npc.rotation - Math.PI/2;
 	  
-	  // Передний сенсор
-	  npc.sensors.front.x = npc.x + Math.cos(rotation) * npcSensors.front.offset;
-	  npc.sensors.front.y = npc.y + Math.sin(rotation) * npcSensors.front.offset;
-	  npc.sensors.front.rotation = rotation;
-	  
-	  // Левый сенсор
-	  npc.sensors.left.x = npc.x + Math.cos(rotation + Math.PI/2) * npcSensors.left.offset;
-	  npc.sensors.left.y = npc.y + Math.sin(rotation + Math.PI/2) * npcSensors.left.offset;
-	  npc.sensors.left.rotation = rotation;
-	  
-	  // Правый сенсор
-	  npc.sensors.right.x = npc.x + Math.cos(rotation - Math.PI/2) * npcSensors.right.offset;
-	  npc.sensors.right.y = npc.y + Math.sin(rotation - Math.PI/2) * npcSensors.right.offset;
-	  npc.sensors.right.rotation = rotation;
-
-	  // Видимость в debug-режиме
-	  const shouldShow = showDebug;
-	  npc.sensors.front.visible = shouldShow;
-	  npc.sensors.left.visible = shouldShow;
-	  npc.sensors.right.visible = shouldShow;
+	  // Обновляем позиции всех сенсоров
+	  Object.keys(npc.sensors).forEach(key => {
+		const sensor = npc.sensors[key];
+		const config = npcSensors[key];
+		
+		sensor.x = npc.x + Math.cos(rotation + config.angle) * config.offset;
+		sensor.y = npc.y + Math.sin(rotation + config.angle) * config.offset;
+		sensor.rotation = rotation + config.angle;
+		sensor.visible = showDebug && !npc.isReversing;
+	  });
 	}
 
 	function checkSensors(npc) {
@@ -384,28 +386,19 @@
 	function handleFrontCollision(npc, collision) {
 	  if (npc.isWaiting || npc.isReversing || npc.isAvoiding) return;
 	  
-	  if (showDebug && showCollisionHighlights) {
-		const debugGraphics = npc.scene.add.graphics();
-		debugGraphics.fillStyle(0xff0000, 0.5);
-		debugGraphics.fillRect(
-		  collision.npc.x - collision.npc.width/2,
-		  collision.npc.y - collision.npc.height/2,
-		  collision.npc.width,
-		  collision.npc.height
-		);
-		npc.scene.time.delayedCall(1000, () => debugGraphics.destroy());
-	  }
-
 	  npc.preCollisionSpeed = npc.body.velocity.clone();
 	  npc.setVelocity(0, 0);
 	  npc.isWaiting = true;
+	  
+	  // Берём ближайшее столкновение (первый элемент отсортированного массива)
+	  const nearestCollision = Array.isArray(collision) ? collision[0] : collision;
 	  
 	  npc.scene.time.delayedCall(COLLISION_WAIT_TIME, () => {
 		if (!npc.scene || !npc.active) return;
 		
 		const newCollisions = checkSensors(npc);
-		if (newCollisions.some(c => c.sensor === 'front')) {
-		  avoidObstacle(npc, newCollisions.find(c => c.sensor === 'front'));
+		if (newCollisions.length > 0) {
+		  avoidObstacle(npc, newCollisions[0]); // Передаём только ближайшее препятствие
 		} else {
 		  npc.isWaiting = false;
 		  if (npc.preCollisionSpeed) {
