@@ -57,14 +57,14 @@
     const PARKING_END_POINTS = 3;
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
-    const PARKING_EXIT_DELAY = 2900;
+    const PARKING_EXIT_DELAY = 3500;
     const NPC_PER_ROW = 3;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
 
     // Конфигурация сенсоров
     const npcSensors = {
-      front: { width: 27, height: 17, offset: 15, angle: 0 },
+      front: { width: 17, height: 15, offset: 17, angle: 0 },
       frontLeft: { width: 5, height: 5, offset: 5, angle: Math.PI/4 },
       frontRight: { width: 5, height: 5, offset: 5, angle: -Math.PI/4 },
       left: { width: 10, height: 15, offset: 5, angle: Math.PI/2 },
@@ -594,7 +594,7 @@
             scaleCoords(spot.x, spot.y).y,
             'npcCar'
           )
-          .setScale(0.47)
+          .setScale(0.40) //0.47
           .setDepth(3)
           .setCollideWorldBounds(false);
 
