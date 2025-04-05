@@ -76,7 +76,7 @@
       left: { width: 0, height: 0, offset: 0, angle: Math.PI/2 },
       right: { width: 0, height: 0, offset: 0, angle: -Math.PI/2 },
       debugColor: 0xff0000,
-      debugAlpha: 0.50
+      debugAlpha: 0.55
     };
 
     const config = {
@@ -674,17 +674,18 @@
     }
 
     function preload() {
-      this.load.image('lamp_top', 'https://example.com/lamp_top.png');
-      this.load.image('lamp_bottom', 'https://example.com/lamp_bottom.png');  
-      this.load.image('background', 'https://example.com/parking_map.png');
-      this.load.image('entrance', 'https://example.com/entrance.png');
-      this.load.image('pavilion', 'https://example.com/pavilion.png');
-      this.load.image('grass1', 'https://example.com/grass1.png');
-      this.load.image('tree1', 'https://example.com/tree1.png');
-      this.load.image('tree2', 'https://example.com/tree2.png');
-      this.load.image('bush1', 'https://example.com/bush1.png');
-      this.load.image('oil', 'https://example.com/oil.png');
-      this.load.image('npcCar', 'https://example.com/npc_car.png');
+      // Оригинальные изображения из исходного кода
+      this.load.image('background', 'assets/parking_map.png');
+      this.load.image('npcCar', 'assets/npc_car.png');
+      this.load.image('entrance', 'assets/entrance.png');
+      this.load.image('pavilion', 'assets/pavilion.png');
+      this.load.image('grass1', 'assets/grass1.png');
+      this.load.image('tree1', 'assets/tree1.png');
+      this.load.image('tree2', 'assets/tree2.png');
+      this.load.image('bush1', 'assets/bush1.png');
+      this.load.image('oil', 'assets/oil.png');
+      this.load.image('lamp_top', 'assets/lamp_top.png');
+      this.load.image('lamp_bottom', 'assets/lamp_bottom.png');
     }
 
     function createEntranceAndPavilion(scene) {
