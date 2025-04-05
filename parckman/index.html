@@ -56,10 +56,10 @@
     // Конфигурация сенсоров
     const npcSensors = {
       front: { width: 25, height: 20, offset: 25, angle: 0 },
-      frontLeft: { width: 5, height: 5, offset: 5, angle: Math.PI/4 },
-      frontRight: { width: 5, height: 5, offset: 5, angle: -Math.PI/4 },
-      left: { width: 10, height: 15, offset: 5, angle: Math.PI/2 },
-      right: { width: 10, height: 15, offset: 5, angle: -Math.PI/2 },
+      frontLeft: { width: 1, height: 1, offset: 1, angle: Math.PI/4 },
+      frontRight: { width: 1, height: 1, offset: 1, angle: -Math.PI/4 },
+      left: { width: 1, height: 1, offset: 1, angle: Math.PI/2 },
+      right: { width: 1, height: 1, offset: 1, angle: -Math.PI/2 },
       debugColor: 0xff0000,
       debugAlpha: 0.75
     };
@@ -184,7 +184,7 @@
         this.scene.tweens.add({
           targets: npc,
           props: {
-            alpha: 0.5
+            alpha: 1
           },
           duration: 500,
           ease: 'Power2',
@@ -713,7 +713,7 @@
             scaleCoords(spot.x, spot.y).y,
             'npcCar'
           )
-          .setScale(0.44)
+          .setScale(0.435)
           .setDepth(3)
           .setCollideWorldBounds(false);
 
