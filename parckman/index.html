@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Rush с точными границами</title>
+  <title>Parking Rush с улучшенной системой столкновений</title>
   <style>
     body, html {
       margin: 0;
@@ -28,6 +28,20 @@
       color: white;
       padding: 10px;
       font-family: monospace;
+      z-index: 100;
+    }
+    .annihilation-effect {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle, red, yellow);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      animation: fadeOut 0.5s forwards;
+    }
+    @keyframes fadeOut {
+      to { transform: translate(-50%, -50%) scale(2); opacity: 0; }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
@@ -52,10 +66,11 @@
     const NPC_PER_ROW = 3;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
+    const MAX_COLLISION_CHECKS = 3;
 
     // Конфигурация сенсоров
     const npcSensors = {
-      front: { width: 25, height: 30, offset: 25, angle: 0 },
+      front: { width: 25, height: 20, offset: 25, angle: 0 },
       frontLeft: { width: 0, height: 0, offset: 0, angle: Math.PI/4 },
       frontRight: { width: 0, height: 0, offset: 0, angle: -Math.PI/4 },
       left: { width: 0, height: 0, offset: 0, angle: Math.PI/2 },
@@ -410,24 +425,71 @@
       npc.preCollisionSpeed = npc.body.velocity.clone();
       npc.setVelocity(0, 0);
       npc.isWaiting = true;
+      npc.collisionCheckAttempts = 0;
+      npc.otherNpc = collision.npc;
       
-      const nearestCollision = Array.isArray(collision) ? collision[0] : collision;
-      
-      npc.scene.time.delayedCall(COLLISION_WAIT_TIME, () => {
+      const recheckCollision = () => {
         if (!npc.scene || !npc.active) return;
         
+        npc.collisionCheckAttempts++;
         const newCollisions = checkSensors(npc);
-        if (newCollisions.length > 0) {
-          avoidObstacle(npc, newCollisions[0]);
-        } else {
+        const stillBlocked = newCollisions.some(c => c.npc === npc.otherNpc);
+        
+        if (!stillBlocked) {
+          // Препятствие исчезло - продолжаем движение
           npc.isWaiting = false;
           if (npc.preCollisionSpeed) {
             npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
           } else {
             moveNPCToNextPoint(npc);
           }
+        } 
+        else if (npc.collisionCheckAttempts >= MAX_COLLISION_CHECKS) {
+          // После N проверок - решаем судьбу NPC
+          resolveDeadlock(npc, npc.otherNpc);
+        } 
+        else {
+          // Повторная проверка через 1.7 секунды
+          npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
         }
-      });
+      };
+      
+      // Первая проверка через 1.7 секунды
+      npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
+    }
+
+    function resolveDeadlock(npc1, npc2) {
+      // Случайно выбираем, какой NPC "аннигилировать" (50% шанс)
+      const npcToRemove = Math.random() > 0.5 ? npc1 : npc2;
+      const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
+      
+      // Создаем эффект аннигиляции
+      const effect = document.createElement('div');
+      effect.className = 'annihilation-effect';
+      effect.style.left = `${npcToRemove.x}px`;
+      effect.style.top = `${npcToRemove.y}px`;
+      document.getElementById('game-container').appendChild(effect);
+      
+      // Удаляем NPC из игры
+      npcToRemove.destroy();
+      
+      // Удаляем из массивов
+      npcs = npcs.filter(n => n !== npcToRemove);
+      exitQueue = exitQueue.filter(n => n !== npcToRemove);
+      
+      // Восстанавливаем движение оставшегося NPC
+      if (survivingNpc.active && survivingNpc.preCollisionSpeed) {
+        survivingNpc.isWaiting = false;
+        survivingNpc.setVelocity(
+          survivingNpc.preCollisionSpeed.x,
+          survivingNpc.preCollisionSpeed.y
+        );
+      }
+      
+      // Удаляем эффект через 1 секунду
+      setTimeout(() => {
+        effect.remove();
+      }, 1000);
     }
 
     function avoidObstacle(npc, obstacle) {
@@ -612,17 +674,17 @@
     }
 
     function preload() {
-      this.load.image('lamp_top', 'assets/lamp_top.png');
-      this.load.image('lamp_bottom', 'assets/lamp_bottom.png');  
-      this.load.image('background', 'assets/parking_map.png');
-      this.load.image('entrance', 'assets/entrance.png');
-      this.load.image('pavilion', 'assets/pavilion.png');
-      this.load.image('grass1', 'assets/grass1.png');
-      this.load.image('tree1', 'assets/tree1.png');
-      this.load.image('tree2', 'assets/tree2.png');
-      this.load.image('bush1', 'assets/bush1.png');
-      this.load.image('oil', 'assets/oil.png');
-      this.load.image('npcCar', 'assets/npc_car.png');
+      this.load.image('lamp_top', 'https://example.com/lamp_top.png');
+      this.load.image('lamp_bottom', 'https://example.com/lamp_bottom.png');  
+      this.load.image('background', 'https://example.com/parking_map.png');
+      this.load.image('entrance', 'https://example.com/entrance.png');
+      this.load.image('pavilion', 'https://example.com/pavilion.png');
+      this.load.image('grass1', 'https://example.com/grass1.png');
+      this.load.image('tree1', 'https://example.com/tree1.png');
+      this.load.image('tree2', 'https://example.com/tree2.png');
+      this.load.image('bush1', 'https://example.com/bush1.png');
+      this.load.image('oil', 'https://example.com/oil.png');
+      this.load.image('npcCar', 'https://example.com/npc_car.png');
     }
 
     function createEntranceAndPavilion(scene) {
@@ -713,7 +775,7 @@
             scaleCoords(spot.x, spot.y).y,
             'npcCar'
           )
-          .setScale(0.435)
+          .setScale(0.43)
           .setDepth(3)
           .setCollideWorldBounds(false);
 
@@ -732,6 +794,7 @@
           npc.isAvoiding = false;
           npc.reverseAttempts = 0;
           npc.lastExitTime = 0;
+          npc.collisionCheckAttempts = 0;
 
           npcs.push(npc);
           exitQueue.push(npc);
