@@ -56,12 +56,12 @@
     // Конфигурация сенсоров
     const npcSensors = {
       front: { width: 25, height: 20, offset: 25, angle: 0 },
-      frontLeft: { width: 1, height: 1, offset: 1, angle: Math.PI/4 },
-      frontRight: { width: 1, height: 1, offset: 1, angle: -Math.PI/4 },
-      left: { width: 1, height: 1, offset: 1, angle: Math.PI/2 },
-      right: { width: 1, height: 1, offset: 1, angle: -Math.PI/2 },
+      frontLeft: { width: 0, height: 0, offset: 0, angle: Math.PI/4 },
+      frontRight: { width: 0, height: 0, offset: 0, angle: -Math.PI/4 },
+      left: { width: 0, height: 0, offset: 0, angle: Math.PI/2 },
+      right: { width: 0, height: 0, offset: 0, angle: -Math.PI/2 },
       debugColor: 0xff0000,
-      debugAlpha: 0.75
+      debugAlpha: 0.50
     };
 
     const config = {
@@ -184,9 +184,9 @@
         this.scene.tweens.add({
           targets: npc,
           props: {
-            alpha: 1
+            alpha: 0.9
           },
-          duration: 500,
+          duration: 250,
           ease: 'Power2',
           onComplete: () => {
             npc.setVelocity(0, 0);
