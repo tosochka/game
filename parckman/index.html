@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Rush с полным оформлением</title>
+  <title>Parking Rush с оригинальным оформлением</title>
   <style>
     body, html {
       margin: 0;
@@ -64,7 +64,7 @@
 
     // Конфигурация сенсоров
     const npcSensors = {
-      front: { width: 50, height: 15, offset: 30, angle: 0 },
+      front: { width: 50, height: 15, offset: 25, angle: 0 },
       frontLeft: { width: 5, height: 5, offset: 5, angle: Math.PI/4 },
       frontRight: { width: 5, height: 5, offset: 5, angle: -Math.PI/4 },
       left: { width: 10, height: 15, offset: 5, angle: Math.PI/2 },
@@ -106,6 +106,55 @@
     let gameArea;
     let background;
     let decorativeLayer;
+    
+    // Система контроля границ
+    let boundarySystem = {
+      disabledNPCs: new Set(),
+      checkInterval: 100,
+      lastCheckTime: 0,
+      
+      init: function(scene) {
+        this.scene = scene;
+      },
+      
+      update: function(time) {
+        if (time - this.lastCheckTime < this.checkInterval) return;
+        this.lastCheckTime = time;
+        
+        npcs.forEach(npc => {
+          if (this.disabledNPCs.has(npc)) return;
+          
+          if (isOutOfBounds(npc)) {
+            this.disableNPC(npc);
+          }
+        });
+      },
+      
+      disableNPC: function(npc) {
+        this.scene.tweens.add({
+          targets: npc,
+          props: {
+            alpha: 0.5
+          },
+          duration: 500,
+          ease: 'Power2',
+          onComplete: () => {
+            npc.setVelocity(0, 0);
+            npc.body.enable = false;
+            this.disabledNPCs.add(npc);
+            
+            const index = exitQueue.indexOf(npc);
+            if (index !== -1) {
+              exitQueue.splice(index, 1);
+            }
+          }
+        });
+      },
+      
+      isNPCDisabled: function(npc) {
+        return this.disabledNPCs.has(npc);
+      }
+    };
 
     // Парковочные места
     const upperLeftParkingSpots = [
@@ -294,7 +343,7 @@
 
     function checkSensors(npc) {
       const collisions = [];
-      const otherNpcs = npcs.filter(n => n !== npc && n.active);
+      const otherNpcs = npcs.filter(n => n !== npc && n.active && !boundarySystem.isNPCDisabled(n));
       
       otherNpcs.forEach(other => {
         Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
@@ -315,7 +364,7 @@
     }
 
     function avoidObstacle(npc, obstacle) {
-      if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex]) return;
+      if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex] || boundarySystem.isNPCDisabled(npc)) return;
       
       npc.isAvoiding = true;
       npc.preAvoidState = {
@@ -340,7 +389,7 @@
       );
       
       const boundsCheck = () => {
-        if (!npc.active) return;
+        if (!npc.active || boundarySystem.isNPCDisabled(npc)) return;
         
         if (isOutOfBounds(npc)) {
           npc.isAvoiding = false;
@@ -356,7 +405,7 @@
       boundsCheck();
       
       npc.scene.time.delayedCall(500, () => {
-        if (npc.active && npc.isAvoiding) {
+        if (npc.active && npc.isAvoiding && !boundarySystem.isNPCDisabled(npc)) {
           npc.isAvoiding = false;
           
           if (npc.preAvoidState && npc.route && npc.route[npc.routeIndex]) {
@@ -386,6 +435,8 @@
     }
 
     function moveNPCToNextPoint(npc) {
+      if (boundarySystem.isNPCDisabled(npc)) return;
+      
       const isParkingPhase = (
         npc.routeIndex < PARKING_START_POINTS || 
         npc.routeIndex > npc.route.length - (PARKING_END_POINTS + 1)
@@ -425,7 +476,7 @@
       }
 
       const nextNpc = exitQueue.shift();
-      if (!nextNpc.active || nextNpc.isDestroyed) {
+      if (!nextNpc.active || nextNpc.isDestroyed || boundarySystem.isNPCDisabled(nextNpc)) {
         game.scene.scenes[0].time.delayedCall(100, processExitQueue, [], game.scene.scenes[0]);
         return;
       }
@@ -441,7 +492,7 @@
       
       const delay = Phaser.Math.Between(100, 500);
       nextNpc.scene.time.delayedCall(delay, () => {
-        if (nextNpc.active) {
+        if (nextNpc.active && !boundarySystem.isNPCDisabled(nextNpc)) {
           nextNpc.isExiting = true;
           nextNpc.isWaiting = false;
           
@@ -462,19 +513,21 @@
     function createDecorativeLayer(scene) {
       decorativeLayer = scene.add.container();
       
-      // Создаем элементы оформления
+      // Вход на парковку
       const entrance = scene.add.image(
         scaleCoords(3 + 252/2, 893 + 216/2, true).x,
         scaleCoords(3 + 252/2, 893 + 216/2, true).y,
         'entrance'
       ).setScale(0.5);
       
+      // Павильон
       const pavilion = scene.add.image(
         scaleCoords(700, 100).x,
         scaleCoords(700, 100).y,
         'pavilion'
       ).setScale(0.5);
       
+      // Фонарные столбы
       const lampTop = scene.add.image(
         scaleCoords(850+90, 223+170).x,
         scaleCoords(850+90, 223+170).y,
@@ -487,6 +540,7 @@
         'lamp_bottom'
       ).setScale(0.5);
       
+      // Растительность
       const grass1 = scene.add.image(
         scaleCoords(661 + 20, 89 + 20).x,
         scaleCoords(661 + 20, 89 + 20).y,
@@ -511,13 +565,13 @@
         'bush1'
       ).setScale(0.5);
       
+      // Пятна масла
       const oil = scene.add.image(
         scaleCoords(25 + 15, 938 + 23).x,
         scaleCoords(25 + 15, 938 + 23).y,
         'oil'
       ).setScale(0.5);
 
-      // Добавляем все элементы в декоративный слой
       decorativeLayer.add([
         entrance, pavilion, lampTop, lampBottom, 
         grass1, tree1, tree2, bush1, oil
@@ -549,6 +603,9 @@
 
     function create() {
       const scene = this;
+      
+      // Инициализируем систему контроля границ
+      boundarySystem.init(scene);
       
       // Создаем фон
       background = scene.add.image(400, 400, 'background');
@@ -665,7 +722,7 @@
         npcs,
         npcs,
         (npc1, npc2) => {
-          if (npc1.isAvoiding || npc2.isAvoiding) return;
+          if (npc1.isAvoiding || npc2.isAvoiding || boundarySystem.isNPCDisabled(npc1) || boundarySystem.isNPCDisabled(npc2)) return;
           
           const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
           const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
@@ -686,7 +743,11 @@
     }
 
     function update() {
+      boundarySystem.update(this.time.now);
+      
       npcs.forEach(npc => {
+        if (boundarySystem.isNPCDisabled(npc)) return;
+        
         if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
 
         // Обновляем сенсоры
@@ -713,7 +774,7 @@
             npc.routeIndex <= npc.route.length - (PARKING_END_POINTS + 1)) {
           
           const collisions = checkSensors(npc);
-          const otherNpcs = npcs.filter(n => n !== npc && n.active);
+          const otherNpcs = npcs.filter(n => n !== npc && n.active && !boundarySystem.isNPCDisabled(n));
           
           otherNpcs.forEach(other => {
             Object.entries(npc.sensors).forEach(([sensorName, sensor]) => {
@@ -727,7 +788,7 @@
                   npc.isWaiting = true;
                   
                   npc.scene.time.delayedCall(COLLISION_WAIT_TIME, () => {
-                    if (!npc.scene || !npc.active) return;
+                    if (!npc.scene || !npc.active || boundarySystem.isNPCDisabled(npc)) return;
                     
                     const newCollisions = checkSensors(npc);
                     
