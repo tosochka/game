@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Rush с эффектом аннигиляции</title>
+  <title>Parking Rush с измененной очередью выезда</title>
   <style>
     body, html {
       margin: 0;
@@ -31,12 +31,11 @@
       font-family: monospace;
       z-index: 100;
     }
-
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
     // Конфигурация NPC
-    const npcSpeed = 90;
+    const npcSpeed = 80;
     const npcParkingSpeed = 30;
     const npcFinalApproachSpeed = 40;
     const npcExitSpeed = 20;
@@ -52,7 +51,7 @@
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
     const PARKING_EXIT_DELAY = 3500;
-    const NPC_PER_ROW = 4;
+    const NPC_PER_ROW = 5;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
@@ -65,7 +64,7 @@
       left: { width: 0, height: 0, offset: 0, angle: Math.PI/2 },
       right: { width: 0, height: 0, offset: 0, angle: -Math.PI/2 },
       debugColor: 0xff0000,
-      debugAlpha: 0.55
+      debugAlpha: 0.9
     };
 
     const config = {
@@ -425,7 +424,6 @@
         const stillBlocked = newCollisions.some(c => c.npc === npc.otherNpc);
         
         if (!stillBlocked) {
-          // Препятствие исчезло - продолжаем движение
           npc.isWaiting = false;
           if (npc.preCollisionSpeed) {
             npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
@@ -434,88 +432,75 @@
           }
         } 
         else if (npc.collisionCheckAttempts >= MAX_COLLISION_CHECKS) {
-          // После N проверок - решаем судьбу NPC
           resolveDeadlock(npc, npc.otherNpc);
         } 
         else {
-          // Повторная проверка через 1.7 секунды
           npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
         }
       };
       
-      // Первая проверка через 1.7 секунды
       npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
     }
-	
-	function resolveDeadlock(npc1, npc2) {
-		// Выбираем случайный NPC для аннигиляции
-		const npcToRemove = Math.random() > 0.5 ? npc1 : npc2;
-		const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
 
-		// Создаем эффект аннигиляции
-		createAnnihilationEffect(npcToRemove.scene, npcToRemove);
+    function resolveDeadlock(npc1, npc2) {
+      const npcToRemove = Math.random() > 0.5 ? npc1 : npc2;
+      const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
 
-		// Удаляем NPC из игры
-		npcToRemove.destroy();
+      createAnnihilationEffect(npcToRemove.scene, npcToRemove);
 
-		// Обновляем массивы
-		npcs = npcs.filter(n => n !== npcToRemove);
-		exitQueue = exitQueue.filter(n => n !== npcToRemove);
+      npcToRemove.destroy();
 
-		// Восстанавливаем движение второго NPC
-		if (survivingNpc.active && survivingNpc.preCollisionSpeed) {
-			survivingNpc.isWaiting = false;
-			survivingNpc.setVelocity(
-				survivingNpc.preCollisionSpeed.x,
-				survivingNpc.preCollisionSpeed.y
-			);
-			survivingNpc.preCollisionSpeed = null;
-		}
-	}	
+      npcs = npcs.filter(n => n !== npcToRemove);
+      exitQueue = exitQueue.filter(n => n !== npcToRemove);
 
-	function createAnnihilationEffect(scene, npc) {
-		// 1. Основной круг взрыва
-		const explosion = scene.add.graphics()
-			.fillStyle(0xFF4500, 1)
-			.fillCircle(0, 0, 25)
-			.setPosition(npc.x, npc.y)
-			.setDepth(25);
+      if (survivingNpc.active && survivingNpc.preCollisionSpeed) {
+        survivingNpc.isWaiting = false;
+        survivingNpc.setVelocity(
+          survivingNpc.preCollisionSpeed.x,
+          survivingNpc.preCollisionSpeed.y
+        );
+        survivingNpc.preCollisionSpeed = null;
+      }
+    }   
 
-		// 2. Анимация расширения
-		scene.tweens.add({
-			targets: explosion,
-			scaleX: 3,
-			scaleY: 3,
-			alpha: 0,
-			duration: 500,
-			ease: 'Back.easeOut',
-			onComplete: () => explosion.destroy()
-		});
+    function createAnnihilationEffect(scene, npc) {
+      const explosion = scene.add.graphics()
+        .fillStyle(0xFF4500, 1)
+        .fillCircle(0, 0, 25)
+        .setPosition(npc.x, npc.y)
+        .setDepth(25);
 
-		// 3. Частицы (если атлас загружен)
-		if (scene.textures.exists('flares')) {
-			const particles = scene.add.particles('flares');
-			const emitter = particles.createEmitter({
-				frame: ['red', 'yellow', 'orange'],
-				x: npc.x,
-				y: npc.y,
-				speed: { min: -200, max: 200 },
-				scale: { start: 0.6, end: 0 },
-				blendMode: 'ADD',
-				lifespan: 900,
-				quantity: 25,
-				rotate: { start: 0, end: 360 }
-			});
+      scene.tweens.add({
+        targets: explosion,
+        scaleX: 3,
+        scaleY: 3,
+        alpha: 0,
+        duration: 500,
+        ease: 'Back.easeOut',
+        onComplete: () => explosion.destroy()
+      });
 
-			scene.time.delayedCall(700, () => particles.destroy());
-		}
+      if (scene.textures.exists('flares')) {
+        const particles = scene.add.particles('flares');
+        const emitter = particles.createEmitter({
+          frame: ['red', 'yellow', 'orange'],
+          x: npc.x,
+          y: npc.y,
+          speed: { min: -200, max: 200 },
+          scale: { start: 0.6, end: 0 },
+          blendMode: 'ADD',
+          lifespan: 900,
+          quantity: 25,
+          rotate: { start: 0, end: 360 }
+        });
 
-		// 4. Тряска камеры
-		if (scene.cameras && scene.cameras.main) {
-			scene.cameras.main.shake(85, 0.005); // Длительность в ms, Сила тряски (0-1)
-		}
-	}
+        scene.time.delayedCall(700, () => particles.destroy());
+      }
 
+      if (scene.cameras && scene.cameras.main) {
+        scene.cameras.main.shake(85, 0.005);
+      }
+    }
 
     function avoidObstacle(npc, obstacle) {
       if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex]) return;
@@ -656,27 +641,78 @@
         return;
       }
 
-      const nextNpc = exitQueue.shift();
-      if (!nextNpc.active || nextNpc.isDestroyed) {
-        game.scene.scenes[0].time.delayedCall(100, processExitQueue, [], game.scene.scenes[0]);
-        return;
-      }
-
-      if (nextNpc.body.velocity.length() > 5) {
-        exitQueue.push(nextNpc);
-        game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
-        return;
-      }
-
-      lastExitTime = Date.now();
-      nextNpc.isInExitQueue = false;
+      // Определяем блоки парковочных мест
+      const leftRows = [
+        upperLeftParkingSpots.slice(0, 6),    // Блок 1
+        upperLeftParkingSpots.slice(6, 12),   // Блок 2
+        upperLeftParkingSpots.slice(12, 18),  // Блок 3
+        upperLeftParkingSpots.slice(18, 24)   // Блок 4
+      ];
       
-      const delay = Phaser.Math.Between(100, 500);
-      nextNpc.scene.time.delayedCall(delay, () => {
-        if (nextNpc.active) {
-          startNpcExit(nextNpc);
+      const rightRows = [
+        upperRightParkingSpots.slice(0, 6),   // Блок 1
+        upperRightParkingSpots.slice(6, 12),  // Блок 2
+        upperRightParkingSpots.slice(12, 18), // Блок 3
+        upperRightParkingSpots.slice(18, 24)  // Блок 4
+      ];
+
+      // Объединяем левые и правые ряды для каждого блока
+      const parkingBlocks = [
+        [...leftRows[0], ...rightRows[0]], // Блок 1
+        [...leftRows[1], ...rightRows[1]], // Блок 2
+        [...leftRows[2], ...rightRows[2]], // Блок 3
+        [...leftRows[3], ...rightRows[3]]  // Блок 4
+      ];
+
+      // Состояние для отслеживания текущего шага последовательности
+      if (!this.exitSequenceState) {
+        this.exitSequenceState = {
+          step: 0,
+          sequence: [0, 2, 1, 2] // Последовательность 1-3-2-3 (индексы 0-2-1-2)
+        };
+      }
+
+      // Получаем текущий блок согласно последовательности
+      const currentBlockIndex = this.exitSequenceState.sequence[this.exitSequenceState.step];
+      const currentBlock = parkingBlocks[currentBlockIndex];
+
+      // Находим NPC из текущего блока, которые готовы к выезду
+      const availableNpcs = exitQueue.filter(npc => 
+        currentBlock.some(spot => 
+          spot.x === npc.originalSpot.x && spot.y === npc.originalSpot.y
+        )
+      );
+
+      if (availableNpcs.length > 0) {
+        // Выбираем случайного NPC из доступных в текущем блоке
+        const nextNpc = Phaser.Utils.Array.GetRandom(availableNpcs);
+        
+        // Проверяем, что NPC не движется
+        if (nextNpc.body.velocity.length() > 5) {
+          exitQueue.push(nextNpc);
+          game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+          return;
         }
-      });
+
+        // Удаляем его из очереди
+        const index = exitQueue.indexOf(nextNpc);
+        if (index !== -1) {
+          exitQueue.splice(index, 1);
+        }
+
+        lastExitTime = Date.now();
+        nextNpc.isInExitQueue = false;
+        
+        const delay = Phaser.Math.Between(500, 1500); // Увеличили диапазон задержек
+        nextNpc.scene.time.delayedCall(delay, () => {
+          if (nextNpc.active) {
+            startNpcExit(nextNpc);
+          }
+        });
+
+        // Переходим к следующему шагу последовательности
+        this.exitSequenceState.step = (this.exitSequenceState.step + 1) % this.exitSequenceState.sequence.length;
+      }
 
       game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
     }
@@ -699,7 +735,6 @@
     }
 
     function preload() {
-      // Оригинальные изображения из исходного кода
       this.load.image('background', 'assets/parking_map.png');
       this.load.image('npcCar', 'assets/npc_car.png');
       this.load.image('entrance', 'assets/entrance.png');
@@ -711,7 +746,7 @@
       this.load.image('oil', 'assets/oil.png');
       this.load.image('lamp_top', 'assets/lamp_top.png');
       this.load.image('lamp_bottom', 'assets/lamp_bottom.png');
-	  this.load.atlas('flares', 'assets/particles/flares.png', 'assets/particles/flares.json');
+      this.load.atlas('flares', 'assets/particles/flares.png', 'assets/particles/flares.json');
     }
 
     function createEntranceAndPavilion(scene) {
@@ -755,184 +790,167 @@
       oil.setDepth(2);
     }
 
-	function create() {
-		const scene = this;
-		
-		// Инициализация системы границ
-		boundarySystem.init(scene);
-		
-		// Создаем фон
-		background = scene.add.image(400, 400, 'background').setDepth(0);
-		background.setDisplaySize(800, 800);
+    function create() {
+      const scene = this;
+      
+      boundarySystem.init(scene);
+      
+      background = scene.add.image(400, 400, 'background').setDepth(0);
+      background.setDisplaySize(800, 800);
 
-		// Создаем игровую зону
-		gameArea = createGameArea(scene);
+      gameArea = createGameArea(scene);
 
-		// Настройка отладки
-		debugGraphics = scene.add.graphics();
-		debugGraphics.setDepth(20);
+      debugGraphics = scene.add.graphics();
+      debugGraphics.setDepth(20);
 
-		// Инициализация рядов парковочных мест
-		const leftRows = [
-			upperLeftParkingSpots.slice(0, 6),
-			upperLeftParkingSpots.slice(6, 12),
-			upperLeftParkingSpots.slice(12, 18),
-			upperLeftParkingSpots.slice(18, 24)
-		];
+      const leftRows = [
+        upperLeftParkingSpots.slice(0, 6),
+        upperLeftParkingSpots.slice(6, 12),
+        upperLeftParkingSpots.slice(12, 18),
+        upperLeftParkingSpots.slice(18, 24)
+      ];
 
-		const rightRows = [
-			upperRightParkingSpots.slice(0, 6),
-			upperRightParkingSpots.slice(6, 12),
-			upperRightParkingSpots.slice(12, 18),
-			upperRightParkingSpots.slice(18, 24)
-		];
+      const rightRows = [
+        upperRightParkingSpots.slice(0, 6),
+        upperRightParkingSpots.slice(6, 12),
+        upperRightParkingSpots.slice(12, 18),
+        upperRightParkingSpots.slice(18, 24)
+      ];
 
-		// Очищаем массивы
-		npcs = [];
-		exitQueue = [];
-		lastExitTime = 0;
+      npcs = [];
+      exitQueue = [];
+      lastExitTime = 0;
 
-		// Создаем NPC
-		const allRows = [...leftRows, ...rightRows];
-		allRows.forEach(row => {
-			const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
-			selectedSpots.forEach(spot => {
-				const npc = scene.physics.add.sprite(
-					scaleCoords(spot.x, spot.y).x,
-					scaleCoords(spot.x, spot.y).y,
-					'npcCar'
-				)
-				.setScale(0.47)
-				.setDepth(3)
-				.setCollideWorldBounds(false);
+      const allRows = [...leftRows, ...rightRows];
+      allRows.forEach(row => {
+        const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
+        selectedSpots.forEach(spot => {
+          const npc = scene.physics.add.sprite(
+            scaleCoords(spot.x, spot.y).x,
+            scaleCoords(spot.x, spot.y).y,
+            'npcCar'
+          )
+          .setScale(0.47)
+          .setDepth(3)
+          .setCollideWorldBounds(false);
 
-				// Настройка физического тела
-				npc.body.setSize(25, 45);
-				npc.body.setOffset(0, 5);
+          npc.body.setSize(15, 35);
+          npc.body.setOffset(0, 5);
 
-				createSensors(scene, npc);
+          createSensors(scene, npc);
 
-				npc.originalSpot = spot;
-				npc.routeSequence = createShuffledRouteSequence();
-				npc.currentRouteIndex = 0;
-				npc.route = npc.routeSequence[0](npc.originalSpot);
-				npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
-				npc.routeIndex = 0;
-				npc.isWaiting = true;
-				npc.isInExitQueue = true;
-				npc.isExiting = false;
-				npc.isReversing = false;
-				npc.isAvoiding = false;
-				npc.reverseAttempts = 0;
-				npc.lastExitTime = 0;
-				npc.collisionCheckAttempts = 0;
+          npc.originalSpot = spot;
+          npc.routeSequence = createShuffledRouteSequence();
+          npc.currentRouteIndex = 0;
+          npc.route = npc.routeSequence[0](npc.originalSpot);
+          npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
+          npc.routeIndex = 0;
+          npc.isWaiting = true;
+          npc.isInExitQueue = true;
+          npc.isExiting = false;
+          npc.isReversing = false;
+          npc.isAvoiding = false;
+          npc.reverseAttempts = 0;
+          npc.lastExitTime = 0;
+          npc.collisionCheckAttempts = 0;
 
-				npcs.push(npc);
-				exitQueue.push(npc);
-			});
-		});
+          npcs.push(npc);
+          exitQueue.push(npc);
+        });
+      });
 
-		// Система overlap с мягким отталкиванием
-		scene.physics.add.overlap(
-			npcs,
-			npcs,
-			(npc1, npc2) => {
-				if (npc1 === npc2 || !npc1.active || !npc2.active) return;
+      scene.physics.add.overlap(
+        npcs,
+        npcs,
+        (npc1, npc2) => {
+          if (npc1 === npc2 || !npc1.active || !npc2.active) return;
 
-				// Мягкое отталкивание
-				const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-				const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-				const minDistance = 5;
-				
-				if (distance < minDistance) {
-					const pushForce = 0.5 * (minDistance - distance);
-					const pushX = Math.cos(angle) * pushForce;
-					const pushY = Math.sin(angle) * pushForce;
-					
-					npc1.body.velocity.x += pushX;
-					npc1.body.velocity.y += pushY;
-					npc2.body.velocity.x -= pushX;
-					npc2.body.velocity.y -= pushY;
-				}
+          const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
+          const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
+          const minDistance = 10;
+          
+          if (distance < minDistance) {
+            const pushForce = 0.5 * (minDistance - distance);
+            const pushX = Math.cos(angle) * pushForce;
+            const pushY = Math.sin(angle) * pushForce;
+            
+            npc1.body.velocity.x += pushX;
+            npc1.body.velocity.y += pushY;
+            npc2.body.velocity.x -= pushX;
+            npc2.body.velocity.y -= pushY;
+          }
 
-				// Проверка сенсоров
-				if (npc1.isAvoiding || npc2.isAvoiding) return;
+          if (npc1.isAvoiding || npc2.isAvoiding) return;
 
-				const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
-				const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
-				
-				const sensorCollisions = checkSensors(avoidingNpc);
-				const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
-				const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
-				
-				if (leftCollision) {
-					avoidObstacle(avoidingNpc, leftCollision);
-				} else if (rightCollision) {
-					avoidObstacle(avoidingNpc, rightCollision);
-				} else if (sensorCollisions.some(c => c.sensor === 'front')) {
-					avoidObstacle(avoidingNpc, { sensor: 'front' });
-				}
-			},
-			null,
-			this
-		);
+          const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
+          const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
+          
+          const sensorCollisions = checkSensors(avoidingNpc);
+          const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
+          const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
+          
+          if (leftCollision) {
+            avoidObstacle(avoidingNpc, leftCollision);
+          } else if (rightCollision) {
+            avoidObstacle(avoidingNpc, rightCollision);
+          } else if (sensorCollisions.some(c => c.sensor === 'front')) {
+            avoidObstacle(avoidingNpc, { sensor: 'front' });
+          }
+        },
+        null,
+        this
+      );
 
-		// Коллайдеры с другими объектами
-		scene.physics.add.collider(npcs, gameArea);
+      scene.physics.add.collider(npcs, gameArea);
 
-		// Запуск обработчика очереди выезда
-		processExitQueue();
+      processExitQueue();
 
-		// Создаем декорации
-		createEntranceAndPavilion(scene);
-		createDecorativeLayer(scene);
+      createEntranceAndPavilion(scene);
+      createDecorativeLayer(scene);
 
-		// Тестовая кнопка (клавиша E)
-		scene.input.keyboard.on('keydown-E', () => {
-			if (npcs.length > 0) {
-				const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
-				createAnnihilationEffect(scene, randomNpc);
-				
-				// Для теста: удаляем NPC через 0.5с
-				scene.time.delayedCall(500, () => {
-					randomNpc.destroy();
-					npcs = npcs.filter(n => n !== randomNpc);
-				});
-			}
-		});
+      scene.input.keyboard.on('keydown-E', () => {
+        if (npcs.length > 0) {
+          const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
+          createAnnihilationEffect(scene, randomNpc);
+          
+          scene.time.delayedCall(500, () => {
+            randomNpc.destroy();
+            npcs = npcs.filter(n => n !== randomNpc);
+          });
+        }
+      });
 
-		// Настройка клавиш отладки
-		scene.input.keyboard.on('keydown-D', () => {
-			showDebug = !showDebug;
-			debugGraphics.clear();
-			
-			if (showDebug) {
-				gameArea.each(child => {
-					debugGraphics.fillStyle(0x00ff00, 0.3);
-					debugGraphics.lineStyle(2, 0x00ff00, 0.6);
-					debugGraphics.fillRect(
-						child.x - child.width/2,
-						child.y - child.height/2,
-						child.width,
-						child.height
-					);
-					debugGraphics.strokeRect(
-						child.x - child.width/2,
-						child.y - child.height/2,
-						child.width,
-						child.height
-					);
-				});
-			}
-		});
+      scene.input.keyboard.on('keydown-D', () => {
+        showDebug = !showDebug;
+        debugGraphics.clear();
+        
+        if (showDebug) {
+          gameArea.each(child => {
+            debugGraphics.fillStyle(0x00ff00, 0.3);
+            debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+            debugGraphics.fillRect(
+              child.x - child.width/2,
+              child.y - child.height/2,
+              child.width,
+              child.height
+            );
+            debugGraphics.strokeRect(
+              child.x - child.width/2,
+              child.y - child.height/2,
+              child.width,
+              child.height
+            );
+          });
+        }
+      });
 
-		scene.input.keyboard.on('keydown-H', () => {
-			if (showDebug) {
-				showCollisionHighlights = !showCollisionHighlights;
-				console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
-			}
-		});
-	}
+      scene.input.keyboard.on('keydown-H', () => {
+        if (showDebug) {
+          showCollisionHighlights = !showCollisionHighlights;
+          console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
+        }
+      });
+    }
 
     function update() {
       boundarySystem.update(this.time.now);
