@@ -915,7 +915,7 @@
 		  const minDistance = 5;
 		  
 		  if (distance < minDistance) {
-			const pushForce = 0.7 * (minDistance - distance);
+			const pushForce = 1.5 * (minDistance - distance);
 			const pushX = Math.cos(angle) * pushForce;
 			const pushY = Math.sin(angle) * pushForce;
 			
