@@ -36,7 +36,7 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
     // Конфигурация NPC
-    const npcSpeed = 100;
+    const npcSpeed = 80;
     const npcParkingSpeed = 30;
     const npcFinalApproachSpeed = 40;
     const npcExitSpeed = 20;
@@ -52,7 +52,7 @@
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
     const PARKING_EXIT_DELAY = 3500;
-    const NPC_PER_ROW = 4;
+    const NPC_PER_ROW = 5;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
@@ -845,7 +845,7 @@
 				const minDistance = 5;
 				
 				if (distance < minDistance) {
-					const pushForce = 1.3 * (minDistance - distance);
+					const pushForce = 0.5 * (minDistance - distance);
 					const pushX = Math.cos(angle) * pushForce;
 					const pushY = Math.sin(angle) * pushForce;
 					
