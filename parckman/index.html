@@ -532,26 +532,42 @@
 			onComplete: () => explosion.destroy()
 		});
 
-		// 3. Частицы (новый API для Phaser 3.60+)
+		// 3. Частицы (проверяем доступные фреймы)
 		if (scene.textures.exists('flares')) {
-			const emitter = scene.add.particles(
-				npc.x, 
-				npc.y,
-				'flares',
-				{
-					frame: ['red', 'yellow', 'orange'],
-					speed: { min: -200, max: 200 },
-					scale: { start: 0.6, end: 0 },
-					blendMode: 'ADD',
-					lifespan: 900,
-					quantity: 25,
-					rotate: { start: 0, end: 360 },
-					emitting: false
-				}
+			// Получаем список всех доступных фреймов
+			const frames = scene.textures.get('flares').getFrameNames();
+			
+			// Фильтруем только подходящие цвета (красный, желтый, оранжевый)
+			const availableFrames = frames.filter(frame => 
+				frame.includes('blue') || 
+				frame.includes('green') || 
+				frame.includes('red') ||
+				frame.includes('white') ||
+				frame.includes('yellow') ||
+				frame.includes('fire')
 			);
 			
-			emitter.explode(25); // Запускаем 25 частиц
-			scene.time.delayedCall(700, () => emitter.destroy());
+			// Если есть подходящие фреймы, создаем эмиттер
+			if (availableFrames.length > 0) {
+				const emitter = scene.add.particles(
+					npc.x, 
+					npc.y,
+					'flares',
+					{
+						frame: availableFrames,
+						speed: { min: -200, max: 200 },
+						scale: { start: 0.6, end: 0 },
+						blendMode: 'ADD',
+						lifespan: 900,
+						quantity: 25,
+						rotate: { start: 0, end: 360 },
+						emitting: false
+					}
+				);
+				
+				emitter.explode(25);
+				scene.time.delayedCall(700, () => emitter.destroy());
+			}
 		}
 
 		// 4. Тряска камеры
