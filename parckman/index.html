@@ -787,7 +787,7 @@
       tree2.setDepth(10);
       bush1.setDepth(10);
       oil.setDepth(2);
-	  grass1.setDepth(0);
+	  grass1.setDepth(1);
     }
 
     function create() {
@@ -867,10 +867,10 @@
 
           const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
           const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-          const minDistance = 10;
+          const minDistance = 30;
           
           if (distance < minDistance) {
-            const pushForce = 1.0 * (minDistance - distance);
+            const pushForce = 0.7 * (minDistance - distance);
             const pushX = Math.cos(angle) * pushForce;
             const pushY = Math.sin(angle) * pushForce;
             
