@@ -532,27 +532,31 @@
 			onComplete: () => explosion.destroy()
 		});
 
-		// 3. Частицы (если атлас загружен)
+		// 3. Частицы (новый API для Phaser 3.60+)
 		if (scene.textures.exists('flares')) {
-			const particles = scene.add.particles('flares');
-			const emitter = particles.createEmitter({
-				frame: ['red', 'yellow', 'orange'],
-				x: npc.x,
-				y: npc.y,
-				speed: { min: -200, max: 200 },
-				scale: { start: 0.6, end: 0 },
-				blendMode: 'ADD',
-				lifespan: 900,
-				quantity: 25,
-				rotate: { start: 0, end: 360 }
-			});
-
-			scene.time.delayedCall(700, () => particles.destroy());
+			const emitter = scene.add.particles(
+				npc.x, 
+				npc.y,
+				'flares',
+				{
+					frame: ['red', 'yellow', 'orange'],
+					speed: { min: -200, max: 200 },
+					scale: { start: 0.6, end: 0 },
+					blendMode: 'ADD',
+					lifespan: 900,
+					quantity: 25,
+					rotate: { start: 0, end: 360 },
+					emitting: false
+				}
+			);
+			
+			emitter.explode(25); // Запускаем 25 частиц
+			scene.time.delayedCall(700, () => emitter.destroy());
 		}
 
 		// 4. Тряска камеры
 		if (scene.cameras && scene.cameras.main) {
-			scene.cameras.main.shake(85, 0.005); // Длительность в ms, Сила тряски (0-1)
+			scene.cameras.main.shake(85, 0.005);
 		}
 	}
 
