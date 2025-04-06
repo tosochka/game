@@ -51,7 +51,7 @@
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
     const PARKING_EXIT_DELAY = 3500;
-    const NPC_PER_ROW = 5;
+    const NPC_PER_ROW = 4;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
@@ -867,7 +867,7 @@
 
           const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
           const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-          const minDistance = 30;
+          const minDistance = 7;
           
           if (distance < minDistance) {
             const pushForce = 0.7 * (minDistance - distance);
