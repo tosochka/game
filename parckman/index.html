@@ -717,11 +717,11 @@
     function createEntranceAndPavilion(scene) {
       const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
       const entrance = scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
-      entrance.setDepth(1);
+      entrance.setDepth(0);
 
       const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100);
       const pavilion = scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
-      pavilion.setDepth(1);
+      pavilion.setDepth(0);
     }
 
     function createDecorativeLayer(scene) {
@@ -748,11 +748,11 @@
 
       lampTop.setDepth(11);
       lampBottom.setDepth(11);
-      grass1.setDepth(2);
+      grass1.setDepth(0);
       tree1.setDepth(10);
       tree2.setDepth(10);
       bush1.setDepth(10);
-      oil.setDepth(2);
+      oil.setDepth(0);
     }
 
 	function create() {
@@ -762,7 +762,7 @@
 		boundarySystem.init(scene);
 		
 		// Создаем фон
-		background = scene.add.image(400, 400, 'background').setDepth(0);
+		background = scene.add.image(400, 400, 'background').setDepth(1);
 		background.setDisplaySize(800, 800);
 
 		// Создаем игровую зону
