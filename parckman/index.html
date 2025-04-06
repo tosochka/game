@@ -332,29 +332,58 @@
       }
     }
 
-    function createSensors(scene, npc) {
-      if (npc.sensors) {
-        Object.values(npc.sensors).forEach(sensor => sensor.destroy());
-      }
+	function createSensors(scene, npc) {
+	  // Удаляем старые сенсоры, если они есть
+	  if (npc.sensors) {
+		Object.values(npc.sensors).forEach(sensor => sensor.destroy());
+	  }
 
-      npc.sensors = {
-        front: createSensorRect(scene, npcSensors.front),
-        frontLeft: createSensorRect(scene, npcSensors.frontLeft),
-        frontRight: createSensorRect(scene, npcSensors.frontRight),
-        left: createSensorRect(scene, npcSensors.left),
-        right: createSensorRect(scene, npcSensors.right)
-      };
-    }
+	  // Рассчитываем глубину сенсоров как depth NPC + 1
+	  const sensorDepth = npc.depth + 1; 
 
-    function createSensorRect(scene, config) {
-      return scene.add.rectangle(
-        0, 0, 
-        config.width, 
-        config.height, 
-        npcSensors.debugColor, 
-        npcSensors.debugAlpha
-      ).setVisible(false);
-    }
+	  // Создаем сенсоры с привязкой к глубине NPC
+	  npc.sensors = {
+		front: createSensorRect(scene, npcSensors.front)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		frontLeft: createSensorRect(scene, npcSensors.frontLeft)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		frontRight: createSensorRect(scene, npcSensors.frontRight)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		left: createSensorRect(scene, npcSensors.left)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		right: createSensorRect(scene, npcSensors.right)
+		  .setDepth(sensorDepth)
+		  .setVisible(false)
+	  };
+
+	  // Опционально: задаем уникальные цвета для разных сенсоров в дебаге
+	  if (showDebug) {
+		npc.sensors.front.setFillStyle(0xFF0000);    // Красный - передний
+		npc.sensors.frontLeft.setFillStyle(0x00FF00); // Зеленый - перед-левый
+		npc.sensors.frontRight.setFillStyle(0x0000FF);// Синий - перед-правый
+		npc.sensors.left.setFillStyle(0xFFFF00);     // Желтый - левый
+		npc.sensors.right.setFillStyle(0xFF00FF);    // Пурпурный - правый
+	  }
+	}
+
+	// Вспомогательная функция создания прямоугольника-сенсора
+	function createSensorRect(scene, config) {
+	  return scene.add.rectangle(
+		0, 0, 
+		config.width, 
+		config.height, 
+		npcSensors.debugColor, 
+		npcSensors.debugAlpha
+	  );
+	}
 
     function updateSensors(npc) {
       if (!npc.sensors || npc.routeIndex < PARKING_START_POINTS || 
