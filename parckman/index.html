@@ -912,10 +912,10 @@
 		  // Мягкое отталкивание
 		  const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
 		  const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-		  const minDistance = 5;
+		  const minDistance = 10;
 		  
 		  if (distance < minDistance) {
-			const pushForce = 1.5 * (minDistance - distance);
+			const pushForce = 0.7 * (minDistance - distance);
 			const pushX = Math.cos(angle) * pushForce;
 			const pushY = Math.sin(angle) * pushForce;
 			
