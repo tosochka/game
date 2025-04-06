@@ -51,8 +51,8 @@
     const PARKING_END_POINTS = 2;
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
-    const PARKING_EXIT_DELAY = 3500; // 3500
-    const NPC_PER_ROW = 4;
+    const PARKING_EXIT_DELAY = 3000; // 3500
+    const NPC_PER_ROW = 5;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
@@ -65,7 +65,7 @@
       left: { width: 0, height: 0, offset: 0, angle: Math.PI/2 },
       right: { width: 0, height: 0, offset: 0, angle: -Math.PI/2 },
       debugColor: 0xff0000,
-      debugAlpha: 0.9
+      debugAlpha: 0.55
     };
 
     const config = {
@@ -159,6 +159,7 @@
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
       },
+	  
     ];
 
     // Система контроля границ
