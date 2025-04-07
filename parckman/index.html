@@ -575,31 +575,47 @@
 		createSmokeEffect(scene, npc.x, npc.y);
 	}
 
-	function createSmokeEffect(scene, x, y) {
-		// ======================================
-		// НАСТРОЙКИ ЭФФЕКТА ДЫМА (регулируйте здесь)
-		// ======================================
-		const smokeConfig = {
-			texture: 'smoke4',       // Основная текстура ('smoke4' или 'smoke5')
-			scaleStart: 0.6,         // Начальный размер (0.5 = 50% от оригинала)
-			scaleEnd: 1.1,           // Конечный размер
-			alphaStart: 0.7,         // Начальная прозрачность (0-1)
-			alphaEnd: 0,             // Конечная прозрачность
-			riseDistance: 80,        // Высота подъема (пикселей)
-			duration: 800,           // Длительность анимации (мс)
-			xOffset: 0,              // Горизонтальное смещение
-			yOffset: 20,              // Вертикальное смещение
-			originX: 0.5,            // Точка привязки по X (0-1)
-			originY: 0.5,            // Точка привязки по Y
-			rotation: 0,             // Начальный угол поворота (радианы)
-			rotationEnd: 0,          // Конечный угол
-			ease: 'Sine.easeOut',    // Тип анимации
-			randomX: 0,             // Случайное смещение по X
-			useAnimation: true       // Использовать анимацию (false для статики)
-		};
-		// ======================================
+	// Добавьте в начале файла (перед createSmokeEffect)
+	const DEBUG_MODE = false; // Переключите на true для отладки позиции
 
-		// Создаем спрайт дыма с учетом смещений
+	function createSmokeEffect(scene, x, y) {
+		// Проверка наличия обязательных параметров
+		if (!scene || typeof x !== 'number' || typeof y !== 'number') {
+			console.error('Invalid parameters for createSmokeEffect');
+			return;
+		}
+
+		// Конфигурация с значениями по умолчанию
+		const smokeConfig = {
+			texture: scene.textures.exists('smoke4') ? 'smoke4' : null,
+			scaleStart: 0.6,
+			scaleEnd: 1.1,
+			alphaStart: 0.7,
+			alphaEnd: 0,
+			riseDistance: 80,
+			duration: 800,
+			xOffset: 0,
+			yOffset: 22,
+			originX: 0.5,
+			originY: 0.5,
+			rotation: 0,
+			rotationEnd: 0,
+			ease: 'Sine.easeOut',
+			randomX: 0,
+			useAnimation: scene.anims.exists('smoke_anim')
+		};
+
+		// Если текстура не загружена - используем fallback
+		if (!smokeConfig.texture) {
+			if (DEBUG_MODE) console.warn('Smoke textures not found! Using fallback');
+			if (scene.textures.exists('flares')) {
+				createFallbackSmoke(scene, x, y);
+				return;
+			}
+			return;
+		}
+
+		// Создаем спрайт дыма
 		const smoke = scene.add.sprite(
 			x + smokeConfig.xOffset + Phaser.Math.Between(-smokeConfig.randomX, smokeConfig.randomX),
 			y + smokeConfig.yOffset,
@@ -611,12 +627,12 @@
 		.setOrigin(smokeConfig.originX, smokeConfig.originY)
 		.setRotation(smokeConfig.rotation);
 
-		// Запускаем анимацию (если включена)
-		if (smokeConfig.useAnimation && scene.anims.exists('smoke_anim')) {
+		// Анимация
+		if (smokeConfig.useAnimation) {
 			smoke.play('smoke_anim');
 		}
 
-		// Анимация движения/преобразования
+		// Tween анимация
 		scene.tweens.add({
 			targets: smoke,
 			y: smoke.y - smokeConfig.riseDistance,
@@ -626,20 +642,32 @@
 			rotation: smokeConfig.rotationEnd,
 			duration: smokeConfig.duration,
 			ease: smokeConfig.ease,
-			onComplete: () => {
-				if (smoke && smoke.destroy) {
-					smoke.destroy();
-				}
-			}
+			onComplete: () => smoke.destroy()
 		});
 
-		// Для отладки: отображает красную точку в центре
+		// Отладочная маркировка центра
 		if (DEBUG_MODE) {
 			const centerMark = scene.add.circle(x, y, 3, 0xff0000)
 				.setDepth(35)
 				.setAlpha(0.7);
 			scene.time.delayedCall(500, () => centerMark.destroy());
 		}
+	}
+
+	// Fallback-эффект если текстуры дыма не загружены
+	function createFallbackSmoke(scene, x, y) {
+		const particles = scene.add.particles(x, y, 'flares', {
+			frame: ['white', 'yellow'],
+			scale: { start: 0.3, end: 0.8 },
+			alpha: { start: 0.6, end: 0 },
+			speed: { min: -20, max: 20 },
+			lifespan: 1000,
+			quantity: 5,
+			gravityY: -40,
+			emitting: false
+		});
+		particles.explode(5);
+		scene.time.delayedCall(1000, () => particles.destroy());
 	}
 
 
