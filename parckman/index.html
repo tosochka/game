@@ -878,7 +878,7 @@
 
 		  // Настройка физического тела
 		  npc.body.setSize(13, 20); // 15, 35
-		  npc.body.setOffset(0, 0);
+		  npc.body.setOffset(0, 7);
 
 		  createSensors(scene, npc);
 
@@ -915,7 +915,7 @@
 		  const minDistance = 3;
 		  
 		  if (distance < minDistance) {
-			const pushForce = 0.7 * (minDistance - distance);
+			const pushForce = 1.0 * (minDistance - distance);
 			const pushX = Math.cos(angle) * pushForce;
 			const pushY = Math.sin(angle) * pushForce;
 			
