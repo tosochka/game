@@ -576,46 +576,29 @@
 	}
 
 	function createSmokeEffect(scene, x, y) {
-		// Проверяем существование хотя бы первого кадра
-		if (!scene.textures.exists('smoke1')) {
-			console.error('Текстуры дыма не загружены! Доступные текстуры:', 
-						 scene.textures.getTextureKeys());
-			return;
-		}
-
-		const smoke = scene.add.sprite(x, y, 'smoke1')
+		// Начинаем сразу с smoke4 (как более легкого варианта)
+		const smoke = scene.add.sprite(x, y, 'smoke4')
 			.setDepth(30)
-			.setScale(0.3)
-			.setAlpha(0.8);
+			.setScale(0.6)  // Чуть больше начальный размер
+			.setAlpha(0.7); // Чуть прозрачнее
 		
-		// Проверяем существование анимации
-		if (!scene.anims.exists('smoke_anim')) {
-			console.warn('Анимация дыма не создана! Создаю временную...');
-			smoke.setAlpha(0.6)
-				 .setScale(0.3);
-			scene.tweens.add({
-				targets: smoke,
-				scaleX: 1,
-				scaleY: 1,
-				alpha: 0,
-				duration: 1000,
-				onComplete: () => smoke.destroy()
-			});
-			return;
-		}
-		
+		// Запускаем анимацию
 		smoke.play('smoke_anim');
 		
+		// Более плавное движение
 		scene.tweens.add({
 			targets: smoke,
-			y: y - 100,
-			scaleX: 1.2,
-			scaleY: 1.2,
+			y: y - 80,      // Меньше смещение вверх
+			scaleX: 1.1,    // Меньше увеличение
+			scaleY: 1.1,
 			alpha: 0,
-			duration: 1000,
+			duration: 800,  // Быстрее исчезновение
 			ease: 'Sine.easeOut',
 			onComplete: () => smoke.destroy()
 		});
+		
+		// Добавляем немного случайности в позицию
+		smoke.x += Phaser.Math.Between(-10, 10);
 	}
 
 
@@ -819,9 +802,6 @@
 	  this.load.image('bush4', 'assets/bush1.png');
 	  this.load.image('bush5', 'assets/bush1.png');
 	  this.load.image('house1', 'assets/house1.png');	
-      this.load.image('smoke1', 'assets/smoke/smoke1.png');
-      this.load.image('smoke2', 'assets/smoke/smoke2.png');
-      this.load.image('smoke3', 'assets/smoke/smoke3.png');
       this.load.image('smoke4', 'assets/smoke/smoke4.png');
       this.load.image('smoke5', 'assets/smoke/smoke5.png');
 
@@ -925,13 +905,10 @@
 			this.anims.create({
 				key: 'smoke_anim',
 				frames: [
-					{ key: 'smoke1' },
-					{ key: 'smoke2' },
-					{ key: 'smoke3' },
 					{ key: 'smoke4' },
 					{ key: 'smoke5' }
 				],
-				frameRate: 10,
+				frameRate: 8,
 				repeat: 0
 			});
 			console.log('Анимация дыма создана');
