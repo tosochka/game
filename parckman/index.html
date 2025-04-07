@@ -815,10 +815,10 @@
       const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
 	  
 	  const bush2Coords = scaleCoords(1500 + bushOffsetX, 100 + bushOffsetY);
-	  const bush3Coords = scaleCoords(100 + bushOffsetX, 1155 + bushOffsetY); 
-	  const bush4Coords = scaleCoords(120 + bushOffsetX, 1255 + bushOffsetY);
+	  const bush3Coords = scaleCoords(80 + bushOffsetX, 1155 + bushOffsetY); 
+	  const bush4Coords = scaleCoords(100 + bushOffsetX, 1260 + bushOffsetY);
 	  const bush5Coords = scaleCoords(120 + bushOffsetX, 1530 + bushOffsetY);
-	  const house1Coords = scaleCoords(1815 + houseOffsetX, 933 + houseOffsetY);  
+	  const house1Coords = scaleCoords(1815 + houseOffsetX, 931 + houseOffsetY);  
 
       const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
       const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
@@ -829,8 +829,8 @@
       const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
 	  
 	  const bush2 = scene.add.image(bush2Coords.x, bush2Coords.y, 'bush2').setScale(0.42);
-	  const bush3 = scene.add.image(bush3Coords.x, bush3Coords.y, 'bush3').setScale(0.4);
-	  const bush4 = scene.add.image(bush4Coords.x, bush4Coords.y, 'bush4').setScale(0.4); 
+	  const bush3 = scene.add.image(bush3Coords.x, bush3Coords.y, 'bush3').setScale(0.41);
+	  const bush4 = scene.add.image(bush4Coords.x, bush4Coords.y, 'bush4').setScale(0.35); 
 	  const bush5 = scene.add.image(bush5Coords.x, bush5Coords.y, 'bush5').setScale(0.4);	
 	  const house1 = scene.add.image(house1Coords.x, house1Coords.y, 'house1').setScale(0.4);	  
 
@@ -842,7 +842,7 @@
       bush1.setDepth(10);
       oil.setDepth(0);
 	  bush2.setDepth(10);
-	  bush3.setDepth(10);
+	  bush3.setDepth(11);
 	  bush4.setDepth(10);
 	  bush5.setDepth(10);
 	  house1.setDepth(10);	  
