@@ -576,30 +576,70 @@
 	}
 
 	function createSmokeEffect(scene, x, y) {
-		// Создаем спрайт дыма
-		const smoke = scene.add.sprite(x, y + 15, 'smoke4') // Смещаем начальную позицию вниз на 15px
-			.setDepth(30)
-			.setScale(0.6)
-			.setAlpha(0.7)
-			.setOrigin(0.5, 0.7); // Важное изменение! Якорь по Y снизу
+		// ======================================
+		// НАСТРОЙКИ ЭФФЕКТА ДЫМА (регулируйте здесь)
+		// ======================================
+		const smokeConfig = {
+			texture: 'smoke4',       // Основная текстура ('smoke4' или 'smoke5')
+			scaleStart: 0.6,         // Начальный размер (0.5 = 50% от оригинала)
+			scaleEnd: 1.1,           // Конечный размер
+			alphaStart: 0.7,         // Начальная прозрачность (0-1)
+			alphaEnd: 0,             // Конечная прозрачность
+			riseDistance: 80,        // Высота подъема (пикселей)
+			duration: 800,           // Длительность анимации (мс)
+			xOffset: 0,              // Горизонтальное смещение
+			yOffset: 20,              // Вертикальное смещение
+			originX: 0.5,            // Точка привязки по X (0-1)
+			originY: 0.5,            // Точка привязки по Y
+			rotation: 0,             // Начальный угол поворота (радианы)
+			rotationEnd: 0,          // Конечный угол
+			ease: 'Sine.easeOut',    // Тип анимации
+			randomX: 0,             // Случайное смещение по X
+			useAnimation: true       // Использовать анимацию (false для статики)
+		};
+		// ======================================
 
-		// Анимация
-		smoke.play('smoke_anim');
+		// Создаем спрайт дыма с учетом смещений
+		const smoke = scene.add.sprite(
+			x + smokeConfig.xOffset + Phaser.Math.Between(-smokeConfig.randomX, smokeConfig.randomX),
+			y + smokeConfig.yOffset,
+			smokeConfig.texture
+		)
+		.setDepth(30)
+		.setScale(smokeConfig.scaleStart)
+		.setAlpha(smokeConfig.alphaStart)
+		.setOrigin(smokeConfig.originX, smokeConfig.originY)
+		.setRotation(smokeConfig.rotation);
 
-		// Движение вверх с учетом смещения
+		// Запускаем анимацию (если включена)
+		if (smokeConfig.useAnimation && scene.anims.exists('smoke_anim')) {
+			smoke.play('smoke_anim');
+		}
+
+		// Анимация движения/преобразования
 		scene.tweens.add({
 			targets: smoke,
-			y: y - 65, // Учитываем начальное смещение +15 и движение -80
-			scaleX: 1.1,
-			scaleY: 1.1,
-			alpha: 0,
-			duration: 800,
-			ease: 'Sine.easeOut',
-			onComplete: () => smoke.destroy()
+			y: smoke.y - smokeConfig.riseDistance,
+			scaleX: smokeConfig.scaleEnd,
+			scaleY: smokeConfig.scaleEnd,
+			alpha: smokeConfig.alphaEnd,
+			rotation: smokeConfig.rotationEnd,
+			duration: smokeConfig.duration,
+			ease: smokeConfig.ease,
+			onComplete: () => {
+				if (smoke && smoke.destroy) {
+					smoke.destroy();
+				}
+			}
 		});
 
-		// Случайное смещение по X
-		smoke.x += Phaser.Math.Between(-10, 10);
+		// Для отладки: отображает красную точку в центре
+		if (DEBUG_MODE) {
+			const centerMark = scene.add.circle(x, y, 3, 0xff0000)
+				.setDepth(35)
+				.setAlpha(0.7);
+			scene.time.delayedCall(500, () => centerMark.destroy());
+		}
 	}
 
 
