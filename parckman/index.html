@@ -576,28 +576,29 @@
 	}
 
 	function createSmokeEffect(scene, x, y) {
-		// Начинаем сразу с smoke4 (как более легкого варианта)
-		const smoke = scene.add.sprite(x, y, 'smoke4')
+		// Создаем спрайт дыма
+		const smoke = scene.add.sprite(x, y + 15, 'smoke4') // Смещаем начальную позицию вниз на 15px
 			.setDepth(30)
-			.setScale(0.6)  // Чуть больше начальный размер
-			.setAlpha(0.7); // Чуть прозрачнее
-		
-		// Запускаем анимацию
+			.setScale(0.6)
+			.setAlpha(0.7)
+			.setOrigin(0.5, 0.7); // Важное изменение! Якорь по Y снизу
+
+		// Анимация
 		smoke.play('smoke_anim');
-		
-		// Более плавное движение
+
+		// Движение вверх с учетом смещения
 		scene.tweens.add({
 			targets: smoke,
-			y: y - 80,      // Меньше смещение вверх
-			scaleX: 1.1,    // Меньше увеличение
+			y: y - 65, // Учитываем начальное смещение +15 и движение -80
+			scaleX: 1.1,
 			scaleY: 1.1,
 			alpha: 0,
-			duration: 800,  // Быстрее исчезновение
+			duration: 800,
 			ease: 'Sine.easeOut',
 			onComplete: () => smoke.destroy()
 		});
-		
-		// Добавляем немного случайности в позицию
+
+		// Случайное смещение по X
 		smoke.x += Phaser.Math.Between(-10, 10);
 	}
 
