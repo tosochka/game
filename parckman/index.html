@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Rush с эффектом аннигиляции и улучшенными столкновениями</title>
+  <title>Parking Rush с эффектом аннигиляции</title>
   <style>
     body, html {
       margin: 0;
@@ -31,6 +31,7 @@
       font-family: monospace;
       z-index: 100;
     }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
@@ -50,14 +51,11 @@
     const PARKING_END_POINTS = 2;
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
-    const PARKING_EXIT_DELAY = 3000;
+    const PARKING_EXIT_DELAY = 3000; // 3500
     const NPC_PER_ROW = 5;
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
-    const RIGHT_ANGLE_COLLISION_THRESHOLD = 850;
-    const PUSH_BACK_DURATION = 1000;
-    const PUSH_BACK_SPEED = 60;
 
     // Конфигурация сенсоров
     const npcSensors = {
@@ -160,7 +158,8 @@
           { x: 420, y: 665 - npcOffset }, { x: 420, y: y - 37 },
           { x, y: y - 37 }, { x, y: y - 20 }, { x, y: y - 10 }, { x, y }
         ];
-      }
+      },
+	  
     ];
 
     // Система контроля границ
@@ -211,140 +210,16 @@
         return this.disabledNPCs.has(npc);
       }
     };
-
-    // Система обработки столкновений под прямым углом
-    const RightAngleCollisionSystem = {
-      scene: null,
-      stuckPairs: new Map(),
-      rightAngleThreshold: Math.PI / 4,
-      
-      init: function(scene) {
-        this.scene = scene;
-      },
-      
-      checkRightAngleCollision: function(npc1, npc2) {
-        const pairKey = this.getPairKey(npc1, npc2);
-        if (this.stuckPairs.has(pairKey)) return;
-
-        const angleBetween = Phaser.Math.Angle.Wrap(npc1.rotation - npc2.rotation);
-        const isRightAngle = Math.abs(angleBetween) > this.rightAngleThreshold && 
-                            Math.abs(angleBetween) < Math.PI - this.rightAngleThreshold;
-
-        if (isRightAngle && 
-            npc1.body.velocity.length() < 5 && 
-            npc2.body.velocity.length() < 5) {
-            
-          this.stuckPairs.set(pairKey, {
-            npc1: npc1,
-            npc2: npc2,
-            startTime: this.scene.time.now,
-            handled: false
-          });
-        }
-      },
-      
-      update: function() {
-        const currentTime = this.scene.time.now;
-        
-        this.stuckPairs.forEach((pair, key) => {
-          if (pair.handled) {
-            this.stuckPairs.delete(key);
-            return;
-          }
-
-          if (currentTime - pair.startTime > RIGHT_ANGLE_COLLISION_THRESHOLD && 
-              pair.npc1.body.velocity.length() < 5 && 
-              pair.npc2.body.velocity.length() < 5) {
-            
-            this.handleStuckPair(pair);
-            pair.handled = true;
-          }
-        });
-      },
-      
-      handleStuckPair: function(pair) {
-        const npcToPushBack = this.chooseNPCToPushBack(pair.npc1, pair.npc2);
-        const otherNPC = npcToPushBack === pair.npc1 ? pair.npc2 : pair.npc1;
-
-        pair.npc1.setVelocity(0, 0);
-        pair.npc2.setVelocity(0, 0);
-        pair.npc1.isWaiting = true;
-        pair.npc2.isWaiting = true;
-
-        this.pushNPCBack(npcToPushBack, otherNPC);
-      },
-      
-      chooseNPCToPushBack: function(npc1, npc2) {
-        const spaceBehindNpc1 = this.checkSpaceBehind(npc1);
-        const spaceBehindNpc2 = this.checkSpaceBehind(npc2);
-
-        if (spaceBehindNpc1 > spaceBehindNpc2) {
-          return npc1;
-        } else if (spaceBehindNpc2 > spaceBehindNpc1) {
-          return npc2;
-        }
-        
-        return Math.random() > 0.5 ? npc1 : npc2;
-      },
-      
-      checkSpaceBehind: function(npc) {
-        const angle = npc.rotation - Math.PI;
-        const checkDistance = 50;
-        
-        const checkX = npc.x + Math.cos(angle) * checkDistance;
-        const checkY = npc.y + Math.sin(angle) * checkDistance;
-        
-        let freeSpace = 0;
-        gameArea.each(child => {
-          if (Phaser.Geom.Intersects.RectangleToRectangle(
-            new Phaser.Geom.Rectangle(checkX-10, checkY-10, 20, 20),
-            child.getBounds()
-          )) {
-            freeSpace += 1;
-          }
-        });
-        
-        return freeSpace;
-      },
-      
-      pushNPCBack: function(npc, otherNPC) {
-        const angle = npc.rotation - Math.PI;
-        
-        npc.setVelocity(
-          Math.cos(angle) * PUSH_BACK_SPEED,
-          Math.sin(angle) * PUSH_BACK_SPEED
-        );
-        
-        this.scene.time.delayedCall(100, () => {
-          if (otherNPC.active) {
-            otherNPC.isWaiting = false;
-            moveNPCToNextPoint(otherNPC);
-          }
-        });
-
-        this.scene.time.delayedCall(PUSH_BACK_DURATION, () => {
-          if (npc.active) {
-            npc.setVelocity(0, 0);
-            npc.isWaiting = false;
-            moveNPCToNextPoint(npc);
-          }
-        });
-      },
-      
-      getPairKey: function(npc1, npc2) {
-        return [npc1.id, npc2.id].sort().join('_');
-      }
-    };
-
-    function getRandomCarTexture() {
-      const models = ['sedan', 'suv', 'hatchback', 'coupe', 'van'];
-      const colors = ['red', 'blue', 'green', 'yellow', 'black'];
-      
-      const randomModel = Phaser.Math.RND.pick(models);
-      const randomColor = Phaser.Math.RND.pick(colors);
-      
-      return `car_${randomModel}_${randomColor}`;
-    }
+	
+	function getRandomCarTexture() {
+	  const models = ['sedan', 'suv', 'hatchback', 'coupe', 'van'];
+	  const colors = ['red', 'blue', 'green', 'yellow', 'black'];
+	  
+	  const randomModel = Phaser.Math.RND.pick(models);
+	  const randomColor = Phaser.Math.RND.pick(colors);
+	  
+	  return `car_${randomModel}_${randomColor}`;
+	}	
 
     function scaleCoords(x, y, isRoad = false) {
       const parkingSpotWidth = 59;
@@ -468,53 +343,58 @@
       }
     }
 
-    function createSensors(scene, npc) {
-      if (npc.sensors) {
-        Object.values(npc.sensors).forEach(sensor => sensor.destroy());
-      }
+	function createSensors(scene, npc) {
+	  // Удаляем старые сенсоры, если они есть
+	  if (npc.sensors) {
+		Object.values(npc.sensors).forEach(sensor => sensor.destroy());
+	  }
 
-      const sensorDepth = npc.depth + 1; 
+	  // Рассчитываем глубину сенсоров как depth NPC + 1
+	  const sensorDepth = npc.depth + 1; 
 
-      npc.sensors = {
-        front: createSensorRect(scene, npcSensors.front)
-          .setDepth(sensorDepth)
-          .setVisible(false),
-          
-        frontLeft: createSensorRect(scene, npcSensors.frontLeft)
-          .setDepth(sensorDepth)
-          .setVisible(false),
-          
-        frontRight: createSensorRect(scene, npcSensors.frontRight)
-          .setDepth(sensorDepth)
-          .setVisible(false),
-          
-        left: createSensorRect(scene, npcSensors.left)
-          .setDepth(sensorDepth)
-          .setVisible(false),
-          
-        right: createSensorRect(scene, npcSensors.right)
-          .setDepth(sensorDepth)
-          .setVisible(false)
-      };
+	  // Создаем сенсоры с привязкой к глубине NPC
+	  npc.sensors = {
+		front: createSensorRect(scene, npcSensors.front)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		frontLeft: createSensorRect(scene, npcSensors.frontLeft)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		frontRight: createSensorRect(scene, npcSensors.frontRight)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		left: createSensorRect(scene, npcSensors.left)
+		  .setDepth(sensorDepth)
+		  .setVisible(false),
+		  
+		right: createSensorRect(scene, npcSensors.right)
+		  .setDepth(sensorDepth)
+		  .setVisible(false)
+	  };
 
-      if (showDebug) {
-        npc.sensors.front.setFillStyle(0xFF0000);
-        npc.sensors.frontLeft.setFillStyle(0x00FF00);
-        npc.sensors.frontRight.setFillStyle(0x0000FF);
-        npc.sensors.left.setFillStyle(0xFFFF00);
-        npc.sensors.right.setFillStyle(0xFF00FF);
-      }
-    }
+	  // Опционально: задаем уникальные цвета для разных сенсоров в дебаге
+	  if (showDebug) {
+		npc.sensors.front.setFillStyle(0xFF0000);    // Красный - передний
+		npc.sensors.frontLeft.setFillStyle(0x00FF00); // Зеленый - перед-левый
+		npc.sensors.frontRight.setFillStyle(0x0000FF);// Синий - перед-правый
+		npc.sensors.left.setFillStyle(0xFFFF00);     // Желтый - левый
+		npc.sensors.right.setFillStyle(0xFF00FF);    // Пурпурный - правый
+	  }
+	}
 
-    function createSensorRect(scene, config) {
-      return scene.add.rectangle(
-        0, 0, 
-        config.width, 
-        config.height, 
-        npcSensors.debugColor, 
-        npcSensors.debugAlpha
-      );
-    }
+	// Вспомогательная функция создания прямоугольника-сенсора
+	function createSensorRect(scene, config) {
+	  return scene.add.rectangle(
+		0, 0, 
+		config.width, 
+		config.height, 
+		npcSensors.debugColor, 
+		npcSensors.debugAlpha
+	  );
+	}
 
     function updateSensors(npc) {
       if (!npc.sensors || npc.routeIndex < PARKING_START_POINTS || 
@@ -585,6 +465,7 @@
         const stillBlocked = newCollisions.some(c => c.npc === npc.otherNpc);
         
         if (!stillBlocked) {
+          // Препятствие исчезло - продолжаем движение
           npc.isWaiting = false;
           if (npc.preCollisionSpeed) {
             npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
@@ -593,163 +474,202 @@
           }
         } 
         else if (npc.collisionCheckAttempts >= MAX_COLLISION_CHECKS) {
+          // После N проверок - решаем судьбу NPC
           resolveDeadlock(npc, npc.otherNpc);
         } 
         else {
+          // Повторная проверка через 1.7 секунды
           npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
         }
       };
       
+      // Первая проверка через 1.7 секунды
       npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
     }
+	
+	function resolveDeadlock(npc1, npc2) {
+		// Выбираем случайный NPC для аннигиляции
+		const npcToRemove = Math.random() > 0.5 ? npc1 : npc2;
+		const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
 
-    function resolveDeadlock(npc1, npc2) {
-      const npcToRemove = Math.random() > 0.5 ? npc1 : npc2;
-      const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
+		// Создаем эффект аннигиляции
+		createAnnihilationEffect(npcToRemove.scene, npcToRemove);
 
-      createAnnihilationEffect(npcToRemove.scene, npcToRemove);
-      npcToRemove.destroy();
+		// Удаляем NPC из игры
+		npcToRemove.destroy();
 
-      npcs = npcs.filter(n => n !== npcToRemove);
-      exitQueue = exitQueue.filter(n => n !== npcToRemove);
+		// Обновляем массивы
+		npcs = npcs.filter(n => n !== npcToRemove);
+		exitQueue = exitQueue.filter(n => n !== npcToRemove);
 
-      if (survivingNpc.active && survivingNpc.preCollisionSpeed) {
-        survivingNpc.isWaiting = false;
-        survivingNpc.setVelocity(
-          survivingNpc.preCollisionSpeed.x,
-          survivingNpc.preCollisionSpeed.y
-        );
-        survivingNpc.preCollisionSpeed = null;
-      }
-    }
+		// Восстанавливаем движение второго NPC
+		if (survivingNpc.active && survivingNpc.preCollisionSpeed) {
+			survivingNpc.isWaiting = false;
+			survivingNpc.setVelocity(
+				survivingNpc.preCollisionSpeed.x,
+				survivingNpc.preCollisionSpeed.y
+			);
+			survivingNpc.preCollisionSpeed = null;
+		}
+	}	
 
-    function createAnnihilationEffect(scene, npc) {
-      const explosion = scene.add.graphics()
-        .fillStyle(0xFF4500, 1)
-        .fillCircle(0, 0, 25)
-        .setPosition(npc.x, npc.y)
-        .setDepth(25);
+	function createAnnihilationEffect(scene, npc) {
+		// 1. Основной круг взрыва
+		const explosion = scene.add.graphics()
+			.fillStyle(0xFF4500, 1)
+			.fillCircle(0, 0, 25)
+			.setPosition(npc.x, npc.y)
+			.setDepth(25);
 
-      scene.tweens.add({
-        targets: explosion,
-        scaleX: 3,
-        scaleY: 3,
-        alpha: 0,
-        duration: 500,
-        ease: 'Back.easeOut',
-        onComplete: () => explosion.destroy()
-      });
+		// 2. Анимация расширения взрыва
+		scene.tweens.add({
+			targets: explosion,
+			scaleX: 3,
+			scaleY: 3,
+			alpha: 0,
+			duration: 500,
+			ease: 'Back.easeOut',
+			onComplete: () => explosion.destroy()
+		});
 
-      if (scene.textures.exists('flares')) {
-        const frames = scene.textures.get('flares').getFrameNames();
-        const availableFrames = frames.filter(frame => 
-          frame.includes('blue') || 
-          frame.includes('green') || 
-          frame.includes('red') ||
-          frame.includes('white') ||
-          frame.includes('yellow') ||
-          frame.includes('fire')
-        );
-        
-        if (availableFrames.length > 0) {
-          const emitter = scene.add.particles(
-            npc.x, 
-            npc.y,
-            'flares',
-            {
-              frame: availableFrames,
-              speed: { min: -200, max: 200 },
-              scale: { start: 0.6, end: 0 },
-              blendMode: 'ADD',
-              lifespan: 900,
-              quantity: 25,
-              rotate: { start: 0, end: 360 },
-              emitting: false
-            }
-          );
-          
-          emitter.explode(25);
-          scene.time.delayedCall(700, () => emitter.destroy());
-        }
-      }
+		// 3. Частицы взрыва
+		if (scene.textures.exists('flares')) {
+			const frames = scene.textures.get('flares').getFrameNames();
+			const availableFrames = frames.filter(frame => 
+				frame.includes('blue') || 
+				frame.includes('green') || 
+				frame.includes('red') ||
+				frame.includes('white') ||
+				frame.includes('yellow') ||
+				frame.includes('fire')
+			);
+			
+			if (availableFrames.length > 0) {
+				const emitter = scene.add.particles(
+					npc.x, 
+					npc.y,
+					'flares',
+					{
+						frame: availableFrames,
+						speed: { min: -200, max: 200 },
+						scale: { start: 0.6, end: 0 },
+						blendMode: 'ADD',
+						lifespan: 900,
+						quantity: 25,
+						rotate: { start: 0, end: 360 },
+						emitting: false
+					}
+				);
+				
+				emitter.explode(25);
+				scene.time.delayedCall(700, () => emitter.destroy());
+			}
+		}
 
-      if (scene.cameras && scene.cameras.main) {
-        scene.cameras.main.shake(85, 0.005);
-      }
+		// 4. Тряска камеры
+		if (scene.cameras && scene.cameras.main) {
+			scene.cameras.main.shake(85, 0.005);
+		}
 
-      createSmokeEffect(scene, npc.x, npc.y);
-    }
+		// 5. Эффект дыма (исправленная версия)
+		createSmokeEffect(scene, npc.x, npc.y);
+	}
 
-    function createSmokeEffect(scene, x, y) {
-      const smokeConfig = {
-        texture: scene.textures.exists('smoke4') ? 'smoke4' : null,
-        scaleStart: 0.6,
-        scaleEnd: 1.1,
-        alphaStart: 0.7,
-        alphaEnd: 0,
-        riseDistance: 80,
-        duration: 800,
-        xOffset: 0,
-        yOffset: 22,
-        originX: 0.5,
-        originY: 0.5,
-        rotation: 0,
-        rotationEnd: 0,
-        ease: 'Sine.easeOut',
-        randomX: 0,
-        useAnimation: scene.anims.exists('smoke_anim')
-      };
+	// Добавьте в начале файла (перед createSmokeEffect)
+	const DEBUG_MODE = false; // Переключите на true для отладки позиции
 
-      if (!smokeConfig.texture) {
-        if (scene.textures.exists('flares')) {
-          createFallbackSmoke(scene, x, y);
-          return;
-        }
-        return;
-      }
+	function createSmokeEffect(scene, x, y) {
+		// Проверка наличия обязательных параметров
+		if (!scene || typeof x !== 'number' || typeof y !== 'number') {
+			console.error('Invalid parameters for createSmokeEffect');
+			return;
+		}
 
-      const smoke = scene.add.sprite(
-        x + smokeConfig.xOffset + Phaser.Math.Between(-smokeConfig.randomX, smokeConfig.randomX),
-        y + smokeConfig.yOffset,
-        smokeConfig.texture
-      )
-      .setDepth(30)
-      .setScale(smokeConfig.scaleStart)
-      .setAlpha(smokeConfig.alphaStart)
-      .setOrigin(smokeConfig.originX, smokeConfig.originY)
-      .setRotation(smokeConfig.rotation);
+		// Конфигурация с значениями по умолчанию
+		const smokeConfig = {
+			texture: scene.textures.exists('smoke4') ? 'smoke4' : null,
+			scaleStart: 0.6,
+			scaleEnd: 1.1,
+			alphaStart: 0.7,
+			alphaEnd: 0,
+			riseDistance: 80,
+			duration: 800,
+			xOffset: 0,
+			yOffset: 22,
+			originX: 0.5,
+			originY: 0.5,
+			rotation: 0,
+			rotationEnd: 0,
+			ease: 'Sine.easeOut',
+			randomX: 0,
+			useAnimation: scene.anims.exists('smoke_anim')
+		};
 
-      if (smokeConfig.useAnimation) {
-        smoke.play('smoke_anim');
-      }
+		// Если текстура не загружена - используем fallback
+		if (!smokeConfig.texture) {
+			if (DEBUG_MODE) console.warn('Smoke textures not found! Using fallback');
+			if (scene.textures.exists('flares')) {
+				createFallbackSmoke(scene, x, y);
+				return;
+			}
+			return;
+		}
 
-      scene.tweens.add({
-        targets: smoke,
-        y: smoke.y - smokeConfig.riseDistance,
-        scaleX: smokeConfig.scaleEnd,
-        scaleY: smokeConfig.scaleEnd,
-        alpha: smokeConfig.alphaEnd,
-        rotation: smokeConfig.rotationEnd,
-        duration: smokeConfig.duration,
-        ease: smokeConfig.ease,
-        onComplete: () => smoke.destroy()
-      });
-    }
+		// Создаем спрайт дыма
+		const smoke = scene.add.sprite(
+			x + smokeConfig.xOffset + Phaser.Math.Between(-smokeConfig.randomX, smokeConfig.randomX),
+			y + smokeConfig.yOffset,
+			smokeConfig.texture
+		)
+		.setDepth(30)
+		.setScale(smokeConfig.scaleStart)
+		.setAlpha(smokeConfig.alphaStart)
+		.setOrigin(smokeConfig.originX, smokeConfig.originY)
+		.setRotation(smokeConfig.rotation);
 
-    function createFallbackSmoke(scene, x, y) {
-      const particles = scene.add.particles(x, y, 'flares', {
-        frame: ['white', 'yellow'],
-        scale: { start: 0.3, end: 0.8 },
-        alpha: { start: 0.6, end: 0 },
-        speed: { min: -20, max: 20 },
-        lifespan: 1000,
-        quantity: 5,
-        gravityY: -40,
-        emitting: false
-      });
-      particles.explode(5);
-      scene.time.delayedCall(1000, () => particles.destroy());
-    }
+		// Анимация
+		if (smokeConfig.useAnimation) {
+			smoke.play('smoke_anim');
+		}
+
+		// Tween анимация
+		scene.tweens.add({
+			targets: smoke,
+			y: smoke.y - smokeConfig.riseDistance,
+			scaleX: smokeConfig.scaleEnd,
+			scaleY: smokeConfig.scaleEnd,
+			alpha: smokeConfig.alphaEnd,
+			rotation: smokeConfig.rotationEnd,
+			duration: smokeConfig.duration,
+			ease: smokeConfig.ease,
+			onComplete: () => smoke.destroy()
+		});
+
+		// Отладочная маркировка центра
+		if (DEBUG_MODE) {
+			const centerMark = scene.add.circle(x, y, 3, 0xff0000)
+				.setDepth(35)
+				.setAlpha(0.7);
+			scene.time.delayedCall(500, () => centerMark.destroy());
+		}
+	}
+
+	// Fallback-эффект если текстуры дыма не загружены
+	function createFallbackSmoke(scene, x, y) {
+		const particles = scene.add.particles(x, y, 'flares', {
+			frame: ['white', 'yellow'],
+			scale: { start: 0.3, end: 0.8 },
+			alpha: { start: 0.6, end: 0 },
+			speed: { min: -20, max: 20 },
+			lifespan: 1000,
+			quantity: 5,
+			gravityY: -40,
+			emitting: false
+		});
+		particles.explode(5);
+		scene.time.delayedCall(1000, () => particles.destroy());
+	}
+
 
     function avoidObstacle(npc, obstacle) {
       if (npc.isAvoiding || npc.isReversing || !npc.route || !npc.route[npc.routeIndex]) return;
@@ -932,35 +852,38 @@
       moveNPCToNextPoint(npc);
     }
 
-    function preload() {
-      this.load.image('background', 'assets/parking_map.png');
-      this.load.image('entrance', 'assets/entrance.png');
-      this.load.image('pavilion', 'assets/pavilion.png');
-      this.load.image('grass1', 'assets/grass1.png');
-      this.load.image('tree1', 'assets/tree1.png');
-      this.load.image('tree2', 'assets/tree2.png');
-      this.load.image('bush1', 'assets/bush1.png');
-      this.load.image('oil', 'assets/oil.png');
-      this.load.image('lamp_top', 'assets/lamp_top.png');
-      this.load.image('lamp_bottom', 'assets/lamp_bottom.png');
-      this.load.atlas('flares', 'assets/particles/flares.png', 'assets/particles/flares.json');
-      this.load.image('bush2', 'assets/bush1.png');
-      this.load.image('bush3', 'assets/bush1.png');
-      this.load.image('bush4', 'assets/bush1.png');
-      this.load.image('bush5', 'assets/bush1.png');
-      this.load.image('house1', 'assets/house1.png');	
+	function preload() {
+	  // Оригинальные изображения из исходного кода
+	  this.load.image('background', 'assets/parking_map.png');
+	  // this.load.image('npcCar', 'assets/npc_car.png'); // Удаляем эту строку
+	  this.load.image('entrance', 'assets/entrance.png');
+	  this.load.image('pavilion', 'assets/pavilion.png');
+	  this.load.image('grass1', 'assets/grass1.png');
+	  this.load.image('tree1', 'assets/tree1.png');
+	  this.load.image('tree2', 'assets/tree2.png');
+	  this.load.image('bush1', 'assets/bush1.png');
+	  this.load.image('oil', 'assets/oil.png');
+	  this.load.image('lamp_top', 'assets/lamp_top.png');
+	  this.load.image('lamp_bottom', 'assets/lamp_bottom.png');
+	  this.load.atlas('flares', 'assets/particles/flares.png', 'assets/particles/flares.json');
+	  this.load.image('bush2', 'assets/bush1.png');
+	  this.load.image('bush3', 'assets/bush1.png');
+	  this.load.image('bush4', 'assets/bush1.png');
+	  this.load.image('bush5', 'assets/bush1.png');
+	  this.load.image('house1', 'assets/house1.png');	
       this.load.image('smoke4', 'assets/smoke/smoke4.png');
       this.load.image('smoke5', 'assets/smoke/smoke5.png');
 
-      const models = ['sedan', 'suv', 'hatchback', 'coupe', 'van'];
-      const colors = ['red', 'blue', 'green', 'yellow', 'black'];
-      
-      models.forEach(model => {
-        colors.forEach(color => {
-          this.load.image(`car_${model}_${color}`, `assets/cars/${model}_${color}.png`);
-        });
-      });
-    }
+	  // Загрузка всех вариантов машин
+	  const models = ['sedan', 'suv', 'hatchback', 'coupe', 'van'];
+	  const colors = ['red', 'blue', 'green', 'yellow', 'black'];
+	  
+	  models.forEach(model => {
+		colors.forEach(color => {
+		  this.load.image(`car_${model}_${color}`, `assets/cars/${model}_${color}.png`);
+		});
+	  });
+	}
 
     function createEntranceAndPavilion(scene) {
       const { x: entranceX, y: entranceY } = scaleCoords(3 + 252/2, 893 + 216/2, true);
@@ -977,7 +900,7 @@
       const treeOffsetX = 45, treeOffsetY = 35;
       const bushOffsetX = 35, bushOffsetY = 25;
       const oilOffsetX = 15, oilOffsetY = 23;
-      const houseOffsetX = 40, houseOffsetY = 30;
+	  const houseOffsetX = 40, houseOffsetY = 30;
 
       const lampTopCoords = scaleCoords(850+90, 223+170);
       const lampBottomCoords = scaleCoords(854+90, 1650-140);
@@ -986,12 +909,12 @@
       const tree2Coords = scaleCoords(100 + 10, 900 - 300);
       const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY);
       const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY);
-      
-      const bush2Coords = scaleCoords(1510 + bushOffsetX, 100 + bushOffsetY);
-      const bush3Coords = scaleCoords(40 + bushOffsetX, 1155 + bushOffsetY); 
-      const bush4Coords = scaleCoords(83 + bushOffsetX, 1260 + bushOffsetY);
-      const bush5Coords = scaleCoords(90 + bushOffsetX, 1550 + bushOffsetY);
-      const house1Coords = scaleCoords(1815 + houseOffsetX, 930 + houseOffsetY);  
+	  
+	  const bush2Coords = scaleCoords(1510 + bushOffsetX, 100 + bushOffsetY);
+	  const bush3Coords = scaleCoords(40 + bushOffsetX, 1155 + bushOffsetY); 
+	  const bush4Coords = scaleCoords(83 + bushOffsetX, 1260 + bushOffsetY);
+	  const bush5Coords = scaleCoords(90 + bushOffsetX, 1550 + bushOffsetY);
+	  const house1Coords = scaleCoords(1815 + houseOffsetX, 930 + houseOffsetY);  
 
       const lampTop = scene.add.image(lampTopCoords.x, lampTopCoords.y, 'lamp_top').setScale(0.5);
       const lampBottom = scene.add.image(lampBottomCoords.x, lampBottomCoords.y, 'lamp_bottom').setScale(0.5);
@@ -1000,12 +923,12 @@
       const tree2 = scene.add.image(tree2Coords.x, tree2Coords.y, 'tree2').setScale(0.4);
       const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5);
       const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5);
-      
-      const bush2 = scene.add.image(bush2Coords.x, bush2Coords.y, 'bush2').setScale(0.45);
-      const bush3 = scene.add.image(bush3Coords.x, bush3Coords.y, 'bush3').setScale(0.43);
-      const bush4 = scene.add.image(bush4Coords.x, bush4Coords.y, 'bush4').setScale(0.40); 
-      const bush5 = scene.add.image(bush5Coords.x, bush5Coords.y, 'bush5').setScale(0.44);	
-      const house1 = scene.add.image(house1Coords.x, house1Coords.y, 'house1').setScale(0.41);	  
+	  
+	  const bush2 = scene.add.image(bush2Coords.x, bush2Coords.y, 'bush2').setScale(0.45);
+	  const bush3 = scene.add.image(bush3Coords.x, bush3Coords.y, 'bush3').setScale(0.43);
+	  const bush4 = scene.add.image(bush4Coords.x, bush4Coords.y, 'bush4').setScale(0.40); 
+	  const bush5 = scene.add.image(bush5Coords.x, bush5Coords.y, 'bush5').setScale(0.44);	
+	  const house1 = scene.add.image(house1Coords.x, house1Coords.y, 'house1').setScale(0.41);	  
 
       lampTop.setDepth(11);
       lampBottom.setDepth(11);
@@ -1014,199 +937,222 @@
       tree2.setDepth(10);
       bush1.setDepth(10);
       oil.setDepth(0);
-      bush2.setDepth(10);
-      bush3.setDepth(11);
-      bush4.setDepth(10);
-      bush5.setDepth(10);
-      house1.setDepth(10);	  
+	  bush2.setDepth(10);
+	  bush3.setDepth(11);
+	  bush4.setDepth(10);
+	  bush5.setDepth(10);
+	  house1.setDepth(10);	  
     }
 
-    function create() {
-      const scene = this;
-      
-      boundarySystem.init(scene);
-      RightAngleCollisionSystem.init(scene);
-      
-      background = scene.add.image(400, 400, 'background').setDepth(1);
-      background.setDisplaySize(800, 800);
+	function create() {
+		const scene = this;
+		
+		// Инициализация системы границ
+		boundarySystem.init(scene);
+		
+		// Создаем фон
+		background = scene.add.image(400, 400, 'background').setDepth(1);
+		background.setDisplaySize(800, 800);
 
-      gameArea = createGameArea(scene);
+		// Создаем игровую зону
+		gameArea = createGameArea(scene);
 
-      debugGraphics = scene.add.graphics();
-      debugGraphics.setDepth(20);
+		// Настройка отладки
+		debugGraphics = scene.add.graphics();
+		debugGraphics.setDepth(20);
 
-      if (this.textures.exists('smoke4') &&
-        this.textures.exists('smoke5')) {
-        
-        this.anims.create({
-          key: 'smoke_anim',
-          frames: [
-            { key: 'smoke4' },
-            { key: 'smoke5' }
-          ],
-          frameRate: 8,
-          repeat: 0
-        });
-      }
+		// Проверка загруженных текстур
+		console.log('Доступные текстуры:', this.textures.getTextureKeys());
 
-      const leftRows = [
-        upperLeftParkingSpots.slice(0, 6),
-        upperLeftParkingSpots.slice(6, 12),
-        upperLeftParkingSpots.slice(12, 18),
-        upperLeftParkingSpots.slice(18, 24)
-      ];
+		// Создаем анимацию дыма (с проверкой наличия текстур)
+		if (this.textures.exists('smoke4') &&
+			this.textures.exists('smoke5')) {
+			
+			this.anims.create({
+				key: 'smoke_anim',
+				frames: [
+					{ key: 'smoke4' },
+					{ key: 'smoke5' }
+				],
+				frameRate: 8,
+				repeat: 0
+			});
+			console.log('Анимация дыма создана');
+		} else {
+			console.warn('Не все текстуры дыма загружены! Будет использован fallback');
+		}
 
-      const rightRows = [
-        upperRightParkingSpots.slice(0, 6),
-        upperRightParkingSpots.slice(6, 12),
-        upperRightParkingSpots.slice(12, 18),
-        upperRightParkingSpots.slice(18, 24)
-      ];
+		// Инициализация рядов парковочных мест
+		const leftRows = [
+			upperLeftParkingSpots.slice(0, 6),
+			upperLeftParkingSpots.slice(6, 12),
+			upperLeftParkingSpots.slice(12, 18),
+			upperLeftParkingSpots.slice(18, 24)
+		];
 
-      npcs = [];
-      exitQueue = [];
-      lastExitTime = 0;
+		const rightRows = [
+			upperRightParkingSpots.slice(0, 6),
+			upperRightParkingSpots.slice(6, 12),
+			upperRightParkingSpots.slice(12, 18),
+			upperRightParkingSpots.slice(18, 24)
+		];
 
-      const allRows = [...leftRows, ...rightRows];
-      allRows.forEach(row => {
-        const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
-        selectedSpots.forEach(spot => {
-          const npc = scene.physics.add.sprite(
-            scaleCoords(spot.x, spot.y).x,
-            scaleCoords(spot.x, spot.y).y,
-            getRandomCarTexture()
-          )
-          .setScale(0.47)
-          .setDepth(5)
-          .setCollideWorldBounds(false);
+		// Очищаем массивы
+		npcs = [];
+		exitQueue = [];
+		lastExitTime = 0;
 
-          npc.id = Phaser.Math.RND.uuid();
-          npc.body.setSize(13, 20);
-          npc.body.setOffset(0, 7);
+		// Создаем NPC
+		const allRows = [...leftRows, ...rightRows];
+		allRows.forEach(row => {
+			const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
+			selectedSpots.forEach(spot => {
+				const npc = scene.physics.add.sprite(
+					scaleCoords(spot.x, spot.y).x,
+					scaleCoords(spot.x, spot.y).y,
+					getRandomCarTexture()
+				)
+				.setScale(0.47)
+				.setDepth(5)
+				.setCollideWorldBounds(false);
 
-          createSensors(scene, npc);
+				// Настройка физического тела
+				npc.body.setSize(13, 20);
+				npc.body.setOffset(0, 7);
 
-          npc.originalSpot = spot;
-          npc.routeSequence = createShuffledRouteSequence();
-          npc.currentRouteIndex = 0;
-          npc.route = npc.routeSequence[0](npc.originalSpot);
-          npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
-          npc.routeIndex = 0;
-          npc.isWaiting = true;
-          npc.isInExitQueue = true;
-          npc.isExiting = false;
-          npc.isReversing = false;
-          npc.isAvoiding = false;
-          npc.reverseAttempts = 0;
-          npc.lastExitTime = 0;
-          npc.collisionCheckAttempts = 0;
+				createSensors(scene, npc);
 
-          npcs.push(npc);
-          exitQueue.push(npc);
-        });
-      });
+				npc.originalSpot = spot;
+				npc.routeSequence = createShuffledRouteSequence();
+				npc.currentRouteIndex = 0;
+				npc.route = npc.routeSequence[0](npc.originalSpot);
+				npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
+				npc.routeIndex = 0;
+				npc.isWaiting = true;
+				npc.isInExitQueue = true;
+				npc.isExiting = false;
+				npc.isReversing = false;
+				npc.isAvoiding = false;
+				npc.reverseAttempts = 0;
+				npc.lastExitTime = 0;
+				npc.collisionCheckAttempts = 0;
 
-      scene.physics.add.overlap(
-        npcs,
-        npcs,
-        (npc1, npc2) => {
-          if (npc1 === npc2 || !npc1.active || !npc2.active) return;
+				npcs.push(npc);
+				exitQueue.push(npc);
+			});
+		});
 
-          const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-          const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-          const minDistance = 3;
-          
-          if (distance < minDistance) {
-            const pushForce = 1.0 * (minDistance - distance);
-            const pushX = Math.cos(angle) * pushForce;
-            const pushY = Math.sin(angle) * pushForce;
-            
-            npc1.body.velocity.x += pushX;
-            npc1.body.velocity.y += pushY;
-            npc2.body.velocity.x -= pushX;
-            npc2.body.velocity.y -= pushY;
-          }
+		// Система overlap с мягким отталкиванием
+		scene.physics.add.overlap(
+			npcs,
+			npcs,
+			(npc1, npc2) => {
+				if (npc1 === npc2 || !npc1.active || !npc2.active) return;
 
-          if (npc1.isAvoiding || npc2.isAvoiding) return;
+				// Мягкое отталкивание
+				const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
+				const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
+				const minDistance = 3;
+				
+				if (distance < minDistance) {
+					const pushForce = 1.0 * (minDistance - distance);
+					const pushX = Math.cos(angle) * pushForce;
+					const pushY = Math.sin(angle) * pushForce;
+					
+					npc1.body.velocity.x += pushX;
+					npc1.body.velocity.y += pushY;
+					npc2.body.velocity.x -= pushX;
+					npc2.body.velocity.y -= pushY;
+				}
 
-          RightAngleCollisionSystem.checkRightAngleCollision(npc1, npc2);
+				// Проверка сенсоров
+				if (npc1.isAvoiding || npc2.isAvoiding) return;
 
-          const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
-          const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
-          
-          const sensorCollisions = checkSensors(avoidingNpc);
-          const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
-          const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
-          
-          if (leftCollision) {
-            avoidObstacle(avoidingNpc, leftCollision);
-          } else if (rightCollision) {
-            avoidObstacle(avoidingNpc, rightCollision);
-          } else if (sensorCollisions.some(c => c.sensor === 'front')) {
-            avoidObstacle(avoidingNpc, { sensor: 'front' });
-          }
-        },
-        null,
-        this
-      );
+				const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
+				const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
+				
+				const sensorCollisions = checkSensors(avoidingNpc);
+				const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
+				const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
+				
+				if (leftCollision) {
+					avoidObstacle(avoidingNpc, leftCollision);
+				} else if (rightCollision) {
+					avoidObstacle(avoidingNpc, rightCollision);
+				} else if (sensorCollisions.some(c => c.sensor === 'front')) {
+					avoidObstacle(avoidingNpc, { sensor: 'front' });
+				}
+			},
+			null,
+			this
+		);
 
-      scene.physics.add.collider(npcs, gameArea);
-      processExitQueue();
-      createEntranceAndPavilion(scene);
-      createDecorativeLayer(scene);
+		// Коллайдеры с другими объектами
+		scene.physics.add.collider(npcs, gameArea);
 
-      scene.input.keyboard.on('keydown-T', () => {
-        const testX = Phaser.Math.Between(100, 700);
-        const testY = Phaser.Math.Between(100, 700);
-        createSmokeEffect(scene, testX, testY);
-      });
+		// Запуск обработчика очереди выезда
+		processExitQueue();
 
-      scene.input.keyboard.on('keydown-E', () => {
-        if (npcs.length > 0) {
-          const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
-          createAnnihilationEffect(scene, randomNpc);
-          
-          scene.time.delayedCall(500, () => {
-            randomNpc.destroy();
-            npcs = npcs.filter(n => n !== randomNpc);
-          });
-        }
-      });
+		// Создаем декорации
+		createEntranceAndPavilion(scene);
+		createDecorativeLayer(scene);
 
-      scene.input.keyboard.on('keydown-D', () => {
-        showDebug = !showDebug;
-        debugGraphics.clear();
-        
-        if (showDebug) {
-          gameArea.each(child => {
-            debugGraphics.fillStyle(0x00ff00, 0.3);
-            debugGraphics.lineStyle(2, 0x00ff00, 0.6);
-            debugGraphics.fillRect(
-              child.x - child.width/2,
-              child.y - child.height/2,
-              child.width,
-              child.height
-            );
-            debugGraphics.strokeRect(
-              child.x - child.width/2,
-              child.y - child.height/2,
-              child.width,
-              child.height
-            );
-          });
-        }
-      });
+		// Кнопка тестирования дыма (T)
+		scene.input.keyboard.on('keydown-T', () => {
+			const testX = Phaser.Math.Between(100, 700);
+			const testY = Phaser.Math.Between(100, 700);
+			createSmokeEffect(scene, testX, testY);
+			console.log(`Тест дыма в координатах: ${testX}, ${testY}`);
+		});
 
-      scene.input.keyboard.on('keydown-H', () => {
-        if (showDebug) {
-          showCollisionHighlights = !showCollisionHighlights;
-        }
-      });
-    }
-    
+		// Кнопка аннигиляции NPC (E)
+		scene.input.keyboard.on('keydown-E', () => {
+			if (npcs.length > 0) {
+				const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
+				createAnnihilationEffect(scene, randomNpc);
+				
+				scene.time.delayedCall(500, () => {
+					randomNpc.destroy();
+					npcs = npcs.filter(n => n !== randomNpc);
+				});
+			}
+		});
+
+		// Настройка клавиш отладки (D - границы, H - подсветка)
+		scene.input.keyboard.on('keydown-D', () => {
+			showDebug = !showDebug;
+			debugGraphics.clear();
+			
+			if (showDebug) {
+				gameArea.each(child => {
+					debugGraphics.fillStyle(0x00ff00, 0.3);
+					debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+					debugGraphics.fillRect(
+						child.x - child.width/2,
+						child.y - child.height/2,
+						child.width,
+						child.height
+					);
+					debugGraphics.strokeRect(
+						child.x - child.width/2,
+						child.y - child.height/2,
+						child.width,
+						child.height
+					);
+				});
+			}
+		});
+
+		scene.input.keyboard.on('keydown-H', () => {
+			if (showDebug) {
+				showCollisionHighlights = !showCollisionHighlights;
+				console.log(`Подсветка препятствий: ${showCollisionHighlights ? 'ВКЛ' : 'ВЫКЛ'}`);
+			}
+		});
+	}
+	
     function update() {
       boundarySystem.update(this.time.now);
-      RightAngleCollisionSystem.update();
       
       npcs.forEach(npc => {
         if (boundarySystem.isNPCDisabled(npc)) return;
@@ -1230,7 +1176,7 @@
           moveNPCToNextPoint(npc);
         }
       });
-    }
+    }	
   </script>
 </head>
 <body>
@@ -1238,7 +1184,6 @@
   <div class="debug-panel">
     Debug: Нажмите 'D' для отображения границ дорог<br>
     Нажмите 'H' для переключения подсветки столкновений (когда debug включен)<br>
-    Нажмите 'T' для теста дыма, 'E' для аннигиляции случайного NPC<br>
     Зеленые зоны - физические коллайдеры, по которым могут двигаться NPC
   </div>
 </body>
