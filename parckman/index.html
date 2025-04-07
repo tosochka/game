@@ -896,10 +896,7 @@
 		console.log('Доступные текстуры:', this.textures.getTextureKeys());
 
 		// Создаем анимацию дыма (с проверкой наличия текстур)
-		if (this.textures.exists('smoke1') && 
-			this.textures.exists('smoke2') &&
-			this.textures.exists('smoke3') &&
-			this.textures.exists('smoke4') &&
+		if (this.textures.exists('smoke4') &&
 			this.textures.exists('smoke5')) {
 			
 			this.anims.create({
