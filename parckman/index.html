@@ -456,120 +456,198 @@
         survivingNpc.preCollisionSpeed = null;
       }
     }
+	
+	function destroyNpc(npc, scene) {
+		// 1. Удаление сенсоров
+		if (npc.sensors) {
+			Object.values(npc.sensors).forEach(sensor => {
+				if (sensor && sensor.destroy) sensor.destroy();
+			});
+			npc.sensors = null;
+		}
+		
+		// 2. Удаление из физического мира
+		if (npc.body && scene.physics.world) {
+			scene.physics.world.remove(npc.body);
+		}
+		
+		// 3. Удаление из массивов
+		npcs = npcs.filter(n => n !== npc);
+		exitQueue = exitQueue.filter(n => n !== npc);
+		
+		// 4. Уничтожение спрайта
+		if (npc.destroy) npc.destroy();
+		
+		console.log('NPC destroyed:', npc.texture?.key); // Для отладки
+	}	
 
-    function createAnnihilationEffect(scene, npc) {
-      const explosion = scene.add.graphics()
-        .fillStyle(0xFF4500, 1)
-        .fillCircle(0, 0, 25)
-        .setPosition(npc.x, npc.y)
-        .setDepth(25);
+	function createAnnihilationEffect(scene, npc) {
+		// Создаем графику взрыва
+		const explosion = scene.add.graphics()
+			.fillStyle(0xFF4500, 1)
+			.fillCircle(0, 0, 25)
+			.setPosition(npc.x, npc.y)
+			.setDepth(25);
 
-      scene.tweens.add({
-        targets: explosion,
-        scaleX: 3,
-        scaleY: 3,
-        alpha: 0,
-        duration: 500,
-        ease: 'Back.easeOut',
-        onComplete: () => explosion.destroy()
-      });
+		// Анимация взрыва
+		scene.tweens.add({
+			targets: explosion,
+			scaleX: 3,
+			scaleY: 3,
+			alpha: 0,
+			duration: 500,
+			ease: 'Back.easeOut',
+			onComplete: () => {
+				if (explosion && explosion.destroy) {
+					explosion.destroy();
+				}
+			}
+		});
 
-      if (scene.textures.exists('flares')) {
-        const frames = scene.textures.get('flares').getFrameNames();
-        const availableFrames = frames.filter(frame => 
-          frame.includes('blue') || 
-          frame.includes('green') || 
-          frame.includes('red') ||
-          frame.includes('white') ||
-          frame.includes('yellow') ||
-          frame.includes('fire')
-        );
-        
-        if (availableFrames.length > 0) {
-          const emitter = scene.add.particles(
-            npc.x, 
-            npc.y,
-            'flares',
-            {
-              frame: availableFrames,
-              speed: { min: -200, max: 200 },
-              scale: { start: 0.6, end: 0 },
-              blendMode: 'ADD',
-              lifespan: 900,
-              quantity: 25,
-              rotate: { start: 0, end: 360 },
-              emitting: false
-            }
-          );
-          
-          emitter.explode(25);
-          scene.time.delayedCall(700, () => emitter.destroy());
-        }
-      }
+		// Создаем частицы (если доступна текстура)
+		if (scene.textures.exists('flares')) {
+			const frames = scene.textures.get('flares').getFrameNames();
+			const availableFrames = frames.filter(frame => 
+				frame.includes('blue') || 
+				frame.includes('green') || 
+				frame.includes('red') ||
+				frame.includes('white') ||
+				frame.includes('yellow') ||
+				frame.includes('fire')
+			);
+			
+			if (availableFrames.length > 0) {
+				const emitter = scene.add.particles(
+					npc.x, 
+					npc.y,
+					'flares',
+					{
+						frame: availableFrames,
+						speed: { min: -200, max: 200 },
+						scale: { start: 0.6, end: 0 },
+						blendMode: 'ADD',
+						lifespan: 900,
+						quantity: 25,
+						rotate: { start: 0, end: 360 },
+						emitting: false
+					}
+				);
+				
+				emitter.explode(25);
+				scene.time.delayedCall(700, () => {
+					if (emitter && emitter.destroy) {
+						emitter.destroy();
+					}
+				});
+			}
+		}
 
-      if (scene.cameras && scene.cameras.main) {
-        scene.cameras.main.shake(85, 0.005);
-      }
+		// Эффект тряски камеры
+		if (scene.cameras && scene.cameras.main) {
+			scene.cameras.main.shake(85, 0.005);
+		}
 
-      createSmokeEffect(scene, npc.x, npc.y);
-    }
+		// Создаем дым
+		createSmokeEffect(scene, npc.x, npc.y);
 
-    function createSmokeEffect(scene, x, y) {
-      if (!scene || typeof x !== 'number' || typeof y !== 'number') return;
+		// Уничтожаем NPC с задержкой (после завершения эффектов)
+		scene.time.delayedCall(100, () => {
+			destroyNpc(npc, scene);
+		});
+	}
 
-      const smokeConfig = {
-        texture: scene.textures.exists('smoke4') ? 'smoke4' : null,
-        scaleStart: 0.6,
-        scaleEnd: 1.1,
-        alphaStart: 0.7,
-        alphaEnd: 0,
-        riseDistance: 80,
-        duration: 800,
-        xOffset: 0,
-        yOffset: 22,
-        originX: 0.5,
-        originY: 0.5,
-        rotation: 0,
-        rotationEnd: 0,
-        ease: 'Sine.easeOut',
-        randomX: 0,
-        useAnimation: scene.anims.exists('smoke_anim')
-      };
+	function createSmokeEffect(scene, x, y) {
+		// Проверка валидности параметров
+		if (!scene || typeof x !== 'number' || typeof y !== 'number') return;
 
-      if (!smokeConfig.texture) {
-        if (scene.textures.exists('flares')) {
-          createFallbackSmoke(scene, x, y);
-        }
-        return;
-      }
+		// Конфигурация для разных платформ
+		const smokeConfig = {
+			texture: scene.textures.exists('smoke4') ? 'smoke4' : null,
+			scaleStart: isMobile ? 0.4 : 0.6,
+			scaleEnd: isMobile ? 0.8 : 1.1,
+			alphaStart: 0.7,
+			alphaEnd: 0,
+			riseDistance: isMobile ? 60 : 80,
+			duration: isMobile ? 600 : 800,
+			xOffset: 0,
+			yOffset: isMobile ? 18 : 22,
+			originX: 0.5,
+			originY: 0.5,
+			rotation: 0,
+			rotationEnd: Phaser.Math.FloatBetween(-0.2, 0.2),
+			ease: 'Sine.easeOut',
+			randomX: isMobile ? 5 : 10,
+			useAnimation: scene.anims.exists('smoke_anim')
+		};
 
-      const smoke = scene.add.sprite(
-        x + smokeConfig.xOffset + Phaser.Math.Between(-smokeConfig.randomX, smokeConfig.randomX),
-        y + smokeConfig.yOffset,
-        smokeConfig.texture
-      )
-      .setDepth(30)
-      .setScale(smokeConfig.scaleStart)
-      .setAlpha(smokeConfig.alphaStart)
-      .setOrigin(smokeConfig.originX, smokeConfig.originY)
-      .setRotation(smokeConfig.rotation);
+		// Создание дыма с фолбэком
+		let smoke;
+		if (smokeConfig.texture) {
+			smoke = scene.add.sprite(
+				x + smokeConfig.xOffset + Phaser.Math.Between(-smokeConfig.randomX, smokeConfig.randomX),
+				y + smokeConfig.yOffset,
+				smokeConfig.texture
+			)
+			.setDepth(30)
+			.setScale(smokeConfig.scaleStart)
+			.setAlpha(smokeConfig.alphaStart)
+			.setOrigin(smokeConfig.originX, smokeConfig.originY)
+			.setRotation(smokeConfig.rotation);
 
-      if (smokeConfig.useAnimation) {
-        smoke.play('smoke_anim');
-      }
+			// Запуск анимации если доступна
+			if (smokeConfig.useAnimation) {
+				smoke.play('smoke_anim');
+			}
+		} else if (scene.textures.exists('flares')) {
+			// Фолбэк на частицы
+			const particles = scene.add.particles(x, y, 'flares', {
+				frame: ['white', 'yellow'],
+				scale: { start: 0.2, end: 0.5 },
+				alpha: { start: 0.6, end: 0 },
+				speed: { min: -15, max: 15 },
+				lifespan: 800,
+				quantity: isMobile ? 3 : 5,
+				gravityY: -30,
+				emitting: false
+			});
+			particles.explode(isMobile ? 3 : 5);
+			scene.time.delayedCall(800, () => {
+				if (particles && particles.destroy) {
+					particles.destroy();
+				}
+			});
+			return; // Выходим раньше для фолбэка
+		} else {
+			return; // Нет доступных текстур
+		}
 
-      scene.tweens.add({
-        targets: smoke,
-        y: smoke.y - smokeConfig.riseDistance,
-        scaleX: smokeConfig.scaleEnd,
-        scaleY: smokeConfig.scaleEnd,
-        alpha: smokeConfig.alphaEnd,
-        rotation: smokeConfig.rotationEnd,
-        duration: smokeConfig.duration,
-        ease: smokeConfig.ease,
-        onComplete: () => smoke.destroy()
-      });
-    }
+		// Анимация дыма
+		scene.tweens.add({
+			targets: smoke,
+			y: smoke.y - smokeConfig.riseDistance,
+			scaleX: smokeConfig.scaleEnd,
+			scaleY: smokeConfig.scaleEnd,
+			alpha: smokeConfig.alphaEnd,
+			rotation: smokeConfig.rotationEnd,
+			duration: smokeConfig.duration,
+			ease: smokeConfig.ease,
+			onComplete: () => {
+				if (smoke && smoke.destroy) {
+					smoke.destroy();
+				}
+			}
+		});
+
+		// Опционально: звуковой эффект
+		if (scene.sound && scene.sound.add) {
+			try {
+				const sound = scene.sound.add('smoke_sound', { volume: 0.3 });
+				sound.play();
+			} catch (e) {
+				console.warn('Smoke sound not loaded');
+			}
+		}
+	}
 
     function createFallbackSmoke(scene, x, y) {
       const particles = scene.add.particles(x, y, 'flares', {
