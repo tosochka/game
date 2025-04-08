@@ -442,7 +442,7 @@
       const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
 
       createAnnihilationEffect(npcToRemove.scene, npcToRemove);
-      npcToRemove.destroy();
+      destroyNpc(npcToRemove);
 
       npcs = npcs.filter(n => n !== npcToRemove);
       exitQueue = exitQueue.filter(n => n !== npcToRemove);
@@ -513,6 +513,31 @@
 
       createSmokeEffect(scene, npc.x, npc.y);
     }
+	
+	function destroyNpc(npc) {
+		if (!npc || !npc.scene) return; // Проверка на существование
+		
+		// 1. Удаляем сенсоры
+		if (npc.sensors) {
+			Object.values(npc.sensors).forEach(sensor => {
+				if (sensor.destroy) sensor.destroy();
+			});
+		}
+		
+		// 2. Отключаем физику
+		if (npc.body && npc.scene.physics.world) {
+			npc.scene.physics.world.disableBody(npc.body);
+		}
+		
+		// 3. Удаляем из массивов
+		npcs = npcs.filter(n => n !== npc);
+		exitQueue = exitQueue.filter(n => n !== npc);
+		
+		// 4. Уничтожаем спрайт
+		if (npc.destroy) npc.destroy();
+		
+		console.log("NPC уничтожен. Осталось NPC:", npcs.length); // Лог для отладки
+	}	
 
     function createSmokeEffect(scene, x, y) {
       if (!scene || typeof x !== 'number' || typeof y !== 'number') return;
@@ -1069,7 +1094,7 @@
           createAnnihilationEffect(scene, randomNpc);
           
           scene.time.delayedCall(500, () => {
-            randomNpc.destroy();
+            destroyNpc(randomNpc);
             npcs = npcs.filter(n => n !== randomNpc);
           });
         }
@@ -1119,46 +1144,37 @@
     }
 	
 	function handleWorldBounds(npc) {
-	  if (!npc.active) return false;
+		if (!npc.active) return false;
 
-	  // Проверяем приближение к границам
-	  const nearBounds = 
-		npc.x < WORLD_BOUNDS.left + WORLD_BOUNDS.padding ||
-		npc.x > WORLD_BOUNDS.right - WORLD_BOUNDS.padding ||
-		npc.y < WORLD_BOUNDS.top + WORLD_BOUNDS.padding ||
-		npc.y > WORLD_BOUNDS.bottom - WORLD_BOUNDS.padding;
+		// Проверяем приближение к границам (зона торможения)
+		const nearBounds = 
+			npc.x < WORLD_BOUNDS.left + WORLD_BOUNDS.padding ||
+			npc.x > WORLD_BOUNDS.right - WORLD_BOUNDS.padding ||
+			npc.y < WORLD_BOUNDS.top + WORLD_BOUNDS.padding ||
+			npc.y > WORLD_BOUNDS.bottom - WORLD_BOUNDS.padding;
 
-	  // Если NPC в зоне торможения
-	  if (nearBounds) {
-		// Плавное торможение
-		npc.setVelocity(
-		  npc.body.velocity.x * 0.85,
-		  npc.body.velocity.y * 0.85
-		);
-	  }
+		// Плавное торможение в зоне padding
+		if (nearBounds) {
+			npc.setVelocity(
+				npc.body.velocity.x * 0.85,
+				npc.body.velocity.y * 0.85
+			);
+		}
 
-	  // Проверка полного выхода за границы
-	  const outOfBounds = 
-		npc.x < WORLD_BOUNDS.left ||
-		npc.x > WORLD_BOUNDS.right ||
-		npc.y < WORLD_BOUNDS.top ||
-		npc.y > WORLD_BOUNDS.bottom;
+		// Проверка полного выхода за границы
+		const outOfBounds = 
+			npc.x < WORLD_BOUNDS.left ||
+			npc.x > WORLD_BOUNDS.right ||
+			npc.y < WORLD_BOUNDS.top ||
+			npc.y > WORLD_BOUNDS.bottom;
 
-	  if (outOfBounds) {
-		// Полная остановка
-		npc.setVelocity(0, 0);
-		npc.body.stop();
-		npc.body.enable = false;
-
-		// Удаляем из активных массивов
-		npcs = npcs.filter(n => n !== npc);
-		exitQueue = exitQueue.filter(n => n !== npc);
-
-		// Оставляем NPC видимым, но неактивным
-		npc.active = false;
-		return true;
-	  }
-	  return false;
+		if (outOfBounds) {
+			console.log(`NPC вышел за границы @ ${npc.x.toFixed(1)},${npc.y.toFixed(1)}`);
+			destroyNpc(npc); // Полная очистка вместо деактивации
+			return true;
+		}
+		
+		return false;
 	}	
     
 	function update() {
