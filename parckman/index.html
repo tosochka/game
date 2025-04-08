@@ -35,6 +35,16 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
+  
+	// Константы границ мира
+	const WORLD_BOUNDS = {
+	  left: 0,
+	  right: 800,
+	  top: 0,
+	  bottom: 800,
+	  padding: 75 // Зона предварительного торможения
+	};
+  
     // Конфигурация NPC
     const npcSpeed = 80;
     const npcParkingSpeed = 30;
@@ -845,6 +855,29 @@
         });
       });
     }
+	
+	function drawWorldBoundsDebug(graphics) {
+	  if (!showDebug) return;
+	  
+	  graphics.lineStyle(2, 0xff0000, 0.8); // Красная линия толщиной 2px
+	  
+	  // Основные границы мира
+	  graphics.strokeRect(
+		WORLD_BOUNDS.left,
+		WORLD_BOUNDS.top,
+		WORLD_BOUNDS.right - WORLD_BOUNDS.left,
+		WORLD_BOUNDS.bottom - WORLD_BOUNDS.top
+	  );
+	  
+	  // Зона padding (торможения)
+	  graphics.lineStyle(1, 0xff0000, 0.5); // Полупрозрачная красная линия
+	  graphics.strokeRect(
+		WORLD_BOUNDS.left + WORLD_BOUNDS.padding,
+		WORLD_BOUNDS.top + WORLD_BOUNDS.padding,
+		WORLD_BOUNDS.right - WORLD_BOUNDS.left - WORLD_BOUNDS.padding * 2,
+		WORLD_BOUNDS.bottom - WORLD_BOUNDS.top - WORLD_BOUNDS.padding * 2
+	  );
+	}	
 
     function create() {
       const scene = this;
@@ -1043,67 +1076,127 @@
       });
 
       // Настройка клавиш отладки
-      scene.input.keyboard.on('keydown-D', () => {
-        showDebug = !showDebug;
-        debugGraphics.clear();
-        
-        if (showDebug) {
-          gameArea.each(child => {
-            debugGraphics.fillStyle(0x00ff00, 0.3);
-            debugGraphics.lineStyle(2, 0x00ff00, 0.6);
-            debugGraphics.fillRect(
-              child.x - child.width/2,
-              child.y - child.height/2,
-              child.width,
-              child.height
-            );
-            debugGraphics.strokeRect(
-              child.x - child.width/2,
-              child.y - child.height/2,
-              child.width,
-              child.height
-            );
-          });
-        }
-      });
+	  scene.input.keyboard.on('keydown-D', () => {
+	    showDebug = !showDebug;
+	    debugGraphics.clear();
+	  
+	    if (showDebug) {
+		  // Отрисовка границ мира
+		  drawWorldBoundsDebug(debugGraphics);
+		
+		  // Существующая отрисовка игровых зон
+		  gameArea.each(child => {
+		    debugGraphics.fillStyle(0x00ff00, 0.3);
+		    debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+		    debugGraphics.fillRect(
+			  child.x - child.width/2,
+			  child.y - child.height/2,
+			  child.width,
+			  child.height
+		    );
+		    debugGraphics.strokeRect(
+			  child.x - child.width/2,
+			  child.y - child.height/2,
+			  child.width,
+			  child.height
+		    );
+		  });
+	    }
+	  });
 
       scene.input.keyboard.on('keydown-H', () => {
         if (showDebug) {
           showCollisionHighlights = !showCollisionHighlights;
         }
       });
+	  
+	  this.physics.world.setBounds(
+	    WORLD_BOUNDS.left, 
+	    WORLD_BOUNDS.top, 
+	    WORLD_BOUNDS.right, 
+	    WORLD_BOUNDS.bottom
+	  );	  
     }
+	
+	function handleWorldBounds(npc) {
+	  if (!npc.active) return false;
+
+	  // Проверяем приближение к границам
+	  const nearBounds = 
+		npc.x < WORLD_BOUNDS.left + WORLD_BOUNDS.padding ||
+		npc.x > WORLD_BOUNDS.right - WORLD_BOUNDS.padding ||
+		npc.y < WORLD_BOUNDS.top + WORLD_BOUNDS.padding ||
+		npc.y > WORLD_BOUNDS.bottom - WORLD_BOUNDS.padding;
+
+	  // Если NPC в зоне торможения
+	  if (nearBounds) {
+		// Плавное торможение
+		npc.setVelocity(
+		  npc.body.velocity.x * 0.85,
+		  npc.body.velocity.y * 0.85
+		);
+	  }
+
+	  // Проверка полного выхода за границы
+	  const outOfBounds = 
+		npc.x < WORLD_BOUNDS.left ||
+		npc.x > WORLD_BOUNDS.right ||
+		npc.y < WORLD_BOUNDS.top ||
+		npc.y > WORLD_BOUNDS.bottom;
+
+	  if (outOfBounds) {
+		// Полная остановка
+		npc.setVelocity(0, 0);
+		npc.body.stop();
+		npc.body.enable = false;
+
+		// Удаляем из активных массивов
+		npcs = npcs.filter(n => n !== npc);
+		exitQueue = exitQueue.filter(n => n !== npc);
+
+		// Оставляем NPC видимым, но неактивным
+		npc.active = false;
+		return true;
+	  }
+	  return false;
+	}	
     
-    function update() {
-      // Для мобильных: плавное перемещение камеры
-      if (isMobile && cameraTarget && currentTarget) {
-        cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
-        cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
-      }
-      
-      // Оригинальная логика обновления
-      npcs.forEach(npc => {
-        if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
+	function update() {
+	  // Очищаем предыдущие отладочные рисунки
 
-        updateSensors(npc);
-        
-        if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
+		
+	  // Для мобильных: плавное перемещение камеры
+	  if (isMobile && cameraTarget && currentTarget) {
+		cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
+		cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
+	  }
+	  
+	  // Обработка NPC
+	  npcs.forEach(npc => {
+		if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
 
-        const collisions = checkSensors(npc);
+		// Проверка границ в первую очередь
+		if (handleWorldBounds(npc)) return;
+		
+		updateSensors(npc);
+		
+		if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
 
-        const target = npc.route[npc.routeIndex];
-        const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+		const collisions = checkSensors(npc);
 
-        if (distance < 5) {
-          npc.routeIndex++;
-          if (npc.routeIndex >= npc.route.length) {
-            handleRouteCompletion(npc);
-            return;
-          }
-          moveNPCToNextPoint(npc);
-        }
-      });
-    }
+		const target = npc.route[npc.routeIndex];
+		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+
+		if (distance < 5) {
+		  npc.routeIndex++;
+		  if (npc.routeIndex >= npc.route.length) {
+			handleRouteCompletion(npc);
+			return;
+		  }
+		  moveNPCToNextPoint(npc);
+		}
+	  });
+	}
   </script>
 </head>
 <body>
