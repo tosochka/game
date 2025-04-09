@@ -1213,64 +1213,26 @@
 			cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
 		}
 
-		// Логирование FPS каждые 5 секунд
+		// Логирование FPS каждые 5 секунд (безопасная версия)
 		if (this.time.now % 5000 === 0) {
 			const currentFPS = this.game.loop.actualFps;
 			console.log("FPS:", currentFPS);
 			if (currentFPS < 30) {
 				console.warn("Низкий FPS! Возможны проблемы с производительностью");
-				
-				// Дополнительная диагностика при низком FPS
-				if (currentFPS < 20) {
-					console.log("Состояние игры:",
-						"NPC:", npcs.length,
-						"Текстуры:", this.textures.getTextureKeys().length,
-						"Твины:", this.tweens.getAllTweens().length
-					);
-				}
+				console.log("Состояние игры:", "NPC:", npcs.length);
 			}
 		}
 
-		// Логирование состояния каждые 30 секунд
+		// Логирование состояния каждые 30 секунд (упрощенная версия)
 		if (this.time.now % 30000 === 0) {
 			console.log("=== СТАТУС ИГРЫ ===");
 			console.log("Активных NPC:", npcs.length, 
-					   "В очереди на выезд:", exitQueue.length,
-					   "Активных анимаций:", this.tweens.getAllTweens().length);
-			
-			if (performance && performance.memory) {
-				console.log("Использование памяти:", 
-						   (performance.memory.usedJSHeapSize / 1048576).toFixed(2), "MB");
-			}
-		}
-
-		// Проверка "застрявших" NPC (раз в 10 секунд)
-		if (this.time.now % 10000 === 0) {
-			npcs.forEach(npc => {
-				if (npc.body && 
-					npc.body.speed < 0.1 && 
-					!npc.isWaiting && 
-					!npc.isReversing && 
-					npc.active) {
-					
-					console.warn("Возможно застрявший NPC:", 
-								`ID:${npc.texture?.key || 'unknown'}-${npc.x?.toFixed(0) || 'N/A'}x${npc.y?.toFixed(0) || 'N/A'}`, 
-								"Скорость:", npc.body.speed?.toFixed(2) || 'N/A');
-					
-					// Визуализация застрявших NPC
-					if (showDebug) {
-						if (npc.__debug) npc.__debug.destroy();
-						npc.__debug = this.add.circle(npc.x, npc.y, 15, 0xff0000)
-							.setDepth(100)
-							.setAlpha(0.7);
-					}
-				}
-			});
+					   "В очереди на выезд:", exitQueue.length);
 		}
 
 		// Основной цикл обработки NPC
 		npcs.forEach(npc => {
-			if (!npc.active || !npc.body || !npc.route || !npc.route[npc.routeIndex]) return;
+			if (!npc?.active || !npc.body || npc.body.destroyed || !npc.route || !npc.route[npc.routeIndex]) return;
 
 			// 1. Проверка границ мира
 			if (handleWorldBounds(npc)) return;
@@ -1281,10 +1243,7 @@
 			// 3. Пропускаем NPC в состоянии ожидания/разворота
 			if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
 
-			// 4. Проверка столкновений
-			const collisions = checkSensors(npc);
-			
-			// 5. Движение к следующей точке маршрута
+			// 4. Движение к следующей точке маршрута
 			const target = npc.route[npc.routeIndex];
 			const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
 
@@ -1300,13 +1259,12 @@
 			}
 		});
 
-		// Экстренная очистка при приближении к лимиту NPC
+		// Автоматическая очистка при превышении лимита NPC
 		if (npcs.length > 50) {
-			console.error(`Превышен лимит NPC (${npcs.length})! Очистка...`);
 			const excessCount = npcs.length - 25;
-			const excessNpcs = npcs.splice(25, excessCount);
-			excessNpcs.forEach(npc => destroyNpc(npc));
-			console.log(`Удалено ${excessCount} NPC. Новое количество: ${npcs.length}`);
+			npcs.splice(25, excessCount).forEach(npc => {
+				if (npc?.active) destroyNpc(npc);
+			});
 		}
 	}
   </script>
