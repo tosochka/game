@@ -1114,80 +1114,138 @@
 	}
 
 	function handleWorldBounds(npc) {
-	  if (!npc.active) return false;
+		if (!npc.active) return true;
 
-	  // Проверяем приближение к границам
-	  const nearBounds = 
-		npc.x < WORLD_BOUNDS.left + WORLD_BOUNDS.padding ||
-		npc.x > WORLD_BOUNDS.right - WORLD_BOUNDS.padding ||
-		npc.y < WORLD_BOUNDS.top + WORLD_BOUNDS.padding ||
-		npc.y > WORLD_BOUNDS.bottom - WORLD_BOUNDS.padding;
+		// Жёсткая проверка выхода за границы
+		const isOut = 
+			npc.x < WORLD_BOUNDS.left - 15 || 
+			npc.x > WORLD_BOUNDS.right + 15 ||
+			npc.y < WORLD_BOUNDS.top - 15 || 
+			npc.y > WORLD_BOUNDS.bottom + 15;
 
-	  // Если NPC в зоне торможения
-	  if (nearBounds) {
-		// Плавное торможение
-		npc.setVelocity(
-		  npc.body.velocity.x * 0.85,
-		  npc.body.velocity.y * 0.85
-		);
-	  }
+		if (isOut) {
+			if (showDebug) {
+				debugGraphics.fillStyle(0xff0000, 0.5);
+				debugGraphics.fillCircle(npc.x, npc.y, 25);
+				console.error(`NPC out of bounds at (${npc.x},${npc.y})`);
+			}
+			
+			// 1. Полная остановка
+			npc.body.stop();
+			npc.setVelocity(0, 0);
+			npc.body.enable = false;
+			
+			// 2. Попытка возврата
+			returnToSafePosition(npc);
+			
+			// 3. Если всё ещё за границами - деактивация
+			if (isOutOfBounds(npc)) {
+				// Оставляем видимым, но неактивным
+				npc.active = false;
+				npc.setVisible(true); // Явно сохраняем видимость
+				
+				// Удаляем из рабочих массивов
+				npcs = npcs.filter(n => n !== npc);
+				exitQueue = exitQueue.filter(n => n !== npc);
+				
+				// Визуальная индикация (только в debug)
+				if (showDebug) {
+					npc.setTint(0xff0000); // Красный оттенок
+					console.warn(`NPC deactivated at (${npc.x},${npc.y})`);
+				}
+				
+				return true; // Сигнализируем об удалении
+			}
+			return false;
+		}
+		
+		// Мягкое торможение у границ
+		const nearBounds = 
+			npc.x < WORLD_BOUNDS.left + WORLD_BOUNDS.padding ||
+			npc.x > WORLD_BOUNDS.right - WORLD_BOUNDS.padding ||
+			npc.y < WORLD_BOUNDS.top + WORLD_BOUNDS.padding ||
+			npc.y > WORLD_BOUNDS.bottom - WORLD_BOUNDS.padding;
 
-	  // Проверка полного выхода за границы
-	  const outOfBounds = 
-		npc.x < WORLD_BOUNDS.left ||
-		npc.x > WORLD_BOUNDS.right ||
-		npc.y < WORLD_BOUNDS.top ||
-		npc.y > WORLD_BOUNDS.bottom;
-
-	  if (outOfBounds) {
-		// Полная остановка
-		npc.setVelocity(0, 0);
-		npc.body.stop();
-		npc.body.enable = false;
-
-		// Удаляем из активных массивов
-		npcs = npcs.filter(n => n !== npc);
-		exitQueue = exitQueue.filter(n => n !== npc);
-
-		// Оставляем NPC видимым, но неактивным
-		npc.active = false;
-		return true;
-	  }
-	  return false;
+		if (nearBounds) {
+			npc.setVelocity(
+				npc.body.velocity.x * 0.7,
+				npc.body.velocity.y * 0.7
+			);
+		}
+		
+		return false;
 	}
+	
+	function clampToWorldBounds(npc) {
+		const prevX = npc.x;
+		const prevY = npc.y;
+		
+		npc.x = Phaser.Math.Clamp(
+			npc.x, 
+			WORLD_BOUNDS.left - 10,
+			WORLD_BOUNDS.right + 10
+		);
+		npc.y = Phaser.Math.Clamp(
+			npc.y,
+			WORLD_BOUNDS.top - 10,
+			WORLD_BOUNDS.bottom + 10
+		);
+		
+		// Отладочная информация
+		if ((prevX !== npc.x || prevY !== npc.y) && showDebug) {
+			debugGraphics.lineStyle(2, 0xff00ff, 0.7);
+			debugGraphics.strokeCircle(npc.x, npc.y, 20);
+			console.warn(`NPC clamped from (${prevX},${prevY}) to (${npc.x},${npc.y})`);
+		}
+	}	
     
 	function update() {
-	  // Для мобильных: плавное перемещение камеры
-	  if (isMobile && cameraTarget && currentTarget) {
-		cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
-		cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
-	  }
-	  
-	  // Обработка NPC
-	  npcs.forEach(npc => {
-		if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
-
-		// Проверка границ в первую очередь
-		if (handleWorldBounds(npc)) return;
-		
-		updateSensors(npc);
-		
-		if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
-
-		const collisions = checkSensors(npc);
-
-		const target = npc.route[npc.routeIndex];
-		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
-
-		if (distance < 5) {
-		  npc.routeIndex++;
-		  if (npc.routeIndex >= npc.route.length) {
-			handleRouteCompletion(npc);
-			return;
-		  }
-		  moveNPCToNextPoint(npc);
+		// Для мобильных: плавное перемещение камеры
+		if (isMobile && cameraTarget && currentTarget) {
+			cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
+			cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
 		}
-	  });
+		
+		// Обработка NPC
+		npcs.forEach(npc => {
+			if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
+
+			// 1. Жёсткое ограничение позиции
+			clampToWorldBounds(npc);
+
+			// 2. Проверка границ с обработкой
+			if (handleWorldBounds(npc)) {
+				npcs = npcs.filter(n => n !== npc);
+				exitQueue = exitQueue.filter(n => n !== npc);
+				return;
+			}
+			
+			// 3. Обновление сенсоров
+			updateSensors(npc);
+			
+			// 4. Пропуск, если NPC в процессе разворота/ожидания/избегания
+			if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
+
+			// 5. Проверка сенсоров на коллизии
+			const collisions = checkSensors(npc);
+			if (collisions.length > 0 && !npc.isReversing) {
+				handleFrontCollision(npc, collisions[0]);
+				return;
+			}
+
+			// 6. Движение к следующей точке маршрута
+			const target = npc.route[npc.routeIndex];
+			const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+
+			if (distance < 5) {
+				npc.routeIndex++;
+				if (npc.routeIndex >= npc.route.length) {
+					handleRouteCompletion(npc);
+					return;
+				}
+				moveNPCToNextPoint(npc);
+			}
+		});
 	}
   </script>
 </head>
