@@ -1030,7 +1030,7 @@
           if (npc1 === npc2 || !npc1.active || !npc2.active) return;
 
           const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-          const distance = Phaser.Math.Distance.Between(npc1.x, npc.y, npc2.x, npc2.y);
+          const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
           const minDistance = 3;
           
           if (distance < minDistance) {
