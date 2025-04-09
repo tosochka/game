@@ -400,42 +400,163 @@
       
       return collisions;
     }
+	
+	function handleFrontCollision(npc, collision) {
+		if (!npc || !npc.body || !collision || !collision.npc) return;
 
-    function handleFrontCollision(npc, collision) {
-      if (npc.isWaiting || npc.isReversing || npc.isAvoiding) return;
-      
-      npc.preCollisionSpeed = npc.body.velocity.clone();
-      npc.setVelocity(0, 0);
-      npc.isWaiting = true;
-      npc.collisionCheckAttempts = 0;
-      npc.otherNpc = collision.npc;
-      
-      const recheckCollision = () => {
-        if (!npc.scene || !npc.active) return;
-        
-        npc.collisionCheckAttempts++;
-        const newCollisions = checkSensors(npc);
-        const stillBlocked = newCollisions.some(c => c.npc === npc.otherNpc);
-        
-        if (!stillBlocked) {
-          npc.isWaiting = false;
-          if (npc.preCollisionSpeed) {
-            npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
-          } else {
-            moveNPCToNextPoint(npc);
-          }
-        } 
-        else if (npc.collisionCheckAttempts >= MAX_COLLISION_CHECKS) {
-          resolveDeadlock(npc, npc.otherNpc);
-        } 
-        else {
-          npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
-        }
-      };
-      
-      npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheckCollision);
-    }
+		// Конфигурация
+		const BACKSTEP = {
+			DISTANCE: 5,
+			DURATION: 1000,
+			EASE: 'Sine.easeOut',
+			COOLDOWN: 3000
+		};
 
+		if (npc.isWaiting || npc.isReversing || npc.isAvoiding) return;
+
+		const otherNpc = collision.npc;
+		if (!otherNpc.active || !otherNpc.body) return;
+
+		// 1. Сохраняем текущий target point
+		const currentTarget = npc.route && npc.route[npc.routeIndex] ? 
+			{ ...npc.route[npc.routeIndex] } : 
+			{ x: npc.x, y: npc.y };
+
+		// 2. Определение фронт-бок столкновения
+		let isFrontToSide = false;
+		try {
+			const angleToOther = Phaser.Math.Angle.Between(npc.x, npc.y, otherNpc.x, otherNpc.y);
+			const angleDiff = Phaser.Math.Angle.Wrap(angleToOther - (otherNpc.rotation - Math.PI/2));
+			isFrontToSide = (
+				collision.sensor === 'front' && 
+				Math.abs(angleDiff) > Math.PI/4 && 
+				Math.abs(angleDiff) < 3*Math.PI/4
+			);
+		} catch (e) {
+			console.error('Angle calculation error:', e);
+		}
+
+		// 3. Обработка фронт-бок с откатом
+		if (isFrontToSide && !npc.hasPerformedBackStep) {
+			const originalVelocity = npc.body.velocity.clone();
+			const originalRotation = npc.rotation;
+
+			npc.hasPerformedBackStep = true;
+			npc.setVelocity(0, 0);
+			npc.isWaiting = true;
+
+			const backX = npc.x + Math.cos(originalRotation - Math.PI/2) * -BACKSTEP.DISTANCE;
+			const backY = npc.y + Math.sin(originalRotation - Math.PI/2) * -BACKSTEP.DISTANCE;
+
+			npc.scene.tweens.add({
+				targets: npc,
+				x: backX,
+				y: backY,
+				duration: BACKSTEP.DURATION,
+				ease: BACKSTEP.EASE,
+				onComplete: () => {
+					if (!npc.active || !npc.body) return;
+
+					// Безопасное восстановление движения
+					const target = npc.route && npc.route[npc.routeIndex] ? 
+						npc.route[npc.routeIndex] : 
+						currentTarget;
+
+					const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+					const speed = originalVelocity.length();
+
+					npc.setVelocity(
+						Math.cos(angle) * speed,
+						Math.sin(angle) * speed
+					);
+					npc.rotation = angle + Math.PI/2;
+					npc.isWaiting = false;
+
+					npc.scene.time.delayedCall(BACKSTEP.COOLDOWN, () => {
+						npc.hasPerformedBackStep = false;
+					});
+				}
+			});
+			return;
+		}
+
+		// 4. Стандартная обработка
+		npc.preCollisionSpeed = npc.body.velocity ? npc.body.velocity.clone() : new Phaser.Math.Vector2();
+		npc.setVelocity(0, 0);
+		npc.isWaiting = true;
+		npc.collisionCheckAttempts = 0;
+		npc.otherNpc = otherNpc;
+
+		const recheck = () => {
+			if (!npc.active || !npc.body || !npc.route) return;
+
+			npc.collisionCheckAttempts++;
+			const stillBlocked = checkSensors(npc).some(c => c.npc === npc.otherNpc);
+
+			if (!stillBlocked) {
+				npc.isWaiting = false;
+				if (npc.preCollisionSpeed) {
+					npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+				} else {
+					const target = npc.route[npc.routeIndex];
+					if (target) {
+						const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+						npc.setVelocity(Math.cos(angle) * npcSpeed, Math.sin(angle) * npcSpeed);
+					}
+				}
+			}
+			else if (npc.collisionCheckAttempts >= MAX_COLLISION_CHECKS) {
+				resolveDeadlock(npc, npc.otherNpc);
+			}
+			else {
+				npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheck);
+			}
+		};
+		
+		npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheck);
+	}
+	// Проверка на парковочном месте
+	function checkIfOnParkingSpot(npc) {
+		const spot = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, spot.x, spot.y);
+		return distance < 10; // 10 пикселей - радиус "на месте"
+	}
+
+	// Стандартная обработка столкновений (без изменений)
+	function startStandardHandling(npc, otherNpc) {
+		if (!npc.body || !npc.active) return;
+		
+		npc.preCollisionSpeed = npc.body.velocity.clone();
+		npc.setVelocity(0, 0);
+		npc.isWaiting = true;
+		npc.collisionCheckAttempts = 0;
+		npc.otherNpc = otherNpc;
+
+		const recheck = () => {
+			if (!npc.active || !npc.body) return;
+			
+			npc.collisionCheckAttempts++;
+			const stillBlocked = checkSensors(npc).some(c => c.npc === npc.otherNpc);
+			
+			if (!stillBlocked) {
+				npc.isWaiting = false;
+				if (npc.preCollisionSpeed) {
+					npc.setVelocity(npc.preCollisionSpeed.x, npc.preCollisionSpeed.y);
+				} else {
+					moveNPCToNextPoint(npc);
+				}
+			}
+			else if (npc.collisionCheckAttempts >= MAX_COLLISION_CHECKS) {
+				resolveDeadlock(npc, npc.otherNpc); // Аннигиляция
+			}
+			else {
+				npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheck);
+			}
+		};
+		
+		npc.scene.time.delayedCall(COLLISION_WAIT_TIME, recheck);
+	}
+		
     function resolveDeadlock(npc1, npc2) {
       const npcToRemove = Math.random() > 0.5 ? npc1 : npc2;
       const survivingNpc = npcToRemove === npc1 ? npc2 : npc1;
