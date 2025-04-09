@@ -515,28 +515,53 @@
     }
 	
 	function destroyNpc(npc) {
-		if (!npc || !npc.scene) return; // Проверка на существование
-		
+		if (!npc || !npc.scene) {
+			console.warn("Попытка уничтожить несуществующий NPC");
+			return;
+		}
+
 		// 1. Удаляем сенсоры
 		if (npc.sensors) {
 			Object.values(npc.sensors).forEach(sensor => {
-				if (sensor.destroy) sensor.destroy();
+				if (sensor && sensor.destroy) {
+					sensor.destroy();
+				}
 			});
 		}
-		
-		// 2. Отключаем физику
+
+		// 2. Удаляем дебаг-объекты
+		if (npc.__debug) {
+			npc.__debug.destroy();
+		}
+
+		// 3. Отключаем физику
 		if (npc.body && npc.scene.physics.world) {
 			npc.scene.physics.world.disableBody(npc.body);
 		}
-		
-		// 3. Удаляем из массивов
+
+		// 4. Останавливаем связанные таймеры
+		if (npc.recheckTimer) {
+			npc.recheckTimer.remove();
+		}
+		if (npc.exitTimer) {
+			npc.exitTimer.remove();
+		}
+
+		// 5. Удаляем из массивов
 		npcs = npcs.filter(n => n !== npc);
 		exitQueue = exitQueue.filter(n => n !== npc);
-		
-		// 4. Уничтожаем спрайт
-		if (npc.destroy) npc.destroy();
-		
-		console.log("NPC уничтожен. Осталось NPC:", npcs.length); // Лог для отладки
+
+		// 6. Логирование перед уничтожением
+		const posInfo = npc.x !== undefined ? `${npc.x.toFixed(0)},${npc.y.toFixed(0)}` : 'N/A';
+		const textureInfo = npc.texture?.key || 'unknown';
+		console.log(`Уничтожен NPC ${textureInfo} на ${posInfo}. Осталось: ${npcs.length}`);
+
+		// 7. Финализация
+		if (npc.destroy) {
+			npc.destroy();
+		} else {
+			npc.active = false;
+		}
 	}	
 
     function createSmokeEffect(scene, x, y) {
@@ -909,6 +934,10 @@
       
       // Определение типа устройства
       console.log('Устройство:', isMobile ? 'Мобильное' : 'ПК');
+	  
+	  console.log("=== ИНИЦИАЛИЗАЦИЯ НОВОЙ СЕССИИ ===");
+	  console.log("Память (начало):", performance.memory); // Только Chrome
+	  console.log("Текстуры загружены:", this.textures.getTextureKeys().length);	  
       
       // Создаем фон
       background = scene.add.image(400, 400, 'background').setDepth(1);
@@ -1057,7 +1086,7 @@
         
         // Обновляем цель каждые 3 секунды
         scene.time.addEvent({ 
-          delay: 3000000, 
+          delay: 3000, 
           callback: updateCameraTarget, 
           loop: true 
         });
@@ -1178,40 +1207,107 @@
 	}	
     
 	function update() {
-	  // Очищаем предыдущие отладочные рисунки
-
-		
-	  // Для мобильных: плавное перемещение камеры
-	  if (isMobile && cameraTarget && currentTarget) {
-		cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
-		cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
-	  }
-	  
-	  // Обработка NPC
-	  npcs.forEach(npc => {
-		if (!npc.active || !npc.route || !npc.route[npc.routeIndex]) return;
-
-		// Проверка границ в первую очередь
-		if (handleWorldBounds(npc)) return;
-		
-		updateSensors(npc);
-		
-		if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
-
-		const collisions = checkSensors(npc);
-
-		const target = npc.route[npc.routeIndex];
-		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
-
-		if (distance < 5) {
-		  npc.routeIndex++;
-		  if (npc.routeIndex >= npc.route.length) {
-			handleRouteCompletion(npc);
-			return;
-		  }
-		  moveNPCToNextPoint(npc);
+		// Для мобильных: плавное перемещение камеры
+		if (isMobile && cameraTarget && currentTarget) {
+			cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
+			cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
 		}
-	  });
+
+		// Логирование FPS каждые 5 секунд
+		if (this.time.now % 5000 === 0) {
+			const currentFPS = this.game.loop.actualFps;
+			console.log("FPS:", currentFPS);
+			if (currentFPS < 30) {
+				console.warn("Низкий FPS! Возможны проблемы с производительностью");
+				
+				// Дополнительная диагностика при низком FPS
+				if (currentFPS < 20) {
+					console.log("Состояние игры:",
+						"NPC:", npcs.length,
+						"Текстуры:", this.textures.getTextureKeys().length,
+						"Твины:", this.tweens.getAllTweens().length
+					);
+				}
+			}
+		}
+
+		// Логирование состояния каждые 30 секунд
+		if (this.time.now % 30000 === 0) {
+			console.log("=== СТАТУС ИГРЫ ===");
+			console.log("Активных NPC:", npcs.length, 
+					   "В очереди на выезд:", exitQueue.length,
+					   "Активных анимаций:", this.tweens.getAllTweens().length);
+			
+			if (performance && performance.memory) {
+				console.log("Использование памяти:", 
+						   (performance.memory.usedJSHeapSize / 1048576).toFixed(2), "MB");
+			}
+		}
+
+		// Проверка "застрявших" NPC (раз в 10 секунд)
+		if (this.time.now % 10000 === 0) {
+			npcs.forEach(npc => {
+				if (npc.body && 
+					npc.body.speed < 0.1 && 
+					!npc.isWaiting && 
+					!npc.isReversing && 
+					npc.active) {
+					
+					console.warn("Возможно застрявший NPC:", 
+								`ID:${npc.texture?.key || 'unknown'}-${npc.x?.toFixed(0) || 'N/A'}x${npc.y?.toFixed(0) || 'N/A'}`, 
+								"Скорость:", npc.body.speed?.toFixed(2) || 'N/A');
+					
+					// Визуализация застрявших NPC
+					if (showDebug) {
+						if (npc.__debug) npc.__debug.destroy();
+						npc.__debug = this.add.circle(npc.x, npc.y, 15, 0xff0000)
+							.setDepth(100)
+							.setAlpha(0.7);
+					}
+				}
+			});
+		}
+
+		// Основной цикл обработки NPC
+		npcs.forEach(npc => {
+			if (!npc.active || !npc.body || !npc.route || !npc.route[npc.routeIndex]) return;
+
+			// 1. Проверка границ мира
+			if (handleWorldBounds(npc)) return;
+			
+			// 2. Обновление сенсоров
+			updateSensors(npc);
+			
+			// 3. Пропускаем NPC в состоянии ожидания/разворота
+			if (npc.isReversing || npc.isAvoiding || npc.isWaiting) return;
+
+			// 4. Проверка столкновений
+			const collisions = checkSensors(npc);
+			
+			// 5. Движение к следующей точке маршрута
+			const target = npc.route[npc.routeIndex];
+			const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+
+			if (distance < 5) {
+				npc.routeIndex++;
+				
+				if (npc.routeIndex >= npc.route.length) {
+					handleRouteCompletion(npc);
+					return;
+				}
+				
+				moveNPCToNextPoint(npc);
+			}
+		});
+
+		// Экстренная очистка при приближении к лимиту NPC
+		if (npcs.length > 50) {
+			console.error(`Превышен лимит NPC (${npcs.length})! Очистка...`);
+			const excessCount = npcs.length - 25;
+			const excessNpcs = npcs.splice(25, excessCount);
+			excessNpcs.forEach(npc => destroyNpc(npc));
+			console.log(`Удалено ${excessCount} NPC. Новое количество: ${npcs.length}`);
+		}
 	}
   </script>
 </head>
