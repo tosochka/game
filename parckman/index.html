@@ -1005,14 +1005,10 @@
 		  highlightColor: 0xFFA500,
 		  spotSize: { width: 59 * 0.4, height: 85 * 0.4 },
 		  occupiedRadius: 20,
-		  highlightAlpha: { min: 0.3, max: 0.7 },
+		  highlightAlpha: { min: 0.3, max: 0.9 },
 		  minTargetDistance: 400,
 		  mapCenter: { x: 800, y: 800 },
-		  spotsPerRow: 6,
-		  parkingPrecision: {
-			positionTolerance: 5,    // Допуск по позиции в пикселях
-			angleTolerance: 0.2      // Допуск по углу в радианах (~5.7°)
-		  }
+		  spotsPerRow: 6 // Количество мест в одном ряду
 		};
 		
 		// Состояние
@@ -1282,7 +1278,7 @@
 		
 		if (!this.recentlyFreedSpots.some(s => s.x === spot.x && s.y === spot.y)) {
 		  this.recentlyFreedSpots.push(spot);
-		  console.log(`[Система] Место будет освобождено: (${spot.x}, ${spot.y})`);
+		  // console.log(`[Система] Место будет освобождено: (${spot.x}, ${spot.y})`);
 		}
 	  }
 
@@ -1291,37 +1287,21 @@
 		  return false;
 		}
 		
-		const scaledSpot = this.scaleCoords(this.currentTarget);
-		
-		// 1. Проверка расстояния между центрами
+		const scaled = this.scaleCoords(this.currentTarget);
 		const distance = Phaser.Math.Distance.Between(
 		  player.x, player.y,
-		  scaledSpot.x, scaledSpot.y
+		  scaled.x, scaled.y
 		);
 		
-		// 2. Проверка ориентации (должна быть вертикальная - rotation = 0)
-		const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(player.rotation));
-		const isVertical = angleDiff < this.config.parkingPrecision.angleTolerance;
-		
-		// 3. Проверка точного позиционирования
-		const positionMatch = distance < this.config.parkingPrecision.positionTolerance;
-		
-		if (positionMatch && isVertical) {
-		  this.onPlayerParked(player, scaledSpot);
+		if (distance < this.config.occupiedRadius) {
+		  this.onPlayerParked();
 		  return true;
 		}
-		
 		return false;
 	  }
 
-	  onPlayerParked(player, targetSpot) {
-		// Точная фиксация позиции и ориентации
-		player.x = targetSpot.x;
-		player.y = targetSpot.y;
-		player.rotation = 0; // Точная вертикальная ориентация
-		player.setVelocity(0, 0);
-		
-		console.log("[Система] Игрок точно припарковался!");
+	  onPlayerParked() {
+		console.log("[Система] Игрок успешно припарковался!");
 		this.isPlayerParked = true;
 		this.highlight.setVisible(false);
 		this.setNewTarget();
@@ -1749,29 +1729,29 @@
 	}	
     
 	function update() {
-	  // Для мобильных: плавное перемещение камеры
+	  // Обновление камеры для мобильных устройств
 	  if (isMobile && cameraTarget && currentTarget) {
 		cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
 		cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
 	  }
 	  
-	  // Управление игроком с учетом требований парковки
+	  // Управление игроком
 	  if (this.cursors.left.isDown) {
 		this.player.setVelocityX(-100);
-		this.player.rotation = 0; // Фиксированная вертикальная ориентация
+		this.player.rotation = -Math.PI/2;
 	  } 
 	  else if (this.cursors.right.isDown) {
 		this.player.setVelocityX(100);
-		this.player.rotation = 0; // Фиксированная вертикальная ориентация
+		this.player.rotation = Math.PI/2;
 	  } 
 	  else if (this.cursors.up.isDown) {
 		this.player.setVelocityY(-100);
-		this.player.rotation = 0; // Строго вертикально
+		this.player.rotation = 0;
 	  } 
 	  else if (this.cursors.down.isDown) {
 		this.player.setVelocityY(100);
-		this.player.rotation = 0; // Строго вертикально
-	  }
+		this.player.rotation = Math.PI;
+	  } 
 	  else {
 		this.player.setVelocityX(0);
 		this.player.setVelocityY(0);
