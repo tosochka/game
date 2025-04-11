@@ -810,51 +810,34 @@
       npc.rotation = angle + Math.PI/2;
     }
 
-	function handleRouteCompletion(npc) {
-	  const scene = npc.scene;
-	  const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
-	  
-	  // console.log(`[NPC] NPC завершает маршрут к месту X=${npc.originalSpot.x}, Y=${npc.originalSpot.y}`);
+    function handleRouteCompletion(npc) {
+      const originalPos = scaleCoords(npc.originalSpot.x, npc.originalSpot.y);
+      
+      const finalApproach = () => {
+        const distance = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+        
+        if (distance > 2) {
+          const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
+          npc.setVelocity(
+            Math.cos(angle) * npcFinalApproachSpeed,
+            Math.sin(angle) * npcFinalApproachSpeed
+          );
+          npc.rotation = angle + Math.PI/2;
+          
+          npc.scene.time.delayedCall(50, finalApproach);
+        } else {
+          npc.setVelocity(0, 0);
+          npc.x = originalPos.x;
+          npc.y = originalPos.y;
+          
+          npc.isExiting = false;
+          npc.isInExitQueue = true;
+          exitQueue.push(npc);
+        }
+      };
 
-	  const finalApproach = () => {
-		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, originalPos.x, originalPos.y);
-		
-		if (distance > 2) {
-		  const angle = Phaser.Math.Angle.Between(npc.x, npc.y, originalPos.x, originalPos.y);
-		  npc.setVelocity(
-			Math.cos(angle) * npcFinalApproachSpeed,
-			Math.sin(angle) * npcFinalApproachSpeed
-		  );
-		  npc.rotation = angle + Math.PI/2;
-		  
-		  npc.scene.time.delayedCall(50, finalApproach);
-		} else {
-		  npc.setVelocity(0, 0);
-		  npc.x = originalPos.x;
-		  npc.y = originalPos.y;
-		  
-		  // Проверка подсвеченного места
-		  if (scene.parkingHighlighter.isSpotHighlighted(npc.originalSpot)) {
-			console.log(`[NPC] NPC занял подсвеченное место! X=${npc.originalSpot.x}, Y=${npc.originalSpot.y}`);
-			scene.parkingHighlighter.clearHighlight();
-			
-			// Новый выбор места через 2 секунды
-			scene.time.delayedCall(2000, () => {
-			  console.log('[Parking] Выбор нового места после занятия NPC');
-			  scene.parkingHighlighter.highlightRandomSpot();
-			});
-		  }
-		  
-		  npc.isExiting = false;
-		  npc.isInExitQueue = true;
-		  exitQueue.push(npc);
-		  
-		  // console.log(`[NPC] NPC успешно припаркован на месте X=${npc.originalSpot.x}, Y=${npc.originalSpot.y}`);
-		}
-	  };
-
-	  finalApproach();
-	}
+      finalApproach();
+    }
 
     function processExitQueue() {
       if (exitQueue.length === 0 || Date.now() - lastExitTime < PARKING_EXIT_DELAY) {
@@ -962,115 +945,6 @@
       bush5.setDepth(10);
       house1.setDepth(10);      
     }
-	
-	class ParkingHighlighter {
-	  constructor(scene, parkingSpots, npcsArray) {
-		this.scene = scene;
-		this.parkingSpots = parkingSpots;
-		this.npcs = npcsArray;
-		this.currentSpot = null;
-		this.highlightObject = null;
-		this.alphaTween = null;
-		
-		// Внутренняя функция для масштабирования координат
-		this.scaleCoords = (x, y) => {
-		  const parkingSpotWidth = 59;
-		  const parkingSpotHeight = 85;
-		  const scaleFactor = 0.4;
-		  const offsetX = (parkingSpotWidth / 2) * scaleFactor;
-		  const offsetY = (parkingSpotHeight / 2) * scaleFactor;
-		  
-		  const scaledX = (x / 2000) * 800 + offsetX;
-		  const scaledY = (y / 2000) * 800 + offsetY;
-		  return { x: scaledX, y: scaledY };
-		};
-
-		this.createHighlightTexture();
-		
-		console.log('[ParkingHighlighter] Инициализирован с', parkingSpots.length, 'парковочными местами');
-	  }
-
-	  createHighlightTexture() {
-		if (!this.scene.textures.exists('parking_highlight')) {
-		  const graphics = this.scene.add.graphics();
-		  graphics.fillStyle(0x00FF00, 0.5);
-		  graphics.fillRoundedRect(0, 0, 59 * 0.4, 85 * 0.4, 5);
-		  graphics.generateTexture('parking_highlight', 59 * 0.4, 85 * 0.4);
-		  graphics.destroy();
-		  console.log('[ParkingHighlighter] Текстура подсветки создана');
-		}
-	  }
-
-	  highlightRandomSpot() {
-		const freeSpots = this.parkingSpots.filter(spot => 
-		  !this.npcs.some(npc => 
-			npc.originalSpot && 
-			npc.originalSpot.x === spot.x && 
-			npc.originalSpot.y === spot.y
-		  )
-		);
-
-		if (freeSpots.length > 0) {
-		  const randomSpot = Phaser.Math.RND.pick(freeSpots);
-		  this.highlightSpot(randomSpot);
-		  // console.log(`[ParkingHighlighter] Выбрано новое место: X=${randomSpot.x}, Y=${randomSpot.y}`);
-		  return true;
-		}
-		
-		console.log('[ParkingHighlighter] Нет свободных мест для подсветки');
-		return false;
-	  }
-
-	  highlightSpot(spot) {
-		this.clearHighlight();
-		this.currentSpot = spot;
-		const {x, y} = this.scaleCoords(spot.x, spot.y);
-		
-		this.highlightObject = this.scene.add.sprite(x, y, 'parking_highlight')
-		  .setDepth(4)
-		  .setAlpha(0.3);
-
-		this.alphaTween = this.scene.tweens.add({
-		  targets: this.highlightObject,
-		  alpha: 0.7,
-		  duration: 1000,
-		  yoyo: true,
-		  repeat: -1
-		});
-		
-		console.log(`[ParkingHighlighter] Подсвечено место: X=${x.toFixed(1)}, Y=${y.toFixed(1)} (исходные ${spot.x},${spot.y})`);
-	  }
-
-	  clearHighlight() {
-		if (this.highlightObject) {
-		  this.highlightObject.destroy();
-		  this.highlightObject = null;
-		}
-		if (this.alphaTween) {
-		  this.alphaTween.stop();
-		  this.alphaTween.remove();
-		  this.alphaTween = null;
-		}
-		if (this.currentSpot) {
-		  console.log(`[ParkingHighlighter] Снята подсветка с места: X=${this.currentSpot.x}, Y=${this.currentSpot.y}`);
-		  this.currentSpot = null;
-		}
-	  }
-
-	  isSpotHighlighted(spot) {
-		const isHighlighted = this.currentSpot && 
-			   this.currentSpot.x === spot.x && 
-			   this.currentSpot.y === spot.y;
-		
-		// console.log(`[ParkingHighlighter] Проверка места X=${spot.x}, Y=${spot.y}: ${isHighlighted ? 'подсвечено' : 'не подсвечено'}`);
-		return isHighlighted;
-	  }
-
-	  destroy() {
-		this.clearHighlight();
-		console.log('[ParkingHighlighter] Уничтожен');
-	  }
-	}	
 
     function preload() {
       this.load.image('background', 'assets/parking_map.png');
@@ -1091,11 +965,9 @@
       this.load.image('house1', 'assets/house1.png');    
       this.load.image('smoke4', 'assets/smoke/smoke4.png');
       this.load.image('smoke5', 'assets/smoke/smoke5.png');
-	  this.load.image('parking_highlight', 'assets/highlight.png');
 
       const models = ['sedan', 'suv', 'hatchback', 'coupe', 'van'];
       const colors = ['red', 'blue', 'green', 'yellow', 'black'];
-	  
       
       models.forEach(model => {
         colors.forEach(color => {
@@ -1130,17 +1002,21 @@
 	function create() {
 	  const scene = this;
 	  
-	  console.log('[Game] Инициализация игры...');
+	  // Определение типа устройства
 	  console.log('Устройство:', isMobile ? 'Мобильное' : 'ПК');
 	  
-	  // Создание основных элементов
+	  // Создаем фон
 	  background = scene.add.image(400, 400, 'background').setDepth(1);
 	  background.setDisplaySize(800, 800);
+
+	  // Создаем игровую зону
 	  gameArea = createGameArea(scene);
+
+	  // Настройка отладки
 	  debugGraphics = scene.add.graphics();
 	  debugGraphics.setDepth(20);
 
-	  // Настройка физики
+	  // Устанавливаем границы мира для физики
 	  this.physics.world.setBounds(
 		WORLD_BOUNDS.left, 
 		WORLD_BOUNDS.top, 
@@ -1148,7 +1024,7 @@
 		WORLD_BOUNDS.bottom
 	  );
 
-	  // Анимации
+	  // Анимация дыма
 	  if (this.textures.exists('smoke4') && this.textures.exists('smoke5')) {
 		this.anims.create({
 		  key: 'smoke_anim',
@@ -1161,36 +1037,7 @@
 		});
 	  }
 
-	  // Инициализация системы подсветки
-	  this.parkingHighlighter = new ParkingHighlighter(this, allParkingSpots, npcs);
-	  console.log('[Parking] Система подсветки инициализирована');
-	  
-	  // Первый выбор места через 2 секунды после запуска
-	  this.time.delayedCall(2000, () => {
-		console.log('[Parking] Первый выбор места при запуске игры');
-		this.parkingHighlighter.highlightRandomSpot();
-	  });
-	  
-	  // Автоматическое назначение мест каждые 60 секунд
-	  this.time.addEvent({
-		delay: 60000,
-		callback: () => {
-		  if (!this.parkingHighlighter.currentSpot) {
-			console.log('[Parking] Автоматический выбор места (таймер 60с)');
-			this.parkingHighlighter.highlightRandomSpot();
-		  }
-		},
-		loop: true,
-		callbackScope: this
-	  });
-
-	  // Тестовая кнопка (Q)
-	  this.input.keyboard.on('keydown-Q', () => {
-		console.log('[Input] Нажата кнопка Q - ручной выбор парковочного места');
-		this.parkingHighlighter.highlightRandomSpot();
-	  });
-
-	  // Создание NPC
+	  // Инициализация рядов парковочных мест
 	  const leftRows = [
 		upperLeftParkingSpots.slice(0, 6),
 		upperLeftParkingSpots.slice(6, 12),
@@ -1205,12 +1052,14 @@
 		upperRightParkingSpots.slice(18, 24)
 	  ];
 
+	  // Очищаем массивы
 	  npcs = [];
 	  exitQueue = [];
 	  lastExitTime = 0;
 
+	  // Создаем NPC
 	  const allRows = [...leftRows, ...rightRows];
-	  allRows.forEach((row, rowIndex) => {
+	  allRows.forEach(row => {
 		const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
 		selectedSpots.forEach(spot => {
 		  const npc = scene.physics.add.sprite(
@@ -1244,12 +1093,10 @@
 
 		  npcs.push(npc);
 		  exitQueue.push(npc);
-		  
-		  // console.log(`[NPC] Создан автомобиль на месте X=${spot.x}, Y=${spot.y}`);
 		});
 	  });
 
-	  // Система обработки столкновений
+	  // Система overlap
 	  scene.physics.add.overlap(
 		npcs,
 		npcs,
@@ -1294,14 +1141,14 @@
 
 	  scene.physics.add.collider(npcs, gameArea);
 
-	  // Настройка камеры
+	  // Система камеры для мобильных
 	  if (isMobile) {
 		cameraTarget = scene.add.rectangle(400, 400, 10, 10).setAlpha(0);
 		
 		function updateCameraTarget() {
 		  if (npcs.length > 0) {
 			currentTarget = Phaser.Math.RND.pick(npcs);
-			console.log('[Camera] Слежение за NPC:', currentTarget);
+			console.log('Камера следует за:', currentTarget);
 		  }
 		}
 		
@@ -1324,27 +1171,24 @@
 		scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
 	  }
 
-	  // Запуск системы выезда
+	  // Запуск обработчика очереди выезда
 	  processExitQueue();
-	  console.log('[System] Запущена система выезда автомобилей');
 
-	  // Создание декораций
+	  // Создаем декорации
 	  createEntranceAndPavilion(scene);
 	  createDecorativeLayer(scene);
-	  console.log('[Graphics] Декорации созданы');
 
-	  // Тестовые горячие клавиши
-	  this.input.keyboard.on('keydown-T', () => {
+	  // Кнопка тестирования дыма (T)
+	  scene.input.keyboard.on('keydown-T', () => {
 		const testX = Phaser.Math.Between(100, 700);
 		const testY = Phaser.Math.Between(100, 700);
-		console.log('[Debug] Тест дыма в позиции:', testX, testY);
 		createSmokeEffect(scene, testX, testY);
 	  });
 
-	  this.input.keyboard.on('keydown-E', () => {
+	  // Кнопка аннигиляции NPC (E)
+	  scene.input.keyboard.on('keydown-E', () => {
 		if (npcs.length > 0) {
 		  const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
-		  console.log('[Debug] Аннигиляция NPC:', randomNpc);
 		  createAnnihilationEffect(scene, randomNpc);
 		  
 		  scene.time.delayedCall(500, () => {
@@ -1354,14 +1198,16 @@
 		}
 	  });
 
-	  // Отладочный режим
-	  this.input.keyboard.on('keydown-D', () => {
+	  // Настройка клавиш отладки
+	  scene.input.keyboard.on('keydown-D', () => {
 		showDebug = !showDebug;
 		debugGraphics.clear();
 		
 		if (showDebug) {
+		  // Отрисовка границ мира
 		  drawWorldBoundsDebug(debugGraphics);
 		  
+		  // Отрисовка игровых зон
 		  gameArea.each(child => {
 			debugGraphics.fillStyle(0x00ff00, 0.3);
 			debugGraphics.lineStyle(2, 0x00ff00, 0.6);
@@ -1378,20 +1224,14 @@
 			  child.height
 			);
 		  });
-		  console.log('[Debug] Режим отладки включен');
-		} else {
-		  console.log('[Debug] Режим отладки выключен');
 		}
 	  });
 
-	  this.input.keyboard.on('keydown-H', () => {
+	  scene.input.keyboard.on('keydown-H', () => {
 		if (showDebug) {
 		  showCollisionHighlights = !showCollisionHighlights;
-		  console.log('[Debug] Подсветка столкновений:', showCollisionHighlights ? 'вкл' : 'выкл');
 		}
 	  });
-
-	  console.log('[Game] Инициализация завершена');
 	}
 
 	function handleWorldBounds(npc) {
