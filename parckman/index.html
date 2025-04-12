@@ -32,6 +32,7 @@
       font-family: monospace;
       z-index: 100;
     }
+	
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
@@ -1085,7 +1086,7 @@
 					backgroundColor: '#000000',
 					padding: { x: 10, y: 5 }
 				}
-			).setDepth(50);
+			).setDepth(-1);
 		}
 
 		setupTestKey() {
@@ -1314,13 +1315,21 @@
 		}
 
 		updateProgressText() {
-			const total = this.allParkingSpots.length;
-			const visited = this.playerVisitedSpots.size;
-			this.progressText.setText(`Парковки: ${visited}/${total}`);
-			
-			if (visited >= total) {
-				this.showWinMessage();
-			}
+		  const total = this.allParkingSpots.length;
+		  const visited = this.playerVisitedSpots.size;
+		  const progressText = `Парковки: ${visited}/${total}`;
+		  
+		  this.progressText.setText(progressText);
+		  
+		  // Обновляем DOM элемент
+		  const progressElement = document.getElementById('parking-progress');
+		  if (progressElement) {
+			progressElement.textContent = `${visited}/${total}`;
+		  }
+		  
+		  if (visited >= total) {
+			this.showWinMessage();
+		  }
 		}
 
 		showWinMessage() {
@@ -1887,12 +1896,13 @@
 </head>
 <body>
   <div id="game-container"></div>
-  <div class="debug-panel">
-    Режим: <span id="device-mode">ПК</span><br>
-    <span id="camera-info">Камера: фиксированная</span><br>
-    Debug: Нажмите 'D' для отображения границ<br>
-    Нажмите 'E' и 'T' для аннигиляции и дымового эффекта
-  </div>
+	<div class="debug-panel">
+	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>	
+	  Режим: <span id="device-mode">ПК</span><br>
+	  <span id="camera-info">Камера: фиксированная</span><br>
+	  Нажмите 'P' для паузы или тапните по экрану<br>
+	  Нажмите 'E' и 'T' для аннигиляции и дымового эффекта
+	</div>
   
   <script>
     document.addEventListener('DOMContentLoaded', () => {
