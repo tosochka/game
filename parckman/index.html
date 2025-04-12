@@ -60,8 +60,8 @@
     const PARKING_END_POINTS = 2;
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
-    const PARKING_EXIT_DELAY = 3000;
-    const NPC_PER_ROW = 5;
+    const PARKING_EXIT_DELAY = 1700; // от 3000 до 1500
+    const NPC_PER_ROW = 3; // от 3 до 5
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
@@ -870,36 +870,59 @@
 	  finalApproach();
 	}
 
-    function processExitQueue() {
-      if (exitQueue.length === 0 || Date.now() - lastExitTime < PARKING_EXIT_DELAY) {
-        game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
-        return;
-      }
+	function processExitQueue() {
+	  if (exitQueue.length === 0 || Date.now() - lastExitTime < PARKING_EXIT_DELAY) {
+		game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+		return;
+	  }
 
-      const nextNpc = exitQueue.shift();
-      if (!nextNpc.active || nextNpc.isDestroyed) {
-        game.scene.scenes[0].time.delayedCall(100, processExitQueue, [], game.scene.scenes[0]);
-        return;
-      }
+	  // Группируем NPC по зонам парковки (левая/правая сторона)
+	  const zones = {
+		left: exitQueue.filter(npc => npc.originalSpot.x < 350),  // Левая половина карты (x < 800)
+		right: exitQueue.filter(npc => npc.originalSpot.x >= 350), // Правая половина (x >= 800)
+	  };
 
-      if (nextNpc.body.velocity.length() > 5) {
-        exitQueue.push(nextNpc);
-        game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
-        return;
-      }
+	  // Выбираем зону, где больше NPC (если зоны равны — случайный выбор)
+	  let targetZone;
+	  if (zones.left.length > zones.right.length) {
+		targetZone = 'left';
+	  } else if (zones.right.length > zones.left.length) {
+		targetZone = 'right';
+	  } else {
+		targetZone = Phaser.Math.RND.pick(['left', 'right']); // Случайный выбор при равенстве
+	  }
 
-      lastExitTime = Date.now();
-      nextNpc.isInExitQueue = false;
-      
-      const delay = Phaser.Math.Between(100, 500);
-      nextNpc.scene.time.delayedCall(delay, () => {
-        if (nextNpc.active) {
-          startNpcExit(nextNpc);
-        }
-      });
+	  // Выбираем случайного NPC из выбранной зоны
+	  const candidates = zones[targetZone];
+	  if (candidates.length === 0) {
+		// Если в зоне нет кандидатов, пробуем снова через 100 мс
+		game.scene.scenes[0].time.delayedCall(100, processExitQueue, [], game.scene.scenes[0]);
+		return;
+	  }
 
-      game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
-    }
+	  const nextNpc = Phaser.Math.RND.pick(candidates);
+	  exitQueue = exitQueue.filter(n => n !== nextNpc); // Удаляем NPC из очереди
+
+	  // Проверка, что NPC активен и не движется
+	  if (!nextNpc.active || nextNpc.isDestroyed || nextNpc.body.velocity.length() > 5) {
+		if (nextNpc.active) exitQueue.push(nextNpc); // Возвращаем в очередь, если проблема временная
+		game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+		return;
+	  }
+
+	  // Запуск выезда
+	  lastExitTime = Date.now();
+	  nextNpc.isInExitQueue = false;
+	  
+	  // Небольшая случайная задержка перед стартом (100-500 мс)
+	  const delay = Phaser.Math.Between(100, 500);
+	  nextNpc.scene.time.delayedCall(delay, () => {
+		if (nextNpc.active) startNpcExit(nextNpc);
+	  });
+
+	  // Следующая проверка очереди через 300 мс
+	  game.scene.scenes[0].time.delayedCall(300, processExitQueue, [], game.scene.scenes[0]);
+	}
 
 	function startNpcExit(npc) {
 	  if (!npc || !npc.active || npc.isDestroyed || !npc.scene) return;
@@ -908,18 +931,16 @@
 	  npc.isInExitQueue = false;
 	  npc.isWaiting = false;
 	  
-	  if (npc.scene.parkingTargetSystem && npc.originalSpot) {
-		npc.scene.parkingTargetSystem.markSpotAsWillBeFree(npc.originalSpot);
-	  }
-
+	  // Выбираем случайный маршрут из доступных
 	  const randomRouteIndex = Math.floor(Math.random() * allPossibleRoutes.length);
 	  const routeType = allPossibleRoutes[randomRouteIndex];
-	  npc.route = routeType(npc.originalSpot);
-	  npc.isCounterClockwise = routeType.toString().includes('Counter');
-	  npc.routeIndex = 0;
+	  
+	  npc.route = routeType(npc.originalSpot); // Генерируем новый маршрут
+	  npc.isCounterClockwise = routeType.toString().includes('Counter'); // Определяем направление
+	  npc.routeIndex = 0; // Сбрасываем индекс точки маршрута
 	  npc.lastExitTime = Date.now();
 	  
-	  moveNPCToNextPoint(npc);
+	  moveNPCToNextPoint(npc); // Запускаем движение
 	}
 
     function createEntranceAndPavilion(scene) {
@@ -982,371 +1003,400 @@
     }
 	
 	class ParkingTargetSystem {
-	  constructor(scene, npcs, allParkingSpots) {
-		this.scene = scene;
-		this.npcs = npcs;
-		this.allParkingSpots = allParkingSpots;
-		
-		this.config = {
-		  changeDelay: 20000,
-		  checkDelay: 2000,
-		  highlightColor: 0xFFA500,
-		  spotSize: { width: 59 * 0.4, height: 85 * 0.4 },
-		  occupiedRadius: 20,
-		  highlightAlpha: { min: 0.3, max: 0.8 },
-		  minTargetDistance: 300,
-		  minAdjacentSpots: 12,
-		  mapCenter: { x: 800, y: 800 },
-		  spotsPerRow: 6,
-		  parkingTolerance: 15,
-		  maxAngleDeviation: Math.PI/2,
-		  highlightFadeDuration: 400,
-		  preferOppositeSide: true,
-		  preferDifferentRow: true,
-		  spotCooldownTime: 10000, // 10 секунд "охлаждения" для места
-		  recentlyFreedDelay: 5000 // 5 секунд перед добавлением в свободные
-		};
-		
-		this.currentTarget = null;
-		this.highlight = null;
-		this.changeTimer = null;
-		this.isPlayerParked = false;
-		this.testKey = null;
-		this.spotOccupationMap = new Map();
-		this.recentlyFreedSpots = [];
-		this.cooldownSpots = new Map(); // Хранит места в "охлаждении"
-		
-		this.init();
-	  }
+		constructor(scene, npcs, allParkingSpots) {
+			this.scene = scene;
+			this.npcs = npcs;
+			this.allParkingSpots = allParkingSpots;
+			
+			this.config = {
+				changeDelay: 20000,
+				checkDelay: 1000,
+				highlightColor: 0xFFA500,
+				spotSize: { width: 59 * 0.4, height: 85 * 0.4 },
+				occupiedRadius: 20,
+				highlightAlpha: { min: 0.3, max: 0.8 },
+				minTargetDistance: 300,
+				minAdjacentSpots: 12,
+				mapCenter: { x: 800, y: 800 },
+				spotsPerRow: 6,
+				parkingTolerance: 15,
+				maxAngleDeviation: Math.PI/2,
+				highlightFadeDuration: 400,
+				spotCooldownTime: 3000,
+				recentlyFreedDelay: 1000
+			};
+			
+			this.currentTarget = null;
+			this.highlight = null;
+			this.changeTimer = null;
+			this.isPlayerParked = false;
+			this.testKey = null;
+			this.spotOccupationMap = new Map();
+			this.recentlyFreedSpots = [];
+			this.cooldownSpots = new Map();
+			this.playerVisitedSpots = new Set();
+			this.playerRef = null;
+			this.progressText = null;
+			this.waitingText = null;
+			this.checkInterval = null;
 
-	  init() {
-		this.createHighlight();
-		this.setupTestKey();
-		this.initOccupationMap();
-		this.setNewTarget();
-	  }
-
-	  createHighlight() {
-		this.highlight = this.scene.add.rectangle(
-		  0, 0, 
-		  this.config.spotSize.width, 
-		  this.config.spotSize.height, 
-		  this.config.highlightColor, 
-		  this.config.highlightAlpha.max
-		)
-		.setOrigin(0.5)
-		.setDepth(4)
-		.setVisible(false);
-		
-		this.scene.tweens.add({
-		  targets: this.highlight,
-		  alpha: { 
-			from: this.config.highlightAlpha.min, 
-			to: this.config.highlightAlpha.max 
-		  },
-		  duration: 1000,
-		  yoyo: true,
-		  repeat: -1
-		});
-	  }
-
-	  setupTestKey() {
-		this.testKey = this.scene.input.keyboard.addKey('R');
-		this.testKey.on('down', () => {
-		  console.log('[Тест] Принудительная смена целевого места');
-		  this.setNewTarget();
-		});
-	  }
-
-	  initOccupationMap() {
-		this.allParkingSpots.forEach(spot => {
-		  const scaled = this.scaleCoords(spot);
-		  const isOccupied = this.isSpotOccupied(scaled);
-		  this.spotOccupationMap.set(spot, isOccupied);
-		});
-	  }
-
-	  markSpotAsWillBeFree(spot) {
-		if (!spot) return;
-		
-		// Добавляем место в "охлаждение"
-		this.cooldownSpots.set(`${spot.x}-${spot.y}`, Date.now() + this.config.spotCooldownTime);
-		this.spotOccupationMap.set(spot, false);
-		
-		// Добавляем в recentlyFreedSpots с задержкой
-		this.scene.time.delayedCall(this.config.recentlyFreedDelay, () => {
-		  if (!this.recentlyFreedSpots.some(s => s.x === spot.x && s.y === spot.y)) {
-			this.recentlyFreedSpots.push(spot);
-		  }
-		});
-	  }
-
-	  getFreeSpots() {
-		const now = Date.now();
-		
-		// Очищаем устаревшие "охлаждения"
-		this.cooldownSpots.forEach((time, key) => {
-		  if (time < now) this.cooldownSpots.delete(key);
-		});
-
-		// Фильтруем recentlyFreedSpots, проверяя физическое наличие NPC
-		const verifiedFreedSpots = this.recentlyFreedSpots.filter(spot => {
-		  const scaled = this.scaleCoords(spot);
-		  return !this.isPhysicallyOccupied(scaled);
-		});
-		
-		this.recentlyFreedSpots = verifiedFreedSpots;
-		
-		if (verifiedFreedSpots.length > 0) {
-		  return [...verifiedFreedSpots];
+			this.init();
+			this.scene.time.delayedCall(100, () => this.setNewTarget());
 		}
 
-		// Основной фильтр свободных мест
-		return this.allParkingSpots.filter(spot => {
-		  // Пропускаем места в "охлаждении"
-		  if (this.cooldownSpots.has(`${spot.x}-${spot.y}`)) return false;
-		  
-		  const scaled = this.scaleCoords(spot);
-		  return !this.isSpotOccupied(scaled);
-		});
-	  }
-
-	  isSpotOccupied(scaledSpot) {
-		return this.npcs.some(npc => {
-		  if (!npc?.body) return false;
-		  return Phaser.Math.Distance.Between(
-			npc.x, npc.y, 
-			scaledSpot.x, scaledSpot.y
-		  ) < this.config.occupiedRadius;
-		});
-	  }
-
-	  isPhysicallyOccupied(scaledSpot) {
-		// Более точная проверка физического наличия NPC
-		return this.npcs.some(npc => {
-		  if (!npc?.body || !npc.active) return false;
-		  
-		  const distance = Phaser.Math.Distance.Between(
-			npc.x, npc.y,
-			scaledSpot.x, scaledSpot.y
-		  );
-		  
-		  return distance < (this.config.occupiedRadius * 1.5);
-		});
-	  }
-
-	  scaleCoords(spot) {
-		if (!spot) return { x: 0, y: 0, angle: 0 };
-		
-		const angle = spot.x < this.config.mapCenter.x 
-		  ? Math.PI / 2 
-		  : -Math.PI / 2;
-		
-		return {
-		  x: (spot.x / 2000) * 800 + (this.config.spotSize.width / 2),
-		  y: (spot.y / 2000) * 800 + (this.config.spotSize.height / 2),
-		  angle: angle
-		};
-	  }
-
-	  getDistanceBetweenSpots(spot1, spot2) {
-		return Phaser.Math.Distance.Between(
-		  spot1.x, spot1.y,
-		  spot2.x, spot2.y
-		);
-	  }
-
-	  getOppositeSideSpots(currentSpot) {
-		if (!currentSpot) return this.allParkingSpots;
-		const isCurrentLeft = currentSpot.x < this.config.mapCenter.x;
-		return this.allParkingSpots.filter(spot => 
-		  isCurrentLeft ? spot.x >= this.config.mapCenter.x : spot.x < this.config.mapCenter.x
-		);
-	  }
-
-	  getSpotsInDifferentRow(currentSpot) {
-		if (!currentSpot) return this.allParkingSpots;
-		const currentIndex = this.allParkingSpots.indexOf(currentSpot);
-		if (currentIndex === -1) return this.allParkingSpots;
-		
-		const currentRow = Math.floor(currentIndex / this.config.spotsPerRow);
-		return this.allParkingSpots.filter((_, index) => 
-		  Math.floor(index / this.config.spotsPerRow) !== currentRow
-		);
-	  }
-
-	  selectNewTarget(freeSpots) {
-		if (!freeSpots || freeSpots.length === 0) {
-		  this.handleNoFreeSpots();
-		  return;
+		init() {
+			this.createHighlight();
+			this.createProgressText();
+			this.setupTestKey();
+			this.initOccupationMap();
 		}
 
-		// Получаем все места, отсортированные по расстоянию от текущего
-		let sortedSpots = [];
-		if (this.currentTarget) {
-		  sortedSpots = [...this.allParkingSpots]
-			.map(spot => ({
-			  spot,
-			  distance: this.getDistanceBetweenSpots(spot, this.currentTarget)
-			}))
-			.sort((a, b) => a.distance - b.distance);
+		createHighlight() {
+			this.highlight = this.scene.add.rectangle(
+				0, 0, 
+				this.config.spotSize.width, 
+				this.config.spotSize.height, 
+				this.config.highlightColor, 
+				this.config.highlightAlpha.max
+			)
+			.setOrigin(0.5)
+			.setDepth(4)
+			.setVisible(false);
+			
+			this.scene.tweens.add({
+				targets: this.highlight,
+				alpha: { 
+					from: this.config.highlightAlpha.min, 
+					to: this.config.highlightAlpha.max 
+				},
+				duration: 1000,
+				yoyo: true,
+				repeat: -1
+			});
 		}
 
-		// Основной фильтр
-		let candidates = freeSpots.filter(spot => {
-		  // Исключаем текущее целевое место
-		  if (this.currentTarget && 
-			  spot.x === this.currentTarget.x && 
-			  spot.y === this.currentTarget.y) {
-			return false;
-		  }
-
-		  // Исключаем ближайшие N мест
-		  if (sortedSpots.length > 0) {
-			const isTooClose = sortedSpots
-			  .slice(0, this.config.minAdjacentSpots)
-			  .some(s => s.spot.x === spot.x && s.spot.y === spot.y);
-			if (isTooClose) return false;
-		  }
-
-		  return true;
-		});
-
-		// Fallback: если после фильтрации нет кандидатов
-		if (candidates.length === 0) {
-		  candidates = freeSpots.filter(spot => {
-			if (this.currentTarget && 
-				spot.x === this.currentTarget.x && 
-				spot.y === this.currentTarget.y) {
-			  return false;
-			}
-			return true;
-		  });
+		createProgressText() {
+			this.progressText = this.scene.add.text(
+				20, 20, 
+				'Парковки: 0/' + this.allParkingSpots.length, 
+				{ 
+					font: '24px Arial', 
+					fill: '#ffffff',
+					backgroundColor: '#000000',
+					padding: { x: 10, y: 5 }
+				}
+			).setDepth(50);
 		}
 
-		// Если все равно нет кандидатов, берем любые свободные
-		if (candidates.length === 0) {
-		  candidates = freeSpots;
+		setupTestKey() {
+			this.testKey = this.scene.input.keyboard.addKey('R');
+			this.testKey.on('down', () => {
+				this.setNewTarget();
+			});
 		}
 
-		// Дополнительные критерии выбора
-		if (this.config.preferOppositeSide && this.config.preferDifferentRow && this.currentTarget) {
-		  const oppositeSide = this.getOppositeSideSpots(this.currentTarget);
-		  const differentRow = this.getSpotsInDifferentRow(this.currentTarget);
-		  
-		  const preferredCandidates = candidates.filter(spot => 
-			oppositeSide.some(s => s.x === spot.x && s.y === spot.y) &&
-			differentRow.some(s => s.x === spot.x && s.y === spot.y)
-		  );
-		  
-		  if (preferredCandidates.length > 0) {
-			candidates = preferredCandidates;
-		  }
+		initOccupationMap() {
+			this.allParkingSpots.forEach(spot => {
+				const scaled = this.scaleCoords(spot);
+				const isOccupied = this.isSpotOccupied(scaled);
+				this.spotOccupationMap.set(spot, isOccupied);
+			});
 		}
 
-		this.currentTarget = candidates.length > 0 
-		  ? Phaser.Math.RND.pick(candidates)
-		  : Phaser.Math.RND.pick(freeSpots);
-
-		const scaled = this.scaleCoords(this.currentTarget);
-		this.highlight.setPosition(scaled.x, scaled.y);
-		this.highlight.setVisible(true);
-		this.highlight.alpha = this.config.highlightAlpha.max;
-		this.isPlayerParked = false;
-	  }
-
-	  setNewTarget() {
-		this.clearPreviousTarget();
-		const freeSpots = this.getFreeSpots();
-		
-		if (freeSpots.length === 0) {
-		  this.handleNoFreeSpots();
-		  return;
+		markSpotAsWillBeFree(spot) {
+			if (!spot) return;
+			
+			const spotKey = `${spot.x}-${spot.y}`;
+			this.cooldownSpots.set(spotKey, this.scene.time.now + this.config.spotCooldownTime);
+			this.spotOccupationMap.set(spot, false);
+			
+			this.scene.time.delayedCall(this.config.recentlyFreedDelay, () => {
+				if (!this.recentlyFreedSpots.some(s => s.x === spot.x && s.y === spot.y)) {
+					this.recentlyFreedSpots.push(spot);
+				}
+			});
 		}
-		
-		this.selectNewTarget(freeSpots);
-		this.setupTargetTimer();
-	  }
 
-	  clearPreviousTarget() {
-		if (this.changeTimer) {
-		  this.changeTimer.destroy();
-		  this.changeTimer = null;
-		}
-		this.highlight.setVisible(false);
-	  }
+		markSpotAsVisited(spot) {
+			if (!spot) return;
+			
+			const spotKey = `${spot.x}-${spot.y}`;
+			this.playerVisitedSpots.add(spotKey);
+			this.updateProgressText();
+			
+			// Визуальное подтверждение парковки
+			const graphics = this.scene.add.graphics();
+			graphics.fillStyle(0x00FF00, 0.7);
+			graphics.fillCircle(
+				this.scaleCoords(spot).x,
+				this.scaleCoords(spot).y,
+				20
+			);
+			
+			this.scene.tweens.add({
+				targets: graphics,
+				scaleX: 2,
+				scaleY: 2,
+				alpha: 0,
+				duration: 500,
+				onComplete: () => graphics.destroy()
+			});
 
-	  handleNoFreeSpots() {
-		this.changeTimer = this.scene.time.delayedCall(
-		  this.config.checkDelay, 
-		  () => this.setNewTarget()
-		);
-	  }
-
-	  setupTargetTimer() {
-		this.changeTimer = this.scene.time.delayedCall(
-		  this.config.changeDelay, 
-		  () => this.setNewTarget()
-		);
-	  }
-
-	  checkPlayerParking(player) {
-		if (!player?.body || !this.currentTarget || this.isPlayerParked) return false;
-		
-		const targetCenter = this.scaleCoords(this.currentTarget);
-		const distance = Phaser.Math.Distance.Between(
-		  player.x, player.y,
-		  targetCenter.x, targetCenter.y
-		);
-		
-		if (distance <= this.config.parkingTolerance) {
-		  const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(player.rotation - targetCenter.angle));
-		  if (angleDiff <= this.config.maxAngleDeviation) {
-			this.onPlayerParked();
-			return true;
-		  }
-		}
-		return false;
-	  }
-
-	  onPlayerParked() {
-		console.log("[Система] Идеальная парковка!");
-		this.isPlayerParked = true;
-		
-		this.scene.tweens.add({
-		  targets: this.highlight,
-		  alpha: 0,
-		  duration: this.config.highlightFadeDuration,
-		  onComplete: () => {
-			this.highlight.setVisible(false);
 			this.setNewTarget();
-		  }
-		});
-	  }
-
-	  update() {
-		// Обновляем информацию о занятости мест
-		this.allParkingSpots.forEach(spot => {
-		  const scaled = this.scaleCoords(spot);
-		  this.spotOccupationMap.set(spot, this.isSpotOccupied(scaled));
-		});
-
-		// Если текущее целевое место занято - меняем цель
-		if (this.currentTarget && this.isSpotOccupied(this.scaleCoords(this.currentTarget))) {
-		  this.highlight.setVisible(false);
-		  this.setNewTarget();
 		}
-	  }
 
-	  destroy() {
-		if (this.highlight) this.highlight.destroy();
-		if (this.changeTimer) this.changeTimer.destroy();
-		if (this.testKey) this.testKey.removeAllListeners();
-		this.spotOccupationMap.clear();
-		this.recentlyFreedSpots = [];
-		this.cooldownSpots.clear();
-	  }
-	}	
+		getFreeSpots() {
+			const now = this.scene.time.now;
+			
+			// Очищаем устаревшие cooldown-споты
+			this.cooldownSpots.forEach((time, key) => {
+				if (time < now) this.cooldownSpots.delete(key);
+			});
+
+			// Получаем все места, которые физически свободны
+			const allFreeSpots = this.allParkingSpots.filter(spot => {
+				const scaled = this.scaleCoords(spot);
+				return !this.isPhysicallyOccupied(scaled);
+			});
+
+			// Фильтруем посещенные и находящиеся в cooldown
+			return allFreeSpots.filter(spot => {
+				const spotKey = `${spot.x}-${spot.y}`;
+				return !this.playerVisitedSpots.has(spotKey) && 
+					   !this.cooldownSpots.has(spotKey);
+			});
+		}
+
+		isSpotOccupied(scaledSpot) {
+			if (!scaledSpot) return true;
+			return this.npcs.some(npc => {
+				if (!npc?.body || !npc.active) return false;
+				return Phaser.Math.Distance.Between(
+					npc.x, npc.y, 
+					scaledSpot.x, scaledSpot.y
+				) < this.config.occupiedRadius;
+			});
+		}
+
+		isPhysicallyOccupied(scaledSpot) {
+			if (!scaledSpot) return true;
+			return this.npcs.some(npc => {
+				if (!npc?.body || !npc.active) return false;
+				return Phaser.Math.Distance.Between(
+					npc.x, npc.y,
+					scaledSpot.x, scaledSpot.y
+				) < (this.config.occupiedRadius * 1.5);
+			});
+		}
+
+		scaleCoords(spot) {
+			if (!spot) return { x: 0, y: 0, angle: 0 };
+			
+			const angle = spot.x < this.config.mapCenter.x 
+				? Math.PI / 2 
+				: -Math.PI / 2;
+			
+			return {
+				x: (spot.x / 2000) * 800 + (this.config.spotSize.width / 2),
+				y: (spot.y / 2000) * 800 + (this.config.spotSize.height / 2),
+				angle: angle
+			};
+		}
+
+		setNewTarget() {
+			if (!this.scene) return;
+
+			this.clearTimers();
+			this.highlight.setVisible(false);
+
+			const freeSpots = this.getFreeSpots();
+			
+			if (freeSpots.length === 0) {
+				this.showWaitingMessage();
+				return;
+			}
+
+			// Выбираем самое дальнее от игрока место
+			freeSpots.sort((a, b) => {
+				const distA = Phaser.Math.Distance.Between(
+					this.playerRef.x, this.playerRef.y,
+					this.scaleCoords(a).x, this.scaleCoords(a).y
+				);
+				const distB = Phaser.Math.Distance.Between(
+					this.playerRef.x, this.playerRef.y,
+					this.scaleCoords(b).x, this.scaleCoords(b).y
+				);
+				return distB - distA;
+			});
+
+			this.currentTarget = freeSpots[0];
+			const targetPos = this.scaleCoords(this.currentTarget);
+			this.highlight.setPosition(targetPos.x, targetPos.y);
+			this.highlight.setVisible(true);
+
+			// Устанавливаем таймер автоматической смены цели
+			this.changeTimer = this.scene.time.delayedCall(
+				this.config.changeDelay,
+				() => this.setNewTarget()
+			);
+		}
+
+		showWaitingMessage() {
+			this.clearWaitingState();
+			
+			// Показываем сообщение только если есть NPC на парковках
+			const hasNPCs = this.npcs.some(npc => npc.active);
+			
+			if (hasNPCs) {
+				this.waitingText = this.scene.add.text(
+					this.scene.cameras.main.centerX,
+					this.scene.cameras.main.centerY - 50,
+					'Ждем свободное место...',
+					{ 
+						font: '24px Arial', 
+						fill: '#ffffff', 
+						backgroundColor: '#000000',
+						padding: { x: 10, y: 5 }
+					}
+				).setOrigin(0.5).setDepth(50);
+			}
+
+			// Устанавливаем периодическую проверку
+			this.checkInterval = this.scene.time.addEvent({
+				delay: this.config.checkDelay,
+				callback: () => {
+					const freeSpots = this.getFreeSpots();
+					if (freeSpots.length > 0) {
+						this.clearWaitingState();
+						this.setNewTarget();
+					}
+				},
+				loop: true
+			});
+		}
+
+		clearTimers() {
+			if (this.changeTimer) {
+				this.scene.time.removeEvent(this.changeTimer);
+				this.changeTimer = null;
+			}
+		}
+
+		clearWaitingState() {
+			if (this.waitingText) {
+				this.waitingText.destroy();
+				this.waitingText = null;
+			}
+			
+			if (this.checkInterval) {
+				this.scene.time.removeEvent(this.checkInterval);
+				this.checkInterval = null;
+			}
+		}
+
+		checkPlayerParking(player) {
+			if (!player?.body || !this.currentTarget || this.isPlayerParked) return false;
+			
+			const targetCenter = this.scaleCoords(this.currentTarget);
+			const distance = Phaser.Math.Distance.Between(
+				player.x, player.y,
+				targetCenter.x, targetCenter.y
+			);
+			
+			if (distance <= this.config.parkingTolerance) {
+				const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(player.rotation - targetCenter.angle));
+				if (angleDiff <= this.config.maxAngleDeviation) {
+					this.markSpotAsVisited(this.currentTarget);
+					return true;
+				}
+			}
+			return false;
+		}
+
+		updateProgressText() {
+			const total = this.allParkingSpots.length;
+			const visited = this.playerVisitedSpots.size;
+			this.progressText.setText(`Парковки: ${visited}/${total}`);
+			
+			if (visited >= total) {
+				this.showWinMessage();
+			}
+		}
+
+		showWinMessage() {
+			const winText = this.scene.add.text(
+				this.scene.cameras.main.centerX,
+				this.scene.cameras.main.centerY,
+				'ВСЕ ПАРКОВКИ ЗАКОНЧИЛИСЬ!\nПОБЕДА!',
+				{ 
+					font: '48px Arial', 
+					fill: '#ff0000', 
+					align: 'center',
+					backgroundColor: '#000000',
+					padding: { x: 20, y: 15 }
+				}
+			).setOrigin(0.5).setDepth(100);
+			
+			const winGraphics = this.scene.add.graphics();
+			winGraphics.fillStyle(0xFFFFFF, 0.3);
+			winGraphics.fillRect(
+				winText.x - winText.width/2 - 20,
+				winText.y - winText.height/2 - 20,
+				winText.width + 40,
+				winText.height + 40
+			);
+			winText.setDepth(101);
+			
+			this.scene.physics.pause();
+			this.scene.time.removeAllEvents();
+		}
+
+		update() {
+			if (!this.scene) return;
+
+			// Обновляем информацию о занятости мест
+			this.allParkingSpots.forEach(spot => {
+				const scaled = this.scaleCoords(spot);
+				this.spotOccupationMap.set(spot, this.isSpotOccupied(scaled));
+			});
+
+			// Если текущая цель занята - меняем
+			if (this.currentTarget && this.isSpotOccupied(this.scaleCoords(this.currentTarget))) {
+				this.setNewTarget();
+			}
+		}
+
+		destroy() {
+			this.clearTimers();
+			this.clearWaitingState();
+
+			if (this.highlight) {
+				this.highlight.destroy();
+				this.highlight = null;
+			}
+			
+			if (this.testKey) {
+				this.testKey.off('down');
+				this.scene.input.keyboard.removeKey(this.testKey);
+				this.testKey = null;
+			}
+			
+			if (this.progressText) {
+				this.progressText.destroy();
+				this.progressText = null;
+			}
+			
+			this.spotOccupationMap.clear();
+			this.recentlyFreedSpots = [];
+			this.cooldownSpots.clear();
+			this.playerVisitedSpots.clear();
+			
+			this.scene = null;
+			this.npcs = null;
+			this.allParkingSpots = null;
+			this.playerRef = null;
+		}
+	}
 
     function preload() {
       this.load.image('background', 'assets/parking_map.png');
@@ -1401,250 +1451,239 @@
 	  );
 	}
 
+
 	function create() {
-	  const scene = this;
-	  
-	  // Создаем фон
-	  background = scene.add.image(400, 400, 'background').setDepth(1);
-	  background.setDisplaySize(800, 800);
+		const scene = this;
+		
+		// Создаем фон
+		background = scene.add.image(400, 400, 'background').setDepth(1);
+		background.setDisplaySize(800, 800);
 
-	  // Создаем игровую зону
-	  gameArea = createGameArea(scene);
+		// Создаем игровую зону
+		gameArea = createGameArea(scene);
 
-	  // Настройка отладки
-	  debugGraphics = scene.add.graphics();
-	  debugGraphics.setDepth(20);
+		// Настройка отладки
+		debugGraphics = scene.add.graphics();
+		debugGraphics.setDepth(20);
 
-	  // Физика
-	  this.physics.world.setBounds(
-		WORLD_BOUNDS.left, 
-		WORLD_BOUNDS.top, 
-		WORLD_BOUNDS.right, 
-		WORLD_BOUNDS.bottom
-	  );
+		// Физика
+		this.physics.world.setBounds(
+			WORLD_BOUNDS.left, 
+			WORLD_BOUNDS.top, 
+			WORLD_BOUNDS.right, 
+			WORLD_BOUNDS.bottom
+		);
 
-	  // Анимация дыма
-	  if (this.textures.exists('smoke4') && this.textures.exists('smoke5')) {
-		this.anims.create({
-		  key: 'smoke_anim',
-		  frames: [
-			{ key: 'smoke4' },
-			{ key: 'smoke5' }
-		  ],
-		  frameRate: 8,
-		  repeat: 0
+		// Инициализация рядов парковочных мест
+		const leftRows = [
+			upperLeftParkingSpots.slice(0, 6),
+			upperLeftParkingSpots.slice(6, 12),
+			upperLeftParkingSpots.slice(12, 18),
+			upperLeftParkingSpots.slice(18, 24)
+		];
+
+		const rightRows = [
+			upperRightParkingSpots.slice(0, 6),
+			upperRightParkingSpots.slice(6, 12),
+			upperRightParkingSpots.slice(12, 18),
+			upperRightParkingSpots.slice(18, 24)
+		];
+
+		// Очищаем массивы
+		npcs = [];
+		exitQueue = [];
+		lastExitTime = 0;
+
+		// Создаем NPC
+		const allRows = [...leftRows, ...rightRows];
+		allRows.forEach(row => {
+			const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
+			selectedSpots.forEach(spot => {
+				const npc = scene.physics.add.sprite(
+					scaleCoords(spot.x, spot.y).x,
+					scaleCoords(spot.x, spot.y).y,
+					getRandomCarTexture()
+				)
+				.setScale(0.47)
+				.setDepth(5)
+				.setCollideWorldBounds(false);
+
+				npc.body.setSize(13, 20);
+				npc.body.setOffset(0, 7);
+
+				createSensors(scene, npc);
+
+				npc.originalSpot = spot;
+				npc.routeSequence = createShuffledRouteSequence();
+				npc.currentRouteIndex = 0;
+				npc.route = npc.routeSequence[0](npc.originalSpot);
+				npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
+				npc.routeIndex = 0;
+				npc.isWaiting = true;
+				npc.isInExitQueue = true;
+				npc.isExiting = false;
+				npc.isReversing = false;
+				npc.isAvoiding = false;
+				npc.reverseAttempts = 0;
+				npc.lastExitTime = 0;
+				npc.collisionCheckAttempts = 0;
+
+				npcs.push(npc);
+				exitQueue.push(npc);
+			});
 		});
-	  }
 
-	  // Инициализация рядов парковочных мест
-	  const leftRows = [
-		upperLeftParkingSpots.slice(0, 6),
-		upperLeftParkingSpots.slice(6, 12),
-		upperLeftParkingSpots.slice(12, 18),
-		upperLeftParkingSpots.slice(18, 24)
-	  ];
+		// Система целей парковки
+		scene.parkingTargetSystem = new ParkingTargetSystem(
+			scene, 
+			npcs, 
+			[...upperLeftParkingSpots, ...upperRightParkingSpots]
+		);
 
-	  const rightRows = [
-		upperRightParkingSpots.slice(0, 6),
-		upperRightParkingSpots.slice(6, 12),
-		upperRightParkingSpots.slice(12, 18),
-		upperRightParkingSpots.slice(18, 24)
-	  ];
+		// Создаем игрока
+		this.player = this.physics.add.sprite(50, 400, 'car_sedan_red')
+			.setScale(0.47)
+			.setDepth(10);
+		this.player.body.setSize(13, 20);
+		this.player.body.setOffset(0, 7);
+		scene.parkingTargetSystem.playerRef = this.player;
 
-	  // Очищаем массивы
-	  npcs = [];
-	  exitQueue = [];
-	  lastExitTime = 0;
+		// Управление игроком
+		this.cursors = this.input.keyboard.createCursorKeys();
 
-	  // Создаем NPC
-	  const allRows = [...leftRows, ...rightRows];
-	  allRows.forEach(row => {
-		const selectedSpots = getRandomSpotsInRow(row, NPC_PER_ROW);
-		selectedSpots.forEach(spot => {
-		  const npc = scene.physics.add.sprite(
-			scaleCoords(spot.x, spot.y).x,
-			scaleCoords(spot.x, spot.y).y,
-			getRandomCarTexture()
-		  )
-		  .setScale(0.47) // 0.47
-		  .setDepth(5)
-		  .setCollideWorldBounds(false);
+		// Система overlap для NPC
+		scene.physics.add.overlap(
+			npcs,
+			npcs,
+			(npc1, npc2) => {
+				if (npc1 === npc2 || !npc1.active || !npc2.active) return;
 
-		  npc.body.setSize(13, 20);
-		  npc.body.setOffset(0, 7);
+				const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
+				const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
+				const minDistance = 3;
+				
+				if (distance < minDistance) {
+					const pushForce = 1.0 * (minDistance - distance);
+					const pushX = Math.cos(angle) * pushForce;
+					const pushY = Math.sin(angle) * pushForce;
+					
+					npc1.body.velocity.x += pushX;
+					npc1.body.velocity.y += pushY;
+					npc2.body.velocity.x -= pushX;
+					npc2.body.velocity.y -= pushY;
+				}
 
-		  createSensors(scene, npc);
+				if (npc1.isAvoiding || npc2.isAvoiding) return;
 
-		  npc.originalSpot = spot;
-		  npc.routeSequence = createShuffledRouteSequence();
-		  npc.currentRouteIndex = 0;
-		  npc.route = npc.routeSequence[0](npc.originalSpot);
-		  npc.isCounterClockwise = npc.routeSequence[0].toString().includes('Counter');
-		  npc.routeIndex = 0;
-		  npc.isWaiting = true;
-		  npc.isInExitQueue = true;
-		  npc.isExiting = false;
-		  npc.isReversing = false;
-		  npc.isAvoiding = false;
-		  npc.reverseAttempts = 0;
-		  npc.lastExitTime = 0;
-		  npc.collisionCheckAttempts = 0;
+				const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
+				const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
+				
+				const sensorCollisions = checkSensors(avoidingNpc);
+				const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
+				const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
+				
+				if (leftCollision) {
+					avoidObstacle(avoidingNpc, leftCollision);
+				} else if (rightCollision) {
+					avoidObstacle(avoidingNpc, rightCollision);
+				} else if (sensorCollisions.some(c => c.sensor === 'front')) {
+					avoidObstacle(avoidingNpc, { sensor: 'front' });
+				}
+			},
+			null,
+			this
+		);
 
-		  npcs.push(npc);
-		  exitQueue.push(npc);
-		});
-	  });
+		scene.physics.add.collider(npcs, gameArea);
 
-	  // Система целей парковки
-	  scene.parkingTargetSystem = new ParkingTargetSystem(
-	    scene, 
-	    npcs, 
-	    [...upperLeftParkingSpots, ...upperRightParkingSpots]
-	  );
-
-	  // Создаем игрока
-	  this.player = this.physics.add.sprite(50, 400, 'car_sedan_red')
-		.setScale(0.47)
-		.setDepth(10);
-	  this.player.body.setSize(13, 20);
-	  this.player.body.setOffset(0, 7);
-
-	  // Управление игроком
-	  this.cursors = this.input.keyboard.createCursorKeys();
-
-	  // Система overlap для NPC
-	  scene.physics.add.overlap(
-		npcs,
-		npcs,
-		(npc1, npc2) => {
-		  if (npc1 === npc2 || !npc1.active || !npc2.active) return;
-
-		  const angle = Phaser.Math.Angle.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-		  const distance = Phaser.Math.Distance.Between(npc1.x, npc1.y, npc2.x, npc2.y);
-		  const minDistance = 3;
-		  
-		  if (distance < minDistance) {
-			const pushForce = 1.0 * (minDistance - distance);
-			const pushX = Math.cos(angle) * pushForce;
-			const pushY = Math.sin(angle) * pushForce;
+		// Система камеры для мобильных
+		if (isMobile) {
+			cameraTarget = scene.add.rectangle(400, 400, 10, 10).setAlpha(0);
 			
-			npc1.body.velocity.x += pushX;
-			npc1.body.velocity.y += pushY;
-			npc2.body.velocity.x -= pushX;
-			npc2.body.velocity.y -= pushY;
-		  }
-
-		  if (npc1.isAvoiding || npc2.isAvoiding) return;
-
-		  const avoidingNpc = Math.random() > 0.5 ? npc1 : npc2;
-		  const otherNpc = avoidingNpc === npc1 ? npc2 : npc1;
-		  
-		  const sensorCollisions = checkSensors(avoidingNpc);
-		  const leftCollision = sensorCollisions.find(c => c.sensor === 'left' && c.npc === otherNpc);
-		  const rightCollision = sensorCollisions.find(c => c.sensor === 'right' && c.npc === otherNpc);
-		  
-		  if (leftCollision) {
-			avoidObstacle(avoidingNpc, leftCollision);
-		  } else if (rightCollision) {
-			avoidObstacle(avoidingNpc, rightCollision);
-		  } else if (sensorCollisions.some(c => c.sensor === 'front')) {
-			avoidObstacle(avoidingNpc, { sensor: 'front' });
-		  }
-		},
-		null,
-		this
-	  );
-
-	  scene.physics.add.collider(npcs, gameArea);
-
-	  // Система камеры для мобильных
-	  if (isMobile) {
-		cameraTarget = scene.add.rectangle(400, 400, 10, 10).setAlpha(0);
-		
-		function updateCameraTarget() {
-		  if (npcs.length > 0) {
-			currentTarget = Phaser.Math.RND.pick(npcs);
-			// console.log('Камера следует за:', currentTarget);
-		  }
+			function updateCameraTarget() {
+				if (npcs.length > 0) {
+					currentTarget = Phaser.Math.RND.pick(npcs);
+				}
+			}
+			
+			scene.cameras.main.setZoom(1.8);
+			scene.cameras.main.startFollow(cameraTarget);
+			scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+			
+			scene.time.addEvent({ 
+				delay: 3000, 
+				callback: updateCameraTarget, 
+				loop: true 
+			});
+			
+			updateCameraTarget();
+			
+			scene.input.on('pointerdown', () => {
+				updateCameraTarget();
+			});
+		} else {
+			scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
 		}
-		
-		scene.cameras.main.setZoom(1.8);
-		scene.cameras.main.startFollow(cameraTarget);
-		scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-		
-		scene.time.addEvent({ 
-		  delay: 3000, 
-		  callback: updateCameraTarget, 
-		  loop: true 
+
+		// Запуск обработчика очереди выезда
+		processExitQueue();
+
+		// Создаем декорации
+		createEntranceAndPavilion(scene);
+		createDecorativeLayer(scene);
+
+		// Кнопки отладки
+		scene.input.keyboard.on('keydown-T', () => {
+			const testX = Phaser.Math.Between(100, 700);
+			const testY = Phaser.Math.Between(100, 700);
+			createSmokeEffect(scene, testX, testY);
 		});
-		
-		updateCameraTarget();
-		
-		scene.input.on('pointerdown', () => {
-		  updateCameraTarget();
+
+		scene.input.keyboard.on('keydown-E', () => {
+			if (npcs.length > 0) {
+				const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
+				createAnnihilationEffect(scene, randomNpc);
+				
+				scene.time.delayedCall(500, () => {
+					randomNpc.destroy();
+					npcs = npcs.filter(n => n !== randomNpc);
+				});
+			}
 		});
-	  } else {
-		scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-	  }
 
-	  // Запуск обработчика очереди выезда
-	  processExitQueue();
+		scene.input.keyboard.on('keydown-D', () => {
+			showDebug = !showDebug;
+			debugGraphics.clear();
+			
+			if (showDebug) {
+				drawWorldBoundsDebug(debugGraphics);
+				
+				gameArea.each(child => {
+					debugGraphics.fillStyle(0x00ff00, 0.3);
+					debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+					debugGraphics.fillRect(
+						child.x - child.width/2,
+						child.y - child.height/2,
+						child.width,
+						child.height
+					);
+					debugGraphics.strokeRect(
+						child.x - child.width/2,
+						child.y - child.height/2,
+						child.width,
+						child.height
+					);
+				});
+			}
+		});
 
-	  // Создаем декорации
-	  createEntranceAndPavilion(scene);
-	  createDecorativeLayer(scene);
-
-	  // Кнопки отладки
-	  scene.input.keyboard.on('keydown-T', () => {
-		const testX = Phaser.Math.Between(100, 700);
-		const testY = Phaser.Math.Between(100, 700);
-		createSmokeEffect(scene, testX, testY);
-	  });
-
-	  scene.input.keyboard.on('keydown-E', () => {
-		if (npcs.length > 0) {
-		  const randomNpc = npcs[Phaser.Math.Between(0, npcs.length - 1)];
-		  createAnnihilationEffect(scene, randomNpc);
-		  
-		  scene.time.delayedCall(500, () => {
-			randomNpc.destroy();
-			npcs = npcs.filter(n => n !== randomNpc);
-		  });
-		}
-	  });
-
-	  scene.input.keyboard.on('keydown-D', () => {
-		showDebug = !showDebug;
-		debugGraphics.clear();
-		
-		if (showDebug) {
-		  drawWorldBoundsDebug(debugGraphics);
-		  
-		  gameArea.each(child => {
-			debugGraphics.fillStyle(0x00ff00, 0.3);
-			debugGraphics.lineStyle(2, 0x00ff00, 0.6);
-			debugGraphics.fillRect(
-			  child.x - child.width/2,
-			  child.y - child.height/2,
-			  child.width,
-			  child.height
-			);
-			debugGraphics.strokeRect(
-			  child.x - child.width/2,
-			  child.y - child.height/2,
-			  child.width,
-			  child.height
-			);
-		  });
-		}
-	  });
-
-	  scene.input.keyboard.on('keydown-H', () => {
-		if (showDebug) {
-		  showCollisionHighlights = !showCollisionHighlights;
-		}
-	  });
+		scene.input.keyboard.on('keydown-H', () => {
+			if (showDebug) {
+				showCollisionHighlights = !showCollisionHighlights;
+			}
+		});
 	}
+
 
 	function handleWorldBounds(npc) {
 		if (!npc.active) return true;
