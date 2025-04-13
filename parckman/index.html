@@ -60,7 +60,9 @@
 	#debug-pause-text {
 	  transition: color 0.3s ease;
 	}	
-	
+	#device-mode, #camera-info {
+	  display: none;
+	}	
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
@@ -2180,8 +2182,8 @@
 	  <div id="debug-pause-text">Пауза</div>   
 	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>
 	  <span style="color: yellow">Время:</span> <span id="debug-timer">00:00</span><br>
-	  <!-- Режим: <span id="device-mode">ПК</span><br> -->
-	  <!-- <span id="camera-info">Камера: фиксированная</span><br> -->
+	  <span id="device-mode">ПК</span>
+	  <span id="camera-info">Камера: фиксированная</span>
 	  Нажмите 'P' для паузы или тапните по экрану
 	</div>
   
