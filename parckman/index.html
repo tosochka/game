@@ -32,6 +32,25 @@
       font-family: monospace;
       z-index: 100;
     }
+	#game-timer {
+	  font-family: monospace;
+	  font-weight: bold;
+	  text-shadow: 1px 1px 2px black;
+	}
+
+	.debug-panel #debug-timer {
+	  color: yellow;
+	}
+
+	#debug-waiting-text {
+		color: #555555; /* Темно-серый - неактивное состояние */
+		margin-top: 5px;
+		transition: color 0.3s ease;
+	}
+
+	#debug-waiting-text.active {
+		color: #ffffff; /* Белый - активное состояние */
+	}
 	
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
@@ -61,8 +80,8 @@
     const PARKING_END_POINTS = 2;
     const FINAL_APPROACH_POINTS = 3;
     const EXIT_PHASE_POINTS = 3;
-    const PARKING_EXIT_DELAY = 1700; // от 3000 до 1500
-    const NPC_PER_ROW = 3; // от 3 до 5
+    const PARKING_EXIT_DELAY = 1800; // от 3000 до 1500
+    const NPC_PER_ROW = 5; // от 3 до 5
     const MAX_NPC_PER_ROW = 5;
     const ROWS_COUNT = 8;
     const MAX_COLLISION_CHECKS = 3;
@@ -1041,6 +1060,16 @@
 			this.waitingText = null;
 			this.checkInterval = null;
 
+			// Инициализация элемента ожидания
+			this.debugWaitingText = document.getElementById('debug-waiting-text');
+			if (!this.debugWaitingText) {
+				this.debugWaitingText = document.createElement('div');
+				this.debugWaitingText.id = 'debug-waiting-text';
+				this.debugWaitingText.textContent = 'Ждем свободное место...';
+				this.debugWaitingText.style.color = '#555555';
+				document.querySelector('.debug-panel').appendChild(this.debugWaitingText);
+			}
+
 			this.init();
 			this.scene.time.delayedCall(100, () => this.setNewTarget());
 		}
@@ -1125,7 +1154,6 @@
 			this.playerVisitedSpots.add(spotKey);
 			this.updateProgressText();
 			
-			// Визуальное подтверждение парковки
 			const graphics = this.scene.add.graphics();
 			graphics.fillStyle(0x00FF00, 0.7);
 			graphics.fillCircle(
@@ -1149,18 +1177,15 @@
 		getFreeSpots() {
 			const now = this.scene.time.now;
 			
-			// Очищаем устаревшие cooldown-споты
 			this.cooldownSpots.forEach((time, key) => {
 				if (time < now) this.cooldownSpots.delete(key);
 			});
 
-			// Получаем все места, которые физически свободны
 			const allFreeSpots = this.allParkingSpots.filter(spot => {
 				const scaled = this.scaleCoords(spot);
 				return !this.isPhysicallyOccupied(scaled);
 			});
 
-			// Фильтруем посещенные и находящиеся в cooldown
 			return allFreeSpots.filter(spot => {
 				const spotKey = `${spot.x}-${spot.y}`;
 				return !this.playerVisitedSpots.has(spotKey) && 
@@ -1217,7 +1242,6 @@
 				return;
 			}
 
-			// Выбираем самое дальнее от игрока место
 			freeSpots.sort((a, b) => {
 				const distA = Phaser.Math.Distance.Between(
 					this.playerRef.x, this.playerRef.y,
@@ -1235,7 +1259,6 @@
 			this.highlight.setPosition(targetPos.x, targetPos.y);
 			this.highlight.setVisible(true);
 
-			// Устанавливаем таймер автоматической смены цели
 			this.changeTimer = this.scene.time.delayedCall(
 				this.config.changeDelay,
 				() => this.setNewTarget()
@@ -1245,10 +1268,10 @@
 		showWaitingMessage() {
 			this.clearWaitingState();
 			
-			// Показываем сообщение только если есть NPC на парковках
 			const hasNPCs = this.npcs.some(npc => npc.active);
 			
 			if (hasNPCs) {
+				// Основное сообщение на игровом экране
 				this.waitingText = this.scene.add.text(
 					this.scene.cameras.main.centerX,
 					this.scene.cameras.main.centerY - 50,
@@ -1259,10 +1282,12 @@
 						backgroundColor: '#000000',
 						padding: { x: 10, y: 5 }
 					}
-				).setOrigin(0.5).setDepth(50);
+				).setOrigin(0.5).setDepth(-1);
+				
+				// Активируем сообщение в дебаг-панели (белый цвет)
+				this.debugWaitingText.style.color = '#ffffff';
 			}
 
-			// Устанавливаем периодическую проверку
 			this.checkInterval = this.scene.time.addEvent({
 				delay: this.config.checkDelay,
 				callback: () => {
@@ -1276,22 +1301,27 @@
 			});
 		}
 
-		clearTimers() {
-			if (this.changeTimer) {
-				this.scene.time.removeEvent(this.changeTimer);
-				this.changeTimer = null;
-			}
-		}
-
-		clearWaitingState() {
+		clearWaitingState(fromWin = false) {
 			if (this.waitingText) {
 				this.waitingText.destroy();
 				this.waitingText = null;
 			}
 			
+			// Не меняем состояние дебаг-сообщения при победе
+			if (!fromWin && this.debugWaitingText) {
+				this.debugWaitingText.style.color = '#555555';
+			}
+			
 			if (this.checkInterval) {
 				this.scene.time.removeEvent(this.checkInterval);
 				this.checkInterval = null;
+			}
+		}
+
+		clearTimers() {
+			if (this.changeTimer) {
+				this.scene.time.removeEvent(this.changeTimer);
+				this.changeTimer = null;
 			}
 		}
 
@@ -1315,24 +1345,26 @@
 		}
 
 		updateProgressText() {
-		  const total = this.allParkingSpots.length;
-		  const visited = this.playerVisitedSpots.size;
-		  const progressText = `Парковки: ${visited}/${total}`;
-		  
-		  this.progressText.setText(progressText);
-		  
-		  // Обновляем DOM элемент
-		  const progressElement = document.getElementById('parking-progress');
-		  if (progressElement) {
-			progressElement.textContent = `${visited}/${total}`;
-		  }
-		  
-		  if (visited >= total) {
-			this.showWinMessage();
-		  }
+			const total = this.allParkingSpots.length;
+			const visited = this.playerVisitedSpots.size;
+			const progressText = `Парковки: ${visited}/${total}`;
+			
+			this.progressText.setText(progressText);
+			
+			const progressElement = document.getElementById('parking-progress');
+			if (progressElement) {
+				progressElement.textContent = `${visited}/${total}`;
+			}
+			
+			if (visited >= total) {
+				this.showWinMessage();
+			}
 		}
 
 		showWinMessage() {
+			// Сначала очищаем состояние ожидания с флагом fromWin
+			this.clearWaitingState(true);
+			
 			const winText = this.scene.add.text(
 				this.scene.cameras.main.centerX,
 				this.scene.cameras.main.centerY,
@@ -1356,6 +1388,11 @@
 			);
 			winText.setDepth(101);
 			
+			// Явно устанавливаем серый цвет для дебаг-сообщения
+			if (this.debugWaitingText) {
+				this.debugWaitingText.style.color = '#555555';
+			}
+			
 			this.scene.physics.pause();
 			this.scene.time.removeAllEvents();
 		}
@@ -1363,13 +1400,11 @@
 		update() {
 			if (!this.scene) return;
 
-			// Обновляем информацию о занятости мест
 			this.allParkingSpots.forEach(spot => {
 				const scaled = this.scaleCoords(spot);
 				this.spotOccupationMap.set(spot, this.isSpotOccupied(scaled));
 			});
 
-			// Если текущая цель занята - меняем
 			if (this.currentTarget && this.isSpotOccupied(this.scaleCoords(this.currentTarget))) {
 				this.setNewTarget();
 			}
@@ -1395,6 +1430,11 @@
 				this.progressText = null;
 			}
 			
+			if (this.debugWaitingText) {
+				this.debugWaitingText.remove();
+				this.debugWaitingText = null;
+			}
+			
 			this.spotOccupationMap.clear();
 			this.recentlyFreedSpots = [];
 			this.cooldownSpots.clear();
@@ -1406,6 +1446,136 @@
 			this.playerRef = null;
 		}
 	}
+
+	class GameTimer {
+		constructor(scene) {
+			this.scene = scene;
+			this.isRunning = false;
+			this.startTime = 0;
+			this.elapsedTime = 0;
+			this.hasEnded = false;
+			this.timeLimit = 59 * 60 * 1000 + 59 * 1000; // 59:59 в миллисекундах
+			
+			// Основной таймер (изначально скрыт)
+			this.timerElement = document.getElementById('game-timer');
+			this.timerElement.style.display = 'none';
+			
+			// Таймер в дебаг-панели
+			this.debugTimerElement = document.querySelector('.debug-panel #debug-timer');
+			if (!this.debugTimerElement) {
+				const debugPanel = document.querySelector('.debug-panel');
+				debugPanel.innerHTML += '<br><span style="color: yellow">Время:</span> <span id="debug-timer" style="color: yellow">00:00</span>';
+				this.debugTimerElement = document.getElementById('debug-timer');
+			}
+		}
+
+		start() {
+			if (!this.isRunning && !this.hasEnded) {
+				this.isRunning = true;
+				this.startTime = Date.now() - this.elapsedTime;
+				this.updateTimer();
+			}
+			return this; // Для чейнинга
+		}
+
+		stop() {
+			this.isRunning = false;
+			return this;
+		}
+
+		reset() {
+			this.isRunning = false;
+			this.hasEnded = false;
+			this.elapsedTime = 0;
+			this.debugTimerElement.style.color = "yellow";
+			this.updateDisplay();
+			return this;
+		}
+
+		setVisible(visible) {
+			this.timerElement.style.display = visible ? 'block' : 'none';
+			return this;
+		}
+
+		updateTimer() {
+			if (!this.isRunning || this.hasEnded) return;
+			
+			this.elapsedTime = Date.now() - this.startTime;
+			
+			// Проверка достижения лимита
+			if (this.elapsedTime >= this.timeLimit) {
+				this.handleTimeLimitReached();
+				return;
+			}
+			
+			this.updateDisplay();
+			
+			// Продолжаем обновление
+			this.scene.time.delayedCall(1000, () => this.updateTimer(), [], this.scene);
+		}
+
+		updateDisplay() {
+			const totalSeconds = Math.floor(this.elapsedTime / 1000);
+			const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+			const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+			const timeString = `${minutes}:${seconds}`;
+			
+			this.timerElement.textContent = timeString;
+			if (this.debugTimerElement) {
+				this.debugTimerElement.textContent = timeString;
+			}
+		}
+
+		handleTimeLimitReached() {
+			this.hasEnded = true;
+			this.stop();
+			
+			// Устанавливаем текст "истекло" в дебаг-панели
+			if (this.debugTimerElement) {
+				this.debugTimerElement.textContent = "истекло";
+				this.debugTimerElement.style.color = "yellow";
+			}
+
+			// Останавливаем игру
+			this.scene.physics.pause();
+			this.scene.scene.pause();
+
+			// Создаем эффект затемнения
+			const fadeRect = this.scene.add.rectangle(
+				0, 0,
+				this.scene.cameras.main.width,
+				this.scene.cameras.main.height,
+				0x000000,
+				0
+			)
+			.setOrigin(0)
+			.setDepth(100)
+			.setScrollFactor(0);
+
+			// Плавное затемнение
+			this.scene.tweens.add({
+				targets: fadeRect,
+				alpha: 0.7,
+				duration: 1000,
+				onComplete: () => {
+					// Заглушка для меню (будет заменена реальным вызовом)
+					this.scene.time.delayedCall(1500, () => {
+						const confirm = window.confirm("Время вышло! Хотите начать заново?");
+						if (confirm) {
+							this.scene.scene.restart();
+							this.reset();
+						}
+					});
+				}
+			});
+		}
+
+		// Для тестирования - установка произвольного лимита
+		setTimeLimit(minutes, seconds) {
+			this.timeLimit = (minutes * 60 + seconds) * 1000;
+			return this;
+		}
+	}	
 
     function preload() {
       this.load.image('background', 'assets/parking_map.png');
@@ -1556,6 +1726,11 @@
 		this.player.body.setSize(13, 20);
 		this.player.body.setOffset(0, 7);
 		scene.parkingTargetSystem.playerRef = this.player;
+
+		// Инициализация таймера
+		this.gameTimer = new GameTimer(this);
+		this.playerPreviousPosition = { x: this.player.x, y: this.player.y };
+		this.playerIsMoving = false;
 
 		// Управление игроком
 		this.cursors = this.input.keyboard.createCursorKeys();
@@ -1781,127 +1956,144 @@
 	}	
     
 	function update() {
-	  // Обновление камеры для мобильных устройств
-	  if (isMobile && cameraTarget && currentTarget) {
-		cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
-		cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
-	  }
-	  
-	  // Управление игроком
-	  if (this.cursors.left.isDown) {
-		this.player.setVelocityX(-100);
-		this.player.rotation = -Math.PI/2;
-	  } 
-	  else if (this.cursors.right.isDown) {
-		this.player.setVelocityX(100);
-		this.player.rotation = Math.PI/2;
-	  } 
-	  else if (this.cursors.up.isDown) {
-		this.player.setVelocityY(-100);
-		this.player.rotation = 0;
-	  } 
-	  else if (this.cursors.down.isDown) {
-		this.player.setVelocityY(100);
-		this.player.rotation = Math.PI;
-	  } 
-	  else {
-		this.player.setVelocityX(0);
-		this.player.setVelocityY(0);
-	  }
+		if (this.gameTimer?.hasEnded) {
+			return;
+		}	
+		// Проверка движения игрока для запуска таймера
+		const moved = this.player.x !== this.playerPreviousPosition.x || 
+					  this.player.y !== this.playerPreviousPosition.y;
 
-	  // Проверка парковки игрока
-	  if (this.parkingTargetSystem) {
-		this.parkingTargetSystem.checkPlayerParking(this.player);
-		this.parkingTargetSystem.update();
-	  }
-
-	  // Обработка NPC
-	  for (let i = 0; i < npcs.length; i++) {
-		const npc = npcs[i];
-		
-		if (!npc || !npc.active || !npc.body || !npc.route || !npc.route[npc.routeIndex]) {
-		  continue;
+		if (!this.playerIsMoving && moved) {
+			this.gameTimer.start();
+			this.playerIsMoving = true;
+		} else if (!moved) {
+			this.playerIsMoving = false;
 		}
 
-		// Ограничение позиции в пределах мира
-		clampToWorldBounds(npc);
+		this.playerPreviousPosition = { x: this.player.x, y: this.player.y };
 
-		// Проверка выхода за границы
-		if (handleWorldBounds(npc)) {
-		  npcs.splice(i, 1);
-		  exitQueue = exitQueue.filter(n => n !== npc);
-		  i--;
-		  continue;
+		// Обновление камеры для мобильных устройств
+		if (isMobile && cameraTarget && currentTarget) {
+			cameraTarget.x = Phaser.Math.Linear(cameraTarget.x, currentTarget.x, 0.1);
+			cameraTarget.y = Phaser.Math.Linear(cameraTarget.y, currentTarget.y, 0.1);
 		}
 		
-		// Обновление сенсоров
-		updateSensors(npc);
-		
-		// Пропуск, если NPC ожидает/разворачивается/избегает
-		if (npc.isReversing || npc.isAvoiding || npc.isWaiting) {
-		  continue;
+		// Управление игроком
+		if (this.cursors.left.isDown) {
+			this.player.setVelocityX(-100);
+			this.player.rotation = -Math.PI/2;
+		} 
+		else if (this.cursors.right.isDown) {
+			this.player.setVelocityX(100);
+			this.player.rotation = Math.PI/2;
+		} 
+		else if (this.cursors.up.isDown) {
+			this.player.setVelocityY(-100);
+			this.player.rotation = 0;
+		} 
+		else if (this.cursors.down.isDown) {
+			this.player.setVelocityY(100);
+			this.player.rotation = Math.PI;
+		} 
+		else {
+			this.player.setVelocityX(0);
+			this.player.setVelocityY(0);
 		}
 
-		// Проверка коллизий
-		const collisions = checkSensors(npc);
-		if (collisions.length > 0 && !npc.isReversing) {
-		  handleFrontCollision(npc, collisions[0]);
-		  continue;
+		// Проверка парковки игрока
+		if (this.parkingTargetSystem) {
+			this.parkingTargetSystem.checkPlayerParking(this.player);
+			this.parkingTargetSystem.update();
 		}
 
-		// Движение к следующей точке
-		const target = npc.route[npc.routeIndex];
-		const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
-
-		if (distance < 5) {
-		  npc.routeIndex++;
-		  
-		  if (npc.routeIndex >= npc.route.length) {
-			handleRouteCompletion(npc);
-			continue;
-		  }
-		  
-		  moveNPCToNextPoint(npc);
-		}
-	  }
-
-	  // Отладочная информация
-	  if (showDebug) {
-		debugGraphics.clear();
-		drawWorldBoundsDebug(debugGraphics);
-		
-		if (showCollisionHighlights) {
-		  gameArea.each(child => {
-			if (!child.body) return;
+		// Обработка NPC
+		for (let i = 0; i < npcs.length; i++) {
+			const npc = npcs[i];
 			
-			debugGraphics.fillStyle(0x00ff00, 0.3);
-			debugGraphics.lineStyle(2, 0x00ff00, 0.6);
-			debugGraphics.fillRect(
-			  child.x - child.width/2,
-			  child.y - child.height/2,
-			  child.width,
-			  child.height
-			);
-			debugGraphics.strokeRect(
-			  child.x - child.width/2,
-			  child.y - child.height/2,
-			  child.width,
-			  child.height
-			);
-		  });
+			if (!npc || !npc.active || !npc.body || !npc.route || !npc.route[npc.routeIndex]) {
+				continue;
+			}
+
+			// Ограничение позиции в пределах мира
+			clampToWorldBounds(npc);
+
+			// Проверка выхода за границы
+			if (handleWorldBounds(npc)) {
+				npcs.splice(i, 1);
+				exitQueue = exitQueue.filter(n => n !== npc);
+				i--;
+				continue;
+			}
+			
+			// Обновление сенсоров
+			updateSensors(npc);
+			
+			// Пропуск, если NPC ожидает/разворачивается/избегает
+			if (npc.isReversing || npc.isAvoiding || npc.isWaiting) {
+				continue;
+			}
+
+			// Проверка коллизий
+			const collisions = checkSensors(npc);
+			if (collisions.length > 0 && !npc.isReversing) {
+				handleFrontCollision(npc, collisions[0]);
+				continue;
+			}
+
+			// Движение к следующей точке
+			const target = npc.route[npc.routeIndex];
+			const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
+
+			if (distance < 5) {
+				npc.routeIndex++;
+				
+				if (npc.routeIndex >= npc.route.length) {
+					handleRouteCompletion(npc);
+					continue;
+				}
+				
+				moveNPCToNextPoint(npc);
+			}
 		}
-	  }
+
+		// Отладочная информация
+		if (showDebug) {
+			debugGraphics.clear();
+			drawWorldBoundsDebug(debugGraphics);
+			
+			if (showCollisionHighlights) {
+				gameArea.each(child => {
+					if (!child.body) return;
+					
+					debugGraphics.fillStyle(0x00ff00, 0.3);
+					debugGraphics.lineStyle(2, 0x00ff00, 0.6);
+					debugGraphics.fillRect(
+						child.x - child.width/2,
+						child.y - child.height/2,
+						child.width,
+						child.height
+					);
+					debugGraphics.strokeRect(
+						child.x - child.width/2,
+						child.y - child.height/2,
+						child.width,
+						child.height
+					);
+				});
+			}
+		}
 	}
   </script>
 </head>
 <body>
   <div id="game-container"></div>
 	<div class="debug-panel">
-	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>	
+	  <div id="debug-waiting-text" style="color: #555555">Ждем свободное место...</div>	
+	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>
+	  <span style="color: yellow">Время:</span> <span id="debug-timer">00:00</span><br>
 	  Режим: <span id="device-mode">ПК</span><br>
 	  <span id="camera-info">Камера: фиксированная</span><br>
-	  Нажмите 'P' для паузы или тапните по экрану<br>
-	  Нажмите 'E' и 'T' для аннигиляции и дымового эффекта
+	  Нажмите 'P' для паузы или тапните по экрану
 	</div>
   
   <script>
@@ -1913,5 +2105,6 @@
         : 'Камера: фиксированная';
     });
   </script>
+	<div id="game-timer" style="position: absolute; top: 20px; right: 20px; font-size: 32px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; display: none;">00:00</div>  
 </body>
 </html>
