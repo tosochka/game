@@ -1593,13 +1593,11 @@
 		this.pauseOverlay = null;
 		this.pauseText = null;
 		
-		// Создаем текст паузы в debug-панели
-		const debugPanel = document.querySelector('.debug-panel');
-		this.debugPauseText = document.createElement('div');
-		this.debugPauseText.id = 'debug-pause-text';
-		this.debugPauseText.textContent = 'Пауза';
-		this.debugPauseText.style.color = '#555555';
-		debugPanel.appendChild(this.debugPauseText);
+		// Получаем элемент паузы
+		this.debugPauseText = document.getElementById('debug-pause-text');
+		if (this.debugPauseText) {
+		  this.debugPauseText.style.color = '#555555';
+		}
 
 		// Настройка управления
 		this.setupControls();
@@ -1610,16 +1608,16 @@
 		this.scene.input.keyboard.on('keydown-P', () => this.togglePause());
 		this.scene.input.keyboard.on('keydown-SPACE', () => this.togglePause());
 		
-		// Для мобильных
-		  this.scene.input.on('pointerdown', (pointer) => {
-			// Проверяем, что тап не по UI элементам
-			const isGameArea = pointer.event.target.id === 'game-container' || 
-							  pointer.event.target === document.getElementById('game-container');
-			
-			if (isMobile && isGameArea) {
-			  this.togglePause();
-			}
-		  });
+		// Для мобильных - только если тапнули по игровой области
+		this.scene.input.on('pointerdown', (pointer) => {
+		  if (!isMobile) return;
+		  
+		  // Проверяем, что тап был по игровому полю (не по UI)
+		  const gameContainer = document.getElementById('game-container');
+		  if (gameContainer && gameContainer.contains(pointer.event.target)) {
+			this.togglePause();
+		  }
+		});
 	  }
 
 	  togglePause() {
@@ -1872,29 +1870,27 @@
 
 		// Система камеры для мобильных
 		if (isMobile) {
-			cameraTarget = scene.add.rectangle(400, 400, 10, 10).setAlpha(0);
-			
-			function updateCameraTarget() {
-				if (npcs.length > 0) {
-					currentTarget = Phaser.Math.RND.pick(npcs);
-				}
+		  cameraTarget = scene.add.rectangle(400, 400, 10, 10).setAlpha(0);
+		  
+		  function updateCameraTarget() {
+			if (npcs.length > 0) {
+			  currentTarget = Phaser.Math.RND.pick(npcs);
 			}
-			
-			scene.cameras.main.setZoom(1.8);
-			scene.cameras.main.startFollow(cameraTarget);
-			scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-			
-			scene.time.addEvent({ 
-				delay: 3000, 
-				callback: updateCameraTarget, 
-				loop: true 
-			});
-			
-			updateCameraTarget();
-			
-			// scene.input.on('pointerdown', () => {
-			//	updateCameraTarget();
-			// });
+		  }
+		  
+		  scene.cameras.main.setZoom(1.8);
+		  scene.cameras.main.startFollow(cameraTarget);
+		  scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+		  
+		  // Только автосмена каждые 3 секунды
+		  scene.time.addEvent({ 
+			delay: 3000, 
+			callback: updateCameraTarget, 
+			loop: true 
+		  });
+		  
+		  updateCameraTarget();
+		  
 		} else {
 			scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
 		}
@@ -2181,7 +2177,7 @@
   <div id="game-container"></div>
 	<div class="debug-panel">
 	  <div id="debug-waiting-text" style="color: #555555">Ждем свободное место...</div>
-	  <div id="debug-pause-text"></div>	  
+	  <div id="debug-pause-text">Пауза</div>   
 	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>
 	  <span style="color: yellow">Время:</span> <span id="debug-timer">00:00</span><br>
 	  <!-- Режим: <span id="device-mode">ПК</span><br> -->
