@@ -1611,11 +1611,15 @@
 		this.scene.input.keyboard.on('keydown-SPACE', () => this.togglePause());
 		
 		// Для мобильных
-		this.scene.input.on('pointerdown', (pointer) => {
-		  if (isMobile && pointer.event.target.id === 'game-container') {
-			this.togglePause();
-		  }
-		});
+		  this.scene.input.on('pointerdown', (pointer) => {
+			// Проверяем, что тап не по UI элементам
+			const isGameArea = pointer.event.target.id === 'game-container' || 
+							  pointer.event.target === document.getElementById('game-container');
+			
+			if (isMobile && isGameArea) {
+			  this.togglePause();
+			}
+		  });
 	  }
 
 	  togglePause() {
