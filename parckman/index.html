@@ -52,6 +52,15 @@
 		color: #ffffff; /* Белый - активное состояние */
 	}
 	
+	@keyframes blink {
+	  0% { opacity: 0.3; }
+	  50% { opacity: 1; }
+	  100% { opacity: 0.3; }
+	}
+	#debug-pause-text {
+	  transition: color 0.3s ease;
+	}	
+	
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
@@ -1575,6 +1584,83 @@
 			this.timeLimit = (minutes * 60 + seconds) * 1000;
 			return this;
 		}
+	}
+
+	class PauseSystem {
+	  constructor(scene) {
+		this.scene = scene;
+		this.isPaused = false;
+		this.pauseOverlay = null;
+		this.pauseText = null;
+		
+		// Создаем текст паузы в debug-панели
+		const debugPanel = document.querySelector('.debug-panel');
+		this.debugPauseText = document.createElement('div');
+		this.debugPauseText.id = 'debug-pause-text';
+		this.debugPauseText.textContent = 'Пауза';
+		this.debugPauseText.style.color = '#555555';
+		debugPanel.appendChild(this.debugPauseText);
+
+		// Настройка управления
+		this.setupControls();
+	  }
+
+	  setupControls() {
+		// Для ПК
+		this.scene.input.keyboard.on('keydown-P', () => this.togglePause());
+		this.scene.input.keyboard.on('keydown-SPACE', () => this.togglePause());
+		
+		// Для мобильных
+		this.scene.input.on('pointerdown', (pointer) => {
+		  if (isMobile && pointer.event.target.id === 'game-container') {
+			this.togglePause();
+		  }
+		});
+	  }
+
+	  togglePause() {
+		this.isPaused = !this.isPaused;
+		this.isPaused ? this.pauseGame() : this.resumeGame();
+	  }
+
+	  pauseGame() {
+		// Затемнение экрана
+		this.pauseOverlay = this.scene.add.graphics()
+		  .fillStyle(0x000000, 0.5)
+		  .fillRect(0, 0, this.scene.cameras.main.width, this.scene.cameras.main.height)
+		  .setDepth(50)
+		  .setScrollFactor(0);
+		
+		// Текст "ПАУЗА" по центру
+		this.pauseText = this.scene.add.text(
+		  this.scene.cameras.main.centerX,
+		  this.scene.cameras.main.centerY,
+		  'ПАУЗА',
+		  { font: '48px Arial', fill: '#ffffff' }
+		).setOrigin(0.5).setDepth(-1);
+		
+		// Обновляем debug-панель
+		this.debugPauseText.style.color = '#ffffff';
+		this.debugPauseText.style.animation = 'blink 1s infinite';
+		
+		// Останавливаем физику и таймеры
+		this.scene.physics.pause();
+		this.scene.time.paused = true;
+	  }
+
+	  resumeGame() {
+		// Убираем затемнение и текст
+		this.pauseOverlay?.destroy();
+		this.pauseText?.destroy();
+		
+		// Возвращаем обычный вид debug-панели
+		this.debugPauseText.style.color = '#555555';
+		this.debugPauseText.style.animation = 'none';
+		
+		// Возобновляем игру
+		this.scene.physics.resume();
+		this.scene.time.paused = false;
+	  }
 	}	
 
     function preload() {
@@ -1815,6 +1901,8 @@
 		// Создаем декорации
 		createEntranceAndPavilion(scene);
 		createDecorativeLayer(scene);
+		
+		this.pauseSystem = new PauseSystem(this);		
 
 		// Кнопки отладки
 		scene.input.keyboard.on('keydown-T', () => {
@@ -2088,11 +2176,12 @@
 <body>
   <div id="game-container"></div>
 	<div class="debug-panel">
-	  <div id="debug-waiting-text" style="color: #555555">Ждем свободное место...</div>	
+	  <div id="debug-waiting-text" style="color: #555555">Ждем свободное место...</div>
+	  <div id="debug-pause-text"></div>	  
 	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>
 	  <span style="color: yellow">Время:</span> <span id="debug-timer">00:00</span><br>
-	  Режим: <span id="device-mode">ПК</span><br>
-	  <span id="camera-info">Камера: фиксированная</span><br>
+	  <!-- Режим: <span id="device-mode">ПК</span><br> -->
+	  <!-- <span id="camera-info">Камера: фиксированная</span><br> -->
 	  Нажмите 'P' для паузы или тапните по экрану
 	</div>
   
