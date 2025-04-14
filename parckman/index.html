@@ -59,10 +59,12 @@
 	}
 	#debug-pause-text {
 	  transition: color 0.3s ease;
-	}	
+	}
 	#device-mode, #camera-info {
 	  display: none;
-	}	
+	}
+	
+	
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script>
@@ -1892,7 +1894,7 @@
 		  });
 		  
 		  updateCameraTarget();
-		  
+
 		} else {
 			scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
 		}
@@ -2178,13 +2180,13 @@
 <body>
   <div id="game-container"></div>
 	<div class="debug-panel">
-	  <div id="debug-waiting-text" style="color: #555555">Ждем свободное место...</div>
-	  <div id="debug-pause-text">Пауза</div>   
+	  <div id="debug-waiting-text" style="color: #555555">Ждем свободное место...</div>   
 	  <span style="color: #00ff00">Парковки: <span id="parking-progress">0/48</span></span><br>
 	  <span style="color: yellow">Время:</span> <span id="debug-timer">00:00</span><br>
 	  <span id="device-mode">ПК</span>
 	  <span id="camera-info">Камера: фиксированная</span>
 	  Нажмите 'P' для паузы или тапните по экрану
+	  <div id="debug-pause-text" style="color: #555555">Пауза</div>	  
 	</div>
   
   <script>
