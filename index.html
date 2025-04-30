@@ -1,408 +1,2501 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parking Rush</title>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #000;
-    }
-    #game-container {
-      display: block;
-      max-width: 100%;
-      max-height: 100%;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
-  <script>
-     /*
-      ============================================
-      ОПИСАНИЕ ИГРЫ "MASTER PARKING"
-      ============================================
-
-      Цель игры:
-      Игрок должен как можно быстрее и точнее припарковать автомобиль на заданное парковочное место.
-      На пути игрока встречаются препятствия: другие автомобили (NPC), мотоциклисты, пешеходы и т.д.
-
-      Базовая механика:
-      1. Игрок управляет автомобилем, который может двигаться только по дорогам.
-      2. На карте есть парковочные места, на которые нужно припарковаться.
-      3. NPC (другие автомобили, мотоциклисты, пешеходы) двигаются по своим маршрутам и создают препятствия.
-      4. Игрок должен избегать столкновений с NPC и другими объектами.
-      5. Победа засчитывается, когда игрок успешно паркуется на заданное место за минимальное время.
-
-      Особенности:
-      - Дороги: все объекты (игрок и NPC) могут двигаться только по дорогам.
-      - Парковочные места: на них могут стоять NPC, и на одно из них нужно припарковаться.
-      - NPC: двигаются по заданным маршрутам, могут заезжать и выезжать с парковочных мест.
-      - Физика: реализована с использованием движка Phaser 3 (arcade physics).
-
-      ============================================
-    */ 
-  
-  
-    const config = {
-      type: Phaser.AUTO,
-      width: 800,
-      height: 800,
-      parent: 'game-container',
-      scene: {
-        preload: preload,
-        create: create,
-        update: update
-      },
-      physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { y: 0 },
-          debug: false
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Тосочка: Залповый огонь</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+			user-select: none; /* Запрет выделения текста и элементов */
+			-webkit-user-select: none; /* Для Safari */
+			-moz-user-select: none; /* Для Firefox */
+			-ms-user-select: none; /* Для старых версий IE/Edge */
         }
-      },
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
-      }
-    };
+		#gameContainer {
+			display: flex;
+			align-items: flex-start;
+			gap: 20px;
+			margin-bottom: 15vh; /* Отступ снизу для сенсорной зоны */
+		}
 
-    const game = new Phaser.Game(config);
+		canvas {
+			border: 2px solid white;
+			cursor: none;
+			position: relative; /* Добавляем это */
+			margin: 0; /* Убираем отступы */
+			padding: 0; /* Убираем padding */
+		}
+		
+		/* Анимация glow */
+		@keyframes glow {
+			0% {
+				background-color: rgba(255, 255, 255, 0.1); /* Начальный цвет */
+				box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); /* Слабая тень */
+			}
+			100% {
+				background-color: rgba(255, 255, 255, 0.1); /* Конечный цвет */
+				box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); /* Более яркая тень */
+			}
+		}
 
-    // Размеры спрайта парковочного места
-    const parkingSpotWidth = 59; // Ширина
-    const parkingSpotHeight = 85; // Высота
-
-    // Коэффициент масштабирования
-    const scaleFactor = 0.4; // 800 / 2000
-
-    // Сдвиг вправо и вниз для парковочных мест
-    const offsetX = (parkingSpotWidth / 2) * scaleFactor; // Сдвиг вправо
-    const offsetY = (parkingSpotHeight / 2) * scaleFactor; // Сдвиг вниз
-
-    // Дополнительные сдвиги для дорог (вверх и влево)
-    const roadOffsetX = -12; // Сдвиг влево
-    const roadOffsetY = -16; // Сдвиг вверх
-
-    // Функция для масштабирования координат
-    function scaleCoords(x, y, isRoad = false) {
-      const scaledX = (x / 2000) * 800 + offsetX;
-      const scaledY = (y / 2000) * 800 + offsetY;
-
-      if (isRoad) {
-        return {
-          x: scaledX + roadOffsetX,
-          y: scaledY + roadOffsetY,
-        };
-      }
-
-      return { x: scaledX, y: scaledY };
-    }
-
-    let npcs = []; // Массив для хранения NPC
-    const npcSpeed = 100; // Скорость NPC по дороге
-    const npcParkingSpeed = 40; // Скорость NPC при выезде/заезде на парковочное место
-    const npcWidth = 40; // Ширина спрайта NPC
-    const npcOffset = npcWidth / 2; // Смещение от края дороги внутрь
-
-    // Координаты шести парковочных мест из верхнего ряда левого блока
-    const upperLeftParkingSpots = [
-      { x: 361, y: 380 }, // Первое место
-      { x: 454, y: 380 }, // Второе место
-      { x: 546, y: 380 }, // Третье место
-      { x: 641, y: 380 }, // Четвертое место
-      { x: 729, y: 380 }, // Пятое место
-      { x: 823, y: 380 }, // Шестое место
-    ];
-
-    // Координаты шести парковочных мест из верхнего ряда правого блока
-    const upperRightParkingSpots = [
-      { x: 1094, y: 380 }, // Первое место
-      { x: 1189, y: 380 }, // Второе место
-      { x: 1279, y: 380 }, // Третье место
-      { x: 1371, y: 380 }, // Четвертое место
-      { x: 1462, y: 380 }, // Пятое место
-      { x: 1555, y: 380 }, // Шестое место,
-    ];
-
-    // Объединяем все парковочные места
-    const allParkingSpots = [...upperLeftParkingSpots, ...upperRightParkingSpots];
-
-    // Маршруты для NPC (масштабированные координаты)
-    const npcRoutes = allParkingSpots.map(spot => {
-      const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты парковочного места
-      return [
-        { x, y }, // Парковочное место
-        { x, y: y - 20 }, // Выезд с парковочного места (начало)
-        { x, y: y - 50 }, // Выезд с парковочного места (конечная высота)
-        { x: 700 - npcOffset, y: y - 50 }, // Движение вправо
-        { x: 700 - npcOffset, y: 700 - npcOffset }, // Движение вниз
-        { x: 100 + npcOffset, y: 700 - npcOffset }, // Движение влево
-        { x: 100 + npcOffset, y: y - 50 }, // Движение вверх
-        { x, y: y - 50 }, // Подъезд к парковочному месту (начало)
-        { x, y: y - 20 }, // Подъезд к парковочному месту (близко)
-        { x, y }  // Заезд на парковочное место (очень близко)
-      ];
-    });
-
-    function preload() {
-	  /*
-		============================================
-		ПАМЯТКА О РАСЧЕТЕ КООРДИНАТ
-		============================================
-
-		1. Исходная система координат:
-		   - Карта имеет размер 2000x2000 пикселей.
-		   - Все объекты (парковочные места, дороги, NPC и т.д.) задаются в этой системе.
-
-		2. Масштабирование:
-		   - Игровое поле отображается в окне 800x800 пикселей.
-		   - Коэффициент масштабирования: scaleFactor = 800 / 2000 = 0.4.
-		   - Чтобы перевести координаты из системы 2000x2000 в 800x800, используйте формулу:
-			   scaledX = (x / 2000) * 800 + offsetX;
-			   scaledY = (y / 2000) * 800 + offsetY;
-
-		3. Смещения:
-		   - offsetX и offsetY: Смещения для парковочных мест и других объектов.
-		   - roadOffsetX и roadOffsetY: Дополнительные смещения для дорог.
-
-		4. Координаты маршрута NPC:
-		   - Координаты маршрута NPC задаются в масштабированной системе (800x800).
-		   - Стартовые координаты (startX, startY) уже масштабированы.
-		   - Остальные точки маршрута (например, 700 - npcOffset, 100 + npcOffset) также задаются в 800x800.
-
-		5. Пример:
-		   - Если координата на карте 2000x2000: x = 361, y = 380,
-			 то в масштабированной системе:
-			   scaledX = (361 / 2000) * 800 + offsetX;
-			   scaledY = (380 / 2000) * 800 + offsetY;
-
-		6. Важно:
-		   - Не масштабируйте координаты маршрута NPC, если они уже заданы в 800x800.
-		   - Для парковочных мест и дорог используйте функцию scaleCoords.
-
-		============================================
-	  */	
-	
-      // Загрузка изображений
-      this.load.image('background', 'assets/parking_map.png'); // Фон парковки
-      this.load.image('entrance', 'assets/entrance.png'); // Въезд
-      this.load.image('pavilion', 'assets/pavilion.png'); // Павильон
-      this.load.image('grass1', 'assets/grass1.png'); // Трава 1
-      this.load.image('tree1', 'assets/tree1.png'); // Дерево 1
-      this.load.image('bush1', 'assets/bush1.png'); // Куст 1
-      this.load.image('oil', 'assets/oil.png'); // Масляное пятно
-      this.load.image('npcCar', 'assets/npc_car.png'); // NPC автомобиль
-    }
-
-    function create() {
-      // Очистка сцены от всех объектов
-      this.children.each(child => {
-        child.destroy();
-      });
-
-      // Добавление фона
-      const background = this.add.image(400, 400, 'background');
-      background.setDisplaySize(800, 800);
-
-      // Добавление невидимых парковочных мест
-      createInvisibleParkingSpots(this);
-
-      // Добавление невидимых дорог
-      createInvisibleRoads(this);
-
-      // Добавление въезда и павильона
-      createEntranceAndPavilion(this);
-
-      // Создание декоративного слоя
-      createDecorativeLayer(this);
-
-      // Создание NPC для каждого парковочного места
-      npcs = allParkingSpots.map((spot, index) => {
-        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
-        const npc = this.physics.add.sprite(x, y, 'npcCar').setScale(0.5);
-        npc.setCollideWorldBounds(true);
-
-        // Назначаем маршрут
-        npc.route = npcRoutes[index];
-        npc.routeIndex = 0;
-
-        // Добавляем состояние ожидания
-        npc.isWaiting = true;
-
-        // Случайная задержка перед началом движения (от 1 до 5 секунд)
-        const delay = Phaser.Math.Between(500, 10000); // Задержка в миллисекундах
-        this.time.delayedCall(delay, () => {
-          npc.isWaiting = false; // Завершаем ожидание
-          moveNPCToNextPoint(npc); // Начинаем движение
-        }, [], this);
-
-        return npc;
-      });
-    }
-
-    function update() {
-      // Обновление движения NPC
-      npcs.forEach(npc => {
-        if (!npc.isWaiting) { // Если NPC не в состоянии ожидания
-          const target = npc.route[npc.routeIndex];
-          const distance = Phaser.Math.Distance.Between(npc.x, npc.y, target.x, target.y);
-
-          if (distance < 5) { // Если NPC близко к точке
-            npc.routeIndex++;
-
-            // Если NPC завершил маршрут
-            if (npc.routeIndex >= npc.route.length) {
-              // Останавливаем NPC на парковочном месте
-              npc.setVelocity(0, 0); // Сбрасываем скорость
-              npc.routeIndex = 0; // Сбрасываем индекс маршрута
-
-              // Добавляем задержку перед повторным выездом
-              npc.isWaiting = true;
-              const delay = Phaser.Math.Between(1500, 5000); // Задержка в миллисекундах
-              this.time.delayedCall(delay, () => {
-                npc.isWaiting = false; // Завершаем ожидание
-                moveNPCToNextPoint(npc); // Начинаем движение
-              }, [], this);
-            } else {
-              // Продолжаем движение к следующей точке
-              moveNPCToNextPoint(npc);
-            }
-          }
+		/* Стили для тачпада */
+		#touchpad {
+			position: fixed;
+			bottom: -10px;
+			left: 50%;
+			transform: translateX(-50%);
+			width: calc(var(--game-width) + 8px);
+			height: 15vh;
+			background-color: rgba(255, 255, 255, 0.1); /* Более яркий фон */
+			border-radius: 10px;
+			z-index: 1000;
+			touch-action: none;
+			animation: glow 2s infinite alternate; /* Анимация свечения */
+			display: flex;
+			justify-content: center;
+			align-items: center;			
+		}
+		
+		#touchpadIcon {
+			width: 75px; /* Размер иконки */
+			height: 75px;
+			transition: opacity 0.3s ease; /* Плавное исчезновение */
+		}		
+		
+        /* Скрываем touchpad на ПК */
+        body.pc #touchpad {
+            display: none;
         }
-      });
-    }
+        /* Стили для ПК */
+        body.pc canvas {
+            top: 20px !important; /* Отступ 20 пикселей от верхней границы */
+        }
+		
+		#scoreModal {
+			display: none; /* Скрыто по умолчанию */
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.8);
+			justify-content: center;
+			align-items: center;
+			z-index: 1001; /* Выше, чем у панели иконок */
+		}
+		
+		#scoreModalContent {
+			background-color: #222;
+			padding: 20px;
+			border-radius: 10px;
+			text-align: center;
+			color: white;
+			width: 80%;
+			max-width: 300px;
+			border: 2px solid white; /* Оранжевая рамка */
+			/* box-shadow: 0 0 20px rgba(230, 126, 34, 0.6);  Тень */
+			/* box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.3); /* Свечение вокруг рамки */			
+			overflow: hidden; /* Чтобы заголовок не выходил за границы */
+		}
+		
+		/* Стили для заголовка */
+		.modal-header {
+			background-color: #444; /* Серый фон, как у кнопок */
+			padding: 15px; /* Отступы внутри заголовка */
+			border-bottom: 2px solid white; /* Оранжевая линия снизу */
+			display: flex; /* Используем Flexbox для центрирования */
+			justify-content: center; /* Горизонтальное центрирование */
+			align-items: center; /* Вертикальное центрирование */
+			height: 30px; /* Фиксированная высота заголовка */
+		}
 
-    function moveNPCToNextPoint(npc) {
-      const target = npc.route[npc.routeIndex];
-      const angle = Phaser.Math.Angle.Between(npc.x, npc.y, target.x, target.y);
+		.modal-header h3 {
+			margin: 0; /* Убираем отступы у заголовка */
+			font-size: 20px;
+			color: #e67e22; /* #e67e22 Оранжевый цвет для заголовка */
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Тень текста */
+		}		
+				
+		#scoreModalContent h3 {
+			margin: 20px 0 20px 0;
+			font-size: 20px;
+			color: white; /* Оранжевый цвет для заголовка */
+		}
+		
+		/* Стили для таблицы результатов */
+		.results-table {
+			margin-top: 20px; /* Отступ сверху для всей таблицы */		
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 20px;
+			padding: 0 15px; /* Отступы по бокам таблицы */
+		}
 
-      // Расстояние до парковочного места (последняя точка маршрута)
-      const parkingSpot = npc.route[npc.route.length - 1];
-      const distanceToParkingSpot = Phaser.Math.Distance.Between(npc.x, npc.y, parkingSpot.x, parkingSpot.y);
+		.results-table td {
+			padding: 8px 0;
+			font-size: 16px;
+		}
 
-      // Замедление, если NPC находится в радиусе 30 пикселей от парковочного места
-      const isParkingMovement = distanceToParkingSpot <= 30;
-      const speed = isParkingMovement ? npcParkingSpeed : npcSpeed;
+		.results-table td:first-child {
+			text-align: left;
+			font-weight: bold;
+			color: white; /* Желтый цвет для наименований */
+		}
 
-      // Устанавливаем скорость и поворот NPC
-      npc.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-      npc.rotation = angle + Math.PI / 2;
-    }
+		.results-table td:last-child {
+			text-align: right;
+			font-weight: bold;
+			color: white; /* Красный цвет для значений */
+		}
 
-    function createInvisibleParkingSpots(scene) {
-      // Добавляем невидимые парковочные места
-      allParkingSpots.forEach(spot => {
-        const { x, y } = scaleCoords(spot.x, spot.y); // Масштабируем координаты
-        const parkingSpot = scene.add.rectangle(
-          x, y,
-          parkingSpotWidth * scaleFactor, // Масштабируем ширину
-          parkingSpotHeight * scaleFactor, // Масштабируем высоту
-          0x000000, // Цвет (чёрный, но невидимый)
-          0 // Прозрачность (0 = полностью прозрачный)
-        ).setOrigin(0.5);
+		/* Отступ между группами строк */
+		.results-table .spacer-row td {
+			padding: 10px 0; /* Отступ между группами строк */
+		}
+		
+		/* Стили для иконок */
+		.icon {
+			width: 20px; /* Размер иконок */
+			height: 20px;
+			vertical-align: middle; /* Выравнивание по вертикали */
+			margin-right: 8px; /* Отступ справа от иконки */
+		}
 
-        // Добавляем физику для парковочного места
-        scene.physics.add.existing(parkingSpot, true); // Статический объект
-      });
-    }
+		/* Стили для таблицы результатов */
+		.results-table td:first-child {
+			display: flex; /* Используем Flexbox для выравнивания иконок и текста */
+			align-items: center; /* Выравнивание по вертикали */
+			text-align: left;
+			font-weight: bold;
+			color: white; /* Желтый цвет для наименований */
+		}		
 
-    function createInvisibleRoads(scene) {
-      // Координаты и размеры дорог
-      const roads = [
-        // Въезд
-        { x: 3 + 252 / 2, y: 893 + 216 / 2, width: 252, height: 216 }, // Центр въезда
+		/* Стили для кнопок */
+		#restartButton, #instructionButton {
+			width: 100%;
+			padding: 10px;
+			background-color: #444;
+			color: white;
+			border: none;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: bold;
+			margin-top: 10px;
+			border-radius: 0 0 10px 10px; /* Закругляем только нижние углы */
+			transition: background-color 0.3s ease;
+		}
 
-        // Левая вертикальная дорога
-        { x: 255 + 104 / 2, y: 236 + 1529 / 2, width: 104, height: 1529 }, // Центр дороги
+		#restartButton:hover, #instructionButton:hover {
+			background-color: #666;
+		}
+        #orientationWarning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        /* Стили для модального окна с инструкцией */
+        #instructionModal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #instructionModalContent {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto; /* Включаем вертикальную прокрутку */
+            touch-action: pan-y; /* Разрешаем прокрутку на touch-устройствах */
+        }
+        #instructionModalContent h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        #instructionModalContent h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        #instructionModalContent p {
+            margin: 10px 0;
+        }
+        #instructionModalContent ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        #instructionModalContent li {
+            margin-bottom: 5px;
+        }
+        /* Стили для модального окна iOS */
+        #iosWarningModal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 3000; /* Выше всех элементов */
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #iosWarningModalContent {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+        #iosWarningModalContent h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        #iosWarningModalContent p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        #iosWarningModalContent button {
+            width: 100%;
+            padding: 10px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        #iosWarningModalContent button:hover {
+            background-color: #666;
+        }
 
-        // Правая вертикальная дорога
-        { x: 1618 + 120 / 2, y: 237 + 1526 / 2, width: 120, height: 1526 }, // Центр дороги
+		/* Индикатор здоровья */
+		#healthBar {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			width: 120px; /* Фиксированная ширина для ПК */
+			height: 24px;
+			background-color: rgba(255, 0, 0, 0.3);
+			border: 1px solid white;
+			z-index: 100;
+		}
 
-        // Верхняя горизонтальная дорога
-        { x: 257 + 1485 / 2, y: 234 + 143 / 2, width: 1485, height: 143 }, // Центр дороги
+		/* Индикатор боекомплекта */
+		#ammoBar {
+			position: absolute;
+			top: 10px;
+			right:10px;
+			width: 120px; /* Фиксированная ширина для ПК */
+			height: 24px;
+			background-color: rgba(0, 0, 0, 0.3);
+			border: 1px solid white;
+			z-index: 100;
+		}
 
-        // Нижняя горизонтальная дорога
-        { x: 259 + 1479 / 2, y: 1622 + 141 / 2, width: 1479, height: 141 }, // Центр дороги
+		/* Панель иконок */
+		#iconsPanel {
+			position: absolute;
+			top: 10px;
+			left: 50%; /* Центрируем по горизонтали */
+			transform: translateX(-50%); /* Смещаем на половину ширины панели */
+			width: auto; /* Ширина будет рассчитываться динамически */
+			height: 30px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 5px; /* Уменьшаем отступы между иконками */
+			background-color: rgba(255, 255, 255, 0.0);
+			z-index: 100;
+		}
+		
+		/* Для ПК добавляем дополнительный отступ сверху */
+		body.pc #iconsPanel {
+			top: 30px; /* 10px (отступ индикаторов) + 20px (отступ холста) */
+		}
 
-        // Центральная горизонтальная дорога
-        { x: 257 + 1482 / 2, y: 872 + 252 / 2, width: 1482, height: 252 }, // Центр дороги
+		/* Иконки на панели */
+		#iconsPanel img {
+			width: 26px;
+			height: 26px;
+			pointer-events: none;
+		}
 
-        // Центральная вертикальная дорога
-        { x: 887 + 203 / 2, y: 236 + 1528 / 2, width: 203, height: 1528 }, // Центр дороги
-
-        // Внутренний верхний проезд
-        { x: 259 + 1477 / 2, y: 579 + 94 / 2, width: 1477, height: 94 }, // Центр внутреннего верхнего проезда
-
-        // Внутренний нижний проезд
-        { x: 259 + 1477 / 2, y: 1326 + 94 / 2, width: 1477, height: 94 } // Центр внутреннего нижнего проезда
-      ];
-
-      roads.forEach(road => {
-        const { x, y } = scaleCoords(road.x, road.y, true); // Масштабируем координаты с учётом сдвига
-        const roadRect = scene.add.rectangle(
-          x, y,
-          road.width * scaleFactor, // Масштабируем ширину
-          road.height * scaleFactor, // Масштабируем высоту
-          0x000000, // Цвет (чёрный, но невидимый)
-          0 // Прозрачность (0 = полностью прозрачный)
-        ).setOrigin(0.5);
-
-        // Добавляем физику для дороги
-        scene.physics.add.existing(roadRect, true); // Статический объект
-      });
-    }
-
-    function createEntranceAndPavilion(scene) {
-      // Въезд
-      const { x: entranceX, y: entranceY } = scaleCoords(3 + 252 / 2, 893 + 216 / 2, true); // Центр въезда с учётом сдвига
-      scene.add.image(entranceX, entranceY, 'entrance').setScale(0.5);
-
-      // Павильон
-      const { x: pavilionX, y: pavilionY } = scaleCoords(700, 100); // Масштабируем координаты
-      scene.add.image(pavilionX, pavilionY, 'pavilion').setScale(0.5);
-    }
-
-    function createDecorativeLayer(scene) {
-      // Переменные для смещения декоративных элементов
-      const grassOffsetX = 0; // Смещение травы по X
-      const grassOffsetY = 20; // Смещение травы по Y
-
-      const treeOffsetX = 45; // Смещение дерева по X
-      const treeOffsetY = 35; // Смещение дерева по Y
-
-      const bushOffsetX = 35; // Смещение куста по X
-      const bushOffsetY = 25; // Смещение куста по Y
-
-      const oilOffsetX = 15; // Смещение масляного пятна по X
-      const oilOffsetY = 23; // Смещение масляного пятна по Y
-
-      // Масштабирование координат для декоративных элементов
-      const grass1Coords = scaleCoords(661 + grassOffsetX, 89 + grassOffsetY); // Трава 1
-      const tree1Coords = scaleCoords(1635 + treeOffsetX, 127 + treeOffsetY); // Дерево 1
-      const bush1Coords = scaleCoords(1716 + bushOffsetX, 298 + bushOffsetY); // Куст 1
-      const oilCoords = scaleCoords(25 + oilOffsetX, 938 + oilOffsetY); // Масляное пятно
-
-      // Добавление декоративных элементов с масштабированными координатами
-      const grass1 = scene.add.image(grass1Coords.x, grass1Coords.y, 'grass1').setScale(0.5); // Трава 1
-      const tree1 = scene.add.image(tree1Coords.x, tree1Coords.y, 'tree1').setScale(0.5); // Дерево 1
-      const bush1 = scene.add.image(bush1Coords.x, bush1Coords.y, 'bush1').setScale(0.5); // Куст 1
-      const oil = scene.add.image(oilCoords.x, oilCoords.y, 'oil').setScale(0.5); // Масляное пятно
-
-      // Установка глубины для декоративных элементов
-      grass1.setDepth(10);
-      tree1.setDepth(10);
-      bush1.setDepth(10);
-      oil.setDepth(2);
-    }
-  </script>
+		#iconsPanel.hidden {
+			display: none; /* Скрывает панель */		
+		
+    </style>
 </head>
 <body>
-  <div id="game-container"></div>
+    <!-- Модальное окно для iOS -->
+    <div id="iosWarningModal">
+        <div id="iosWarningModalContent">
+            <h2>Внимание!</h2>
+            <p>Ваша операционная система в настоящее время не поддерживается.</p>
+            <button id="closeIosWarningButton">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Заставка в iframe -->
+    <iframe id="splashFrame" src="splash.html" style="width: 100%; height: 100%; border: none; position: fixed; top: 0; left: 0; z-index: 1999;"></iframe>
+    <script>
+        // Удаляем iframe с заставкой через 8 секунд и показываем меню
+        setTimeout(() => {
+            const splashFrame = document.getElementById('splashFrame');
+            if (splashFrame) {
+                splashFrame.remove(); // Удаляем iframe
+            }
+            document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
+        }, 8000);
+    </script>
+	<div id="gameContainer">
+		<div id="iconsPanel">
+			<img id="ammoIcon" src="icons/ammo_gray.png" alt="Ящик со снарядами">
+			<img id="medkitIcon" src="icons/medkit_gray.png" alt="Аптечка">
+			<img id="rocketIcon" src="icons/rocket_gray.png" alt="Орешник">
+		</div>
+		<canvas id="gameCanvas"></canvas>
+	</div>
+	
+    <!-- Сенсорный ползунок -->
+	<div id="touchpad">
+		<img id="touchpadIcon" src="icons/finger.png" alt="Touchpad Icon">
+	</div>
+
+	<!-- Модальное окно для боевой сводки -->
+	<div id="scoreModal">
+		<div id="scoreModalContent">
+			<!-- Заголовок с серым фоном -->
+			<div class="modal-header">
+				<h3>Боевая сводка</h3>
+			</div>
+			<!-- Таблица результатов -->
+			<table class="results-table">
+				<!-- Первая группа строк -->
+				<tr>
+					<td>
+						<img src="icons/medal.png" alt="Медаль" class="icon"> Очки:
+					</td>
+					<td><span id="modalTotalScore">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/trophy.png" alt="Трофей" class="icon"> Рекорд:
+					</td>
+					<td><span id="modalHighScoreDisplay">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/infantry.png" alt="Пехота" class="icon"> Пехота:
+					</td>
+					<td><span id="modalInfantryCount">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/tank.png" alt="Танк" class="icon"> Танки:
+					</td>
+					<td><span id="modalTankCount">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/artrocket.png" alt="РСЗО" class="icon"> РСЗО:
+					</td>
+					<td><span id="modalRocketLauncherCount">0</span></td>
+				</tr>
+				<!-- Отступ между группами строк -->
+				<tr class="spacer-row">
+					<td colspan="2"></td>
+				</tr>
+				<!-- Вторая группа строк -->
+				<tr>
+					<td>
+						<img src="icons/level.png" alt="Уровень" class="icon"> Уровень:
+					</td>
+					<td><span id="modalLevel">1</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/difficulty.png" alt="Сложность" class="icon"> Сложность:
+					</td>
+					<td><span id="modalDifficultyLevel">0</span></td>
+				</tr>
+				<tr>
+					<td>
+						<img src="icons/health.png" alt="Здоровье" class="icon"> Здоровье:
+					</td>
+					<td><span id="modalHealthDisplay">100%</span></td>
+				</tr>
+			</table>
+			<!-- Кнопки -->
+			<button id="instructionButton">Инструкция по выживанию</button>
+			<button id="restartButton">Начать игру</button>
+		</div>
+	</div>
+
+    <!-- Модальное окно для инструкции -->
+    <div id="instructionModal">
+		<div id="instructionModalContent">
+			<h2>Инструкция по выживанию</h2>
+			<h3>Игра: Тосочка, Z.O.V.</h3>
+			<p><strong>Описание:</strong></p>
+			<p>
+				Вы — командир артиллерийского расчета, задача которого — защитить свои позиции от наступающих вражеских сил. 
+				Враги атакуют волнами: пехота, танки, реактивные системы залпового огня (РСЗО) стремятся прорвать вашу оборону. 
+				Ваша задача — уничтожать врагов, набирать очки и не допустить их прорыва. 
+				С каждым уровнем сложность игры увеличивается: враги становятся быстрее и опаснее.
+				Используйте свою артиллерию, чтобы остановить их и установить новый рекорд!
+			</p>
+			<p><strong>Особенности:</strong></p>
+			<ul>
+				<li>Вражеская пехота, танки и РСЗО — каждый, имеет свои характеристики и поведение.</li>
+				<li>Вы стреляете залпами снарядов, которые взрываются на различных дистанциях, в зависимости от погодных условий и рельефа местности.</li>
+				<li>У вас есть показатель живучести батареи, который снижается при попадании вражеских снарядов. Но за каждые полученные 100 очков, уровень живучести увеличивается на 1%.</li>
+				<li>Результаты лучших игр сохраняются, так что вы можете соревноваться не только с самим собой.</li>
+				<li><strong>Бонусы:</strong>
+					<ul>
+						<li><strong>Аптечка:</strong> Восстанавливает здоровье до 100% и дает временный иммунитет к урону.</li>
+						<li><strong>Зарядный ящик:</strong> Дает неограниченное число выстрелов в течение одной минуты.</li>
+						<li><strong>Орешник:</strong> Уничтожает всех врагов на поле боя, но провоцирует временное увеличение интенсивности срельбы с их стороны.</li>
+					</ul>
+				</li>
+			</ul>
+			<p><strong>Управление:</strong></p>
+			<ul>
+				<li><strong>На мобильных устройствах:</strong>
+					<ul>
+						<li>Перемещайте позицию своей артиллерии, касаясь и двигая пальцем по сенсорной зоне внизу экрана.</li>
+						<li>Чтобы стрелять, просто коснитесь (тапните) в любом месте сенсорной зоны.</li>
+						<li>Нажмите на экран в любой области игрового поля, чтобы поставить или снять паузу.</li>
+					</ul>
+				</li>
+				<li><strong>На ПК:</strong>
+					<ul>
+						<li>Используйте стрелки влево и вправо для перемещения.</li>
+						<li>Нажмите пробел для стрельбы.</li>
+						<li>Нажмите "P" или "Enter" для паузы.</li>
+					</ul>
+				</li>
+			</ul>
+			<p><strong>Советы для игроков:</strong></p>
+			<ul>
+				<li>Следите за уровнем живучести: не допускайте, чтобы вражеские снаряды попадали в вас. Помните, танки и РСЗО наносят больше урона, чем пехота противника.</li>
+				<li>Собирайте очки: за каждые 100 очков вы восстанавливаете 1% здоровья, что поможет вам продержаться дольше.</li>
+				<li>Следите за сложностью: с каждым уровнем враги становятся быстрее, так что будьте готовы к более интенсивным атакам.</li>
+				<li>Используйте бонусы: аптечки, ящики со снарядами и "Орешник" помогут вам выжить в трудных ситуациях.</li>
+			</ul>
+		</div>
+    </div>
+
+    <!-- Звуковые эффекты (только OGG) -->
+    <audio id="shootSound" src="soundtrack/shoot.ogg"></audio>
+    <audio id="explosionSound" src="soundtrack/explosion.ogg"></audio>
+    <audio id="backgroundMusic" src="soundtrack/background.ogg" loop></audio>
+    <audio id="hitSound" src="soundtrack/hit.ogg"></audio>
+    <audio id="infantryHitSound1" src="soundtrack/infantry_hit1.ogg"></audio>
+    <audio id="infantryHitSound2" src="soundtrack/infantry_hit2.ogg"></audio>
+    <audio id="infantryHitSound3" src="soundtrack/infantry_hit3.ogg"></audio>
+    <audio id="infantryHitSound4" src="soundtrack/infantry_hit4.ogg"></audio>
+    <audio id="infantryHitSound5" src="soundtrack/infantry_hit5.ogg"></audio>
+    <audio id="infantryHitSound6" src="soundtrack/infantry_hit6.ogg"></audio>	
+    <audio id="defeatSound" src="soundtrack/defeat.ogg"></audio>
+	<audio id="effectActivateSound" src="soundtrack/effect_activate.ogg"></audio>
+	<audio id="effectDeactivateSound" src="soundtrack/effect_deactivate.ogg"></audio>
+	<audio id="hitImmuneSound" src="soundtrack/hit_immune.ogg"></audio>
+	<audio id="rocketExplosionSound" src="soundtrack/rocket_explosion.ogg"></audio>
+
+    <script>
+		const loadImage = (src) => new Promise((resolve, reject) => {
+			const img = new Image();
+			img.src = src;
+			img.onload = resolve;
+			img.onerror = reject;
+		});
+
+		const loadAudio = (src) => new Promise((resolve, reject) => {
+			const audio = new Audio();
+			audio.src = src;
+			audio.oncanplaythrough = resolve;
+			audio.onerror = reject;
+		});
+		
+		Promise.all([
+			loadImage('pic/topographic-map.jpg'),
+			loadImage('pic/player.png'),
+			loadImage('pic/infantry.png'),
+			loadImage('pic/tank.png'),
+			loadImage('pic/rocket_launcher.png'),
+			loadImage('icons/medkit_temp.png'),
+			loadImage('icons/ammo_temp.png'),
+			loadImage('icons/rocket_temp.png'),
+			
+			loadImage('icons/artrocket.png'),
+			loadImage('icons/difficulty.png'),
+			loadImage('icons/finger.png'),
+			loadImage('icons/health.png'),
+			loadImage('icons/infantry.png'),
+			loadImage('icons/level.png'),
+			loadImage('icons/medal.png'),
+			loadImage('icons/tank.png'),
+			loadImage('icons/trophy.png'),
+			
+			loadAudio('soundtrack/shoot.ogg'),
+			loadAudio('soundtrack/explosion.ogg'),
+			loadAudio('soundtrack/background.ogg'),
+			loadAudio('soundtrack/hit.ogg'),
+			loadAudio('soundtrack/infantry_hit1.ogg'),
+			loadAudio('soundtrack/infantry_hit2.ogg'),
+			loadAudio('soundtrack/infantry_hit3.ogg'),
+			loadAudio('soundtrack/infantry_hit4.ogg'),			
+			loadAudio('soundtrack/infantry_hit5.ogg'),			
+			loadAudio('soundtrack/infantry_hit6.ogg'),			
+			loadAudio('soundtrack/defeat.ogg'),
+			loadAudio('soundtrack/effect_activate.ogg'),
+			loadAudio('soundtrack/effect_deactivate.ogg'),
+			loadAudio('soundtrack/hit_immune.ogg'),
+			loadAudio('soundtrack/rocket_explosion.ogg')
+		]).then(() => {
+			console.log('Все ресурсы загружены');
+			resizeCanvas();
+			document.getElementById('scoreModal').style.display = 'flex';
+		}).catch((error) => {
+			console.error('Ошибка загрузки ресурсов:', error);
+		});		
+	
+        // Определение платформы
+        function detectPlatform() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                return 'iOS';
+            }
+
+            if (/android/i.test(userAgent)) {
+                return 'Android';
+            }
+
+            return 'PC';
+        }
+
+        const platform = detectPlatform();
+        console.log(`Platform detected: ${platform}`);
+
+        // Показываем модальное окно для iOS
+        if (platform === 'iOS') {
+            const iosWarningModal = document.getElementById('iosWarningModal');
+            iosWarningModal.style.display = 'flex'; // Показываем модальное окно
+
+            // Закрытие модального окна при нажатии на кнопку
+            const closeIosWarningButton = document.getElementById('closeIosWarningButton');
+            closeIosWarningButton.addEventListener('click', () => {
+                iosWarningModal.style.display = 'none'; // Скрываем модальное окно
+            });
+
+            // Останавливаем выполнение кода игры для iOS
+            throw new Error('iOS is not supported');
+        }
+
+        // Скрываем touchpad на ПК
+        if (platform === 'PC') {
+            document.getElementById('touchpad').style.display = 'none';
+        }
+
+        // Добавляем класс к body в зависимости от платформы
+        if (platform === 'PC') {
+            document.body.classList.add('pc');
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Инициализация размеров холста
+        let gameWidth, gameHeight;
+
+        // Загружаем изображения
+        const backgroundImage = new Image();
+        backgroundImage.src = 'pic/topographic-map.jpg';
+
+        const playerImage = new Image();
+        playerImage.src = 'pic/player.png';
+
+        const infantryImage = new Image();
+        infantryImage.src = 'pic/infantry.png';
+
+        const tankImage = new Image();
+        tankImage.src = 'pic/tank.png';
+
+        const rocketLauncherImage = new Image();
+        rocketLauncherImage.src = 'pic/rocket_launcher.png';
+
+        const player = {
+            x: 0,
+            y: 0,
+            width: 25,
+            height: 30,
+            speed: 20,
+            color: 'green',
+            missiles: [],
+            health: 100
+        };
+
+		const icons = {
+			medkit: {
+				image: new Image(),
+				width: 32,
+				height: 32,
+				speed: 2, // Скорость падения иконки
+				active: false, // Активна ли иконка на поле
+				x: 0, // Позиция по X
+				y: 0, // Позиция по Y
+				timer: 0 // Таймер для отслеживания времени активности
+			},
+			ammo: {
+				image: new Image(),
+				width: 32,
+				height: 32,
+				speed: 2,
+				active: false,
+				x: 0,
+				y: 0,
+				timer: 0
+			},
+			rocket: {
+				image: new Image(),
+				width: 32,
+				height: 32,
+				speed: 2,
+				active: false,
+				x: 0,
+				y: 0,
+				timer: 0
+			}
+		};
+
+		// Загрузка изображений для иконок
+		icons.medkit.image.src = 'icons/medkit_temp.png';
+		icons.medkit.image.onload = () => console.log('Медкит загружен');
+		icons.ammo.image.src = 'icons/ammo_temp.png';
+		icons.ammo.image.onload = () => console.log('Ящик со снарядами загружен');
+		icons.rocket.image.src = 'icons/rocket_temp.png';
+		icons.rocket.image.onload = () => console.log('Орешник загружен');
+		
+		let isShowingModal = false; // Глобальная переменная для отслеживания отображения модального окна
+		let enemies = []; // Вместо const enemies = [];
+		let isGameStarted = false; // Добавляем переменную для отслеживания состояния игры
+		let isInfantryExploding = false; // Флаг для отслеживания взрывов вокруг пехоты
+		let medkitEffectActive = false; // Активен ли эффект аптечки
+		let medkitEffectEndTime = 0; // Время окончания эффекта
+		let infantryKilled = 0; // Количество уничтоженных пехотинцев
+		let tanksKilled = 0; // Количество уничтоженных танков
+		let rocketLaunchersKilled = 0; // Количество уничтоженных РСЗО
+		let enemiesCrossedThreshold = false; // Флаг для проверки, преодолели ли враги 60% поля		
+        let enemyMissiles = [];
+        let explosions = [];
+        const baseMissileSpeed = 7;
+        const missileCount = 5;
+        const missileSpreadAngle = 2;
+        const maxShotsPerSecond = 3;
+        let lastShotTime = 0;
+        let lastRszShotTime = 0;
+        let score = 0;
+        let gameOver = false;
+        let speedMultiplier = 1;
+        let level = 1;
+        const levelThresholds = [100, 300, 600, 1000];
+        let isPaused = false;
+        let highScore = localStorage.getItem('highScore') || 0;
+		
+		let ammoEffectActive = false;
+		let rocketEffectActive = false;
+		
+		let ammoEffectEndTime = 0;
+		let rocketEffectEndTime = 0;
+		
+		let originalEnemyShootingParams = {}; // Храним оригинальные параметры стрельбы врагов
+
+        let infantryCount = 0;
+        let tankCount = 0;
+        let rocketLauncherCount = 0;
+        let infantryHitCounter = 0;
+
+        let enemySpawnInterval;
+		let isInfantryStopped = false; // Остановлена ли пехота
+		
+		let isGameOver = false; // Флаг для отслеживания состояния игры
+		
+		
+		// Переменные для управления режимами и анимацией
+		let isNightMode = false; // Текущий режим (false - день, true - ночь)
+		let nightModeAlpha = 0; // Текущая прозрачность затемнения (0 - день, 0.7 - ночь)
+		let isTransitioning = false; // Флаг для отслеживания активной анимации
+		let lastModeSwitchTime = Date.now(); // Время последнего переключения режима
+		const modeSwitchInterval = 80000; // Интервал переключения режима (2 минуты)
+		const transitionDuration = 1167; // Длительность перехода затенения(2 секунды)
+		
+		const touchpadIcon = document.getElementById('touchpadIcon');
+        const touchpad = document.getElementById('touchpad');		
+
+		let isTouching = false;
+		let timeoutId = null; // Идентификатор таймера
+		
+		const initialEnemyShootingParams = {
+			пехота: {
+				cooldown: 7000, // Начальное время перезарядки для пехоты
+				bulletSize: { width: 3, height: 6 },
+				type: 'single'
+			},
+			танк: {
+				cooldown: 30000, // Начальное время перезарядки для танков
+				bulletSize: { width: 5, height: 10 },
+				type: 'single'
+			},
+			РСЗО: {
+				cooldown: 20000, // Начальное время перезарядки для РСЗО
+				bulletSize: { width: 5, height: 10 },
+				type: 'burst',
+				burstCount: 5
+			}
+		};		
+		
+		// Отключаем контекстное меню для иконки
+		touchpadIcon.addEventListener('contextmenu', (event) => {
+			event.preventDefault(); // Запрещаем стандартное поведение
+		});
+
+		// Отключаем долгое нажатие на иконку
+		touchpadIcon.addEventListener('touchstart', (event) => {
+			event.preventDefault(); // Запрещаем стандартное поведение
+		});		
+
+		// Обработчик начала касания
+		touchpad.addEventListener('touchstart', () => {
+			isTouching = true; // Тачпад активен
+			touchpadIcon.style.opacity = '0'; // Скрываем иконку
+
+			// Отменяем предыдущий таймер, если он был
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
+		});
+
+		// Обработчик движения пальца по тачпаду
+		touchpad.addEventListener('touchmove', () => {
+			isTouching = true; // Тачпад всё ещё активен
+			touchpadIcon.style.opacity = '0'; // Иконка остаётся скрытой
+		});
+
+		// Обработчик окончания касания
+		touchpad.addEventListener('touchend', () => {
+			isTouching = false; // Тачпад больше не активен
+
+			// Устанавливаем новый таймер
+			timeoutId = setTimeout(() => {
+				if (!isTouching) { // Проверяем, что тачпад всё ещё неактивен
+					touchpadIcon.style.opacity = '1'; // Показываем иконку
+				}
+			}, 1000); // Задержка перед показом иконки
+		});		
+		
+		function playSound(soundId) {
+			const sound = document.getElementById(soundId);
+			if (sound) {
+				sound.currentTime = 0; // Перематываем звук на начало
+				sound.play();
+			}
+		}
+		
+		function setIconActive(iconId, isActive) {
+			const icon = document.getElementById(iconId);
+			if (!icon) {
+				console.error(`Иконка с ID ${iconId} не найдена!`);
+				return;
+			}
+			console.log(`Изменение иконки ${iconId}: isActive=${isActive}`);
+			if (isActive) {
+				// Меняем src на цветное изображение (убираем "_gray", если он есть)
+				icon.src = icon.src.replace('_gray', '');
+				console.log(`Иконка ${iconId} активирована. Новый src: ${icon.src}`);
+			} else {
+				// Возвращаем серое изображение (добавляем "_gray", если его нет)
+				if (!icon.src.includes('_gray')) {
+					icon.src = icon.src.replace('.png', '_gray.png');
+				}
+				console.log(`Иконка ${iconId} деактивирована. Новый src: ${icon.src}`);
+			}
+		}
+
+        const enemyTypes = [
+            // { type: 'пехота', width: 10, height: 11, baseSpeed: 0.06, color: 'blue', score: 10, probability: 0.6 },
+            // { type: 'танк', width: 20, height: 25, baseSpeed: 0.11, color: 'black', score: 20, probability: 0.3 },
+            // { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.03, color: 'orange', score: 30, probability: 0.1 }
+			
+            { type: 'пехота', width: 10, height: 11, baseSpeed: 0.06, color: 'blue', score: 10, probability: 0.6 },
+            { type: 'танк', width: 20, height: 25, baseSpeed: 0.11, color: 'black', score: 20, probability: 0.3 },
+            { type: 'РСЗО', width: 25, height: 35, baseSpeed: 0.03, color: 'orange', score: 30, probability: 0.1 }			
+        ];
+
+        const enemyShootingParams = {
+            пехота: {
+                cooldown: 7000, // было 15000
+                bulletSize: { width: 3, height: 6 },
+                type: 'single'
+            },
+            танк: {
+                cooldown: 30000, // было 60000
+                bulletSize: { width: 5, height: 10 },
+                type: 'single'
+            },
+            РСЗО: {
+                cooldown: 20000, // было 30000
+                bulletSize: { width: 5, height: 10 },
+                type: 'burst',
+                burstCount: 5
+            }
+        };
+
+        let isSpacePressed = false;
+        let lastHealthIncreaseScore = 0;
+
+        const infantryHitSounds = [
+            document.getElementById('infantryHitSound1'),
+            document.getElementById('infantryHitSound2'),
+            document.getElementById('infantryHitSound3'),			
+            document.getElementById('infantryHitSound4'),			
+            document.getElementById('infantryHitSound5'),			
+            document.getElementById('infantryHitSound6')
+        ];
+
+        let defeatHandled = false;
+        let explosionInterval;
+
+        // Переменные для моргания
+        let isPlayerBlinking = false;
+        let blinkAnimationFrame;
+
+        // Переменные для боекомплекта
+        let ammo = 50; // Текущий запас боекомплекта (от 0 до 50)
+        const maxAmmo = 50; // Максимальный запас боекомплекта
+        let lastShotTimeAmmo = Date.now(); // Время последнего выстрела для восстановления боекомплекта
+
+		function createRandomExplosionsAroundPlayer() {
+			const playerCenterX = player.x + player.width / 2;
+			const playerCenterY = player.y + player.height / 2;
+			createRandomExplosions(playerCenterX, playerCenterY, 10, 50, 20); // 10 взрывов, радиус 50, длительность 20
+		}
+		
+		function spawnIcon(type) {
+			const icon = icons[type];
+			if (!icon.active) {
+				icon.x = Math.random() * (canvas.width - icon.width); // Случайная позиция по X
+				icon.y = -icon.height; // Начинаем сверху за пределами поля
+				icon.active = true; // Делаем иконку активной
+			}
+		}
+		
+		function updateIcons() {
+			for (const type in icons) {
+				const icon = icons[type];
+				if (icon.active) {
+					icon.y += icon.speed; // Двигаем иконку вниз
+
+					// Если иконка вышла за пределы поля
+					if (icon.y > canvas.height) {
+						icon.active = false; // Делаем иконку неактивной
+					}
+				}
+			}
+		}
+		
+		function drawIcons() {
+			for (const type in icons) {
+				const icon = icons[type];
+				if (icon.active && icon.image.complete) {
+					ctx.drawImage(icon.image, icon.x, icon.y, icon.width, icon.height);
+				}
+			}
+		}
+		
+		function restoreIconsPanel() {
+			const iconsPanel = document.getElementById('iconsPanel');
+			if (!isPaused && platform !== 'PC') {
+				iconsPanel.classList.remove('hidden'); // Показываем панель, если пауза снята
+			}
+		}		
+		
+		function checkIconCollisions() {
+			for (const type in icons) {
+				const icon = icons[type];
+				if (icon.active && checkCollision(player, icon)) {
+					console.log(`Игрок поймал иконку типа: ${type}`);
+					icon.active = false; // Удаляем иконку с поля
+					activateIconEffect(type); // Активируем эффект иконки
+				}
+			}
+		}
+		
+		function activateIconEffect(type) {
+			const effectDuration = 60000; // 60 секунд
+			playSound('effectActivateSound'); // Звук активации эффекта
+
+			switch (type) {
+				case 'medkit':
+					player.health = 100;
+					medkitEffectActive = true;
+					medkitEffectEndTime = Date.now() + 60000;
+					setIconActive('medkitIcon', true);
+					console.log('Эффект аптечки активирован: иммунитет и снижение урона на 60 секунд.');
+					break;
+
+				case 'ammo':
+					ammo = maxAmmo; // Восстанавливаем боекомплект до 100%
+					ammoEffectActive = true; // Активируем эффект
+					ammoEffectEndTime = Date.now() + 60000; // Эффект длится 60 секунд
+					setIconActive('ammoIcon', true); // Активируем иконку на панели
+					console.log('Эффект ящика со снарядами активирован: неограниченные выстрелы на 60 секунд.');
+					break;
+
+				case 'rocket':
+					// Уничтожаем всех врагов
+					destroyAllEnemies();
+					rocketEffectActive = true; // Активируем эффект
+					rocketEffectEndTime = Date.now() + 60000; // Эффект длится 60 секунд
+					setIconActive('rocketIcon', true); // Активируем иконку на панели
+
+					// Сохраняем оригинальные параметры стрельбы врагов
+					originalEnemyShootingParams = {
+						пехота: { ...enemyShootingParams.пехота },
+						танк: { ...enemyShootingParams.танк },
+						РСЗО: { ...enemyShootingParams.РСЗО }
+					};
+
+					// Увеличиваем интенсивность выстрелов в N раза
+					enemyShootingParams.пехота.cooldown /= 3; // Уменьшаем время перезарядки
+					enemyShootingParams.танк.cooldown /= 3;
+					enemyShootingParams.РСЗО.cooldown /= 2;
+
+					console.log('Эффект Орешника активирован: интенсивность выстрелов врагов увеличена в 2 раза на 60 секунд.');
+					break;
+			}
+		}
+
+		function handleDefeat() {
+			console.log("Гибель игрока. Текущий режим:", isNightMode ? "Ночь" : "День", "Прозрачность:", nightModeAlpha);
+			defeatHandled = true;
+			isGameOver = true; // Устанавливаем флаг завершения игры
+			isGameStarted = false;
+			isShowingModal = false; // Сбрасываем флаг отображения модального окна
+
+			console.log("Останавливаем игровой цикл...");
+			cancelAnimationFrame(gameLoop); // Останавливаем игровой цикл
+
+			console.log("Блокируем управление...");
+			isTouching = false;
+			isTap = false;
+
+			console.log("Создаем начальные взрывы вокруг игрока...");
+			createRandomExplosionsAroundPlayer();
+
+			console.log("Запускаем интервал для создания дополнительных взрывов...");
+			explosionInterval = setInterval(() => {
+				createRandomExplosionsAroundPlayer();
+			}, 300);
+
+			console.log("Начинаем моргание...");
+			startBlinking();
+
+			console.log("Проигрываем звук поражения...");
+			const defeatSound = document.getElementById('defeatSound');
+			defeatSound.currentTime = 0;
+			defeatSound.play();
+
+			console.log("Ждем завершения звука и переходим в меню...");
+			defeatSound.onended = () => {
+				console.log("Звук поражения завершен. Останавливаем взрывы и моргание...");
+				clearInterval(explosionInterval); // Останавливаем создание взрывов
+				stopBlinking(); // Останавливаем моргание
+
+				console.log("Обновляем рекорд и останавливаем музыку...");
+				updateHighScore();
+				stopBackgroundMusic();
+				updateScoreboard();
+
+				console.log("Показываем модальное окно с результатами...");
+				document.getElementById('scoreModal').style.display = 'flex';
+				isShowingModal = true; // Устанавливаем флаг, что модальное окно отображено
+
+				console.log("Останавливаем цикл отрисовки экрана поражения...");
+				cancelAnimationFrame(drawDefeatScreen); // Останавливаем отрисовку экрана поражения
+			};
+
+			console.log("Запускаем цикл отрисовки экрана поражения...");
+			drawDefeatScreen(); // Запускаем отрисовку экрана поражения
+		}
+
+		function drawDefeatScreen() {
+			console.log("Отрисовка экрана поражения. isShowingModal:", isShowingModal);
+
+			// Если модальное окно отображено, останавливаем отрисовку
+			if (isShowingModal) {
+				console.log("Модальное окно отображено. Останавливаем отрисовку экрана поражения.");
+				return;
+			}
+
+			console.log("Очистка холста...");
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+			console.log("Отрисовка фона...");
+			drawBackground();
+
+			console.log("Отрисовка затемнения...");
+			drawNightOverlay(); // Отрисовываем затенение (ночной режим)
+
+			console.log("Отрисовка всех игровых элементов...");
+			drawMissiles();
+			drawEnemies();
+			drawEnemyMissiles();
+			drawExplosions();
+			drawIcons();
+			drawPlayer();
+			drawHealthBar();
+			drawAmmoBar();
+
+			console.log("Запускаем следующий кадр отрисовки экрана поражения...");
+			requestAnimationFrame(drawDefeatScreen); // Передаем флаг в следующий кадр
+		}
+
+        function startBlinking() {
+            isPlayerBlinking = true;
+            blinkAnimationFrame = requestAnimationFrame(blinkLoop); // Запускаем цикл моргания
+        }
+
+        function stopBlinking() {
+            isPlayerBlinking = false;
+            cancelAnimationFrame(blinkAnimationFrame); // Останавливаем цикл моргания
+        }
+
+        function blinkLoop() {
+            if (!isPlayerBlinking) return; // Останавливаем цикл, если моргание завершено
+
+            // Очищаем холст и рисуем игрока с эффектом моргания
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawEnemies();
+            drawEnemyMissiles();
+            drawExplosions();
+            drawHealthBar();
+
+            // Моргание игрока
+            if (isPlayerVisible()) {
+                const sway = Math.sin(Date.now() / 200) * 2;
+                if (playerImage.complete) {
+                    ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
+                }
+            }
+
+            // Продолжаем цикл моргания
+            blinkAnimationFrame = requestAnimationFrame(blinkLoop);
+        }
+
+        function isPlayerVisible() {
+            // Возвращает true, если игрок должен быть видимым в текущий момент моргания
+            return Math.floor(Date.now() / 100) % 2 === 0; // Видим каждые 100 мс
+        }
+
+        function playInfantryHitSound() {
+            const randomIndex = Math.floor(Math.random() * infantryHitSounds.length);
+            const sound = infantryHitSounds[randomIndex];
+
+            if (!sound.paused) {
+                sound.currentTime = 0;
+                sound.pause();
+            }
+
+            sound.play();
+        }
+
+        // Логика для сенсорного ползунка
+        // let isTouching = false;
+        let touchStartX = 0;
+        let playerStartX = 0;
+        let isTap = false;
+
+        touchpad.addEventListener('touchstart', (e) => {
+            isTouching = true;
+            const touchpadRect = touchpad.getBoundingClientRect();
+            touchStartX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
+            playerStartX = player.x;
+            isTap = true;
+        });
+
+        touchpad.addEventListener('touchmove', (e) => {
+            if (!isTouching) return;
+
+            const touchpadRect = touchpad.getBoundingClientRect();
+            const touchCurrentX = e.touches[0].clientX - touchpadRect.left; // Относительно левого края сенсорной зоны
+            const deltaX = touchCurrentX - touchStartX;
+
+            if (Math.abs(deltaX) > 5) {
+                isTap = false;
+            }
+
+            const newPlayerX = playerStartX + deltaX;
+            player.x = Math.max(0, Math.min(newPlayerX, canvas.width - player.width));
+        });
+
+        touchpad.addEventListener('touchend', () => {
+            if (isTap) {
+                shoot();
+            }
+            isTouching = false;
+            isTap = false;
+        });
+
+        // Обработчик для паузы
+        canvas.addEventListener('touchstart', (e) => {
+            const touchY = e.touches[0].clientY; // Получаем координату Y касания
+
+            // Проверяем, что касание было выше сенсорной зоны управления
+            const touchpadRect = touchpad.getBoundingClientRect();
+            if (touchY < touchpadRect.top) {
+                togglePause(); // Ставим игру на паузу или снимаем с паузы
+            }
+        });
+
+        // Управление на ПК
+        document.addEventListener('keydown', (e) => {
+		
+			if (e.key === 't' || e.key === 'T') { // Переключение по нажатию t
+				toggleNightMode();
+			}		
+		
+            if (platform === 'PC') {
+                if (e.key === 'ArrowLeft') {
+                    player.x = Math.max(0, player.x - player.speed);
+                } else if (e.key === 'ArrowRight') {
+                    player.x = Math.min(canvas.width - player.width, player.x + player.speed);
+				} else if (e.key === ' ' && !isSpacePressed && isGameStarted) { // Добавляем проверку isGameStarted
+                    isSpacePressed = true;
+                    shoot();
+                } else if (e.key === 'p' || e.key === 'Enter') {
+                    togglePause();
+                }
+            }
+        });
+		
+		// Временно: Создаем иконки для тестирования
+		document.addEventListener('keydown', (e) => {
+		if (e.key === '1') {
+				spawnIcon('medkit');
+			} else if (e.key === '2') {
+				spawnIcon('ammo');
+			} else if (e.key === '3') {
+				spawnIcon('rocket');
+			}
+		});
+
+        document.addEventListener('keyup', (e) => {
+            if (platform === 'PC' && e.key === ' ') {
+                isSpacePressed = false; // Сбрасываем флаг при отпускании пробела
+            }
+        });
+
+        // Управление мышью на ПК
+        if (platform === 'PC') {
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                player.x = Math.max(0, Math.min(mouseX - player.width / 2, canvas.width - player.width));
+            });
+
+            canvas.addEventListener('click', () => {
+                shoot();
+            });
+        }
+
+        function getRandomEnemyType() {
+            const random = Math.random();
+            let cumulativeProbability = 0;
+            for (const enemyType of enemyTypes) {
+                cumulativeProbability += enemyType.probability;
+                if (random < cumulativeProbability) {
+                    return enemyType;
+                }
+            }
+            return enemyTypes[0];
+        }
+
+        function updateEnemySpeeds() {
+            speedMultiplier = 1 + level * 0.1;
+            const difficultyLevel = Math.round((speedMultiplier - 1) * 100);
+            document.getElementById('modalDifficultyLevel').textContent = difficultyLevel;
+        }
+
+        function updateLevel() {
+            for (let i = 0; i < levelThresholds.length; i++) {
+                if (score >= levelThresholds[i] && level < i + 2) {
+                    level = i + 2;
+                    speedMultiplier = 1 + level * 0.1;
+                    updateScoreboard();
+                    break;
+                }
+            }
+        }
+
+        function drawPlayer() {
+            if (isPlayerBlinking && !isPlayerVisible()) return; // Не отображаем игрока, если идет моргание и он невидим
+
+            const sway = Math.sin(Date.now() / 200) * 2;
+            if (playerImage.complete) {
+                ctx.drawImage(playerImage, player.x + sway, player.y, player.width, player.height);
+            }
+        }
+
+        function drawMissiles() {
+            ctx.fillStyle = 'red';
+            player.missiles.forEach((missile, index) => {
+                ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
+
+                const angleInRadians = (missile.angle * Math.PI) / 180;
+                missile.x += Math.sin(angleInRadians) * missile.speed;
+                missile.y -= Math.cos(angleInRadians) * missile.speed;
+
+                if (!missile.willReachEnd && missile.y <= missile.explosionY) {
+                    createExplosion(missile.x, missile.y);
+                    player.missiles.splice(index, 1);
+                }
+
+                if (missile.willReachEnd && missile.y <= 0) {
+                    createExplosion(missile.x, missile.y);
+                    player.missiles.splice(index, 1);
+                }
+
+                if (missile.y < 0 || missile.x < 0 || missile.x > canvas.width) {
+                    player.missiles.splice(index, 1);
+                }
+            });
+        }
+
+        function drawEnemies() {
+            enemies.forEach((enemy) => {
+                if (enemy.hit) {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    enemy.hit = false;
+                } else {
+                    let image;
+                    switch (enemy.type) {
+                        case 'пехота':
+                            image = infantryImage;
+                            break;
+                        case 'танк':
+                            image = tankImage;
+                            break;
+                        case 'РСЗО':
+                            image = rocketLauncherImage;
+                            break;
+                    }
+                    if (image && image.complete) {
+                        ctx.drawImage(image, enemy.x, enemy.y, enemy.width, enemy.height);
+                    }
+                }
+                enemy.y += enemy.speed;
+
+                if (enemy.y > canvas.height) {
+                    gameOver = true;
+                }
+            });
+        }
+
+		function drawEnemyMissiles() {
+			enemyMissiles.forEach((missile, index) => {
+				if (missile.type === 'burst') {
+					// Снаряды РСЗО (оставляем без изменений)
+					ctx.fillStyle = 'yellow';
+					ctx.beginPath();
+					ctx.moveTo(missile.x + missile.width / 2, missile.y);
+					ctx.lineTo(missile.x, missile.y + missile.height);
+					ctx.lineTo(missile.x + missile.width, missile.y + missile.height);
+					ctx.closePath();
+					ctx.fill();
+				} else if (missile.type === 'single' && missile.source === 'пехота') {
+					// Снаряды пехоты (оставляем без изменений)
+					ctx.fillStyle = 'white';
+					ctx.beginPath();
+					ctx.arc(missile.x + missile.width / 2, missile.y + missile.height / 2, missile.width / 2, 0, Math.PI * 2);
+					ctx.fill();
+				} else if (missile.type === 'single' && missile.source === 'танк') {
+					// Снаряды танков (добавляем свечение и трассирующий эффект)
+					ctx.save(); // Сохраняем текущие настройки контекста
+
+					// Свечение (glow effect)
+					ctx.shadowBlur = 10; // Размер свечения
+					ctx.shadowColor = 'rgba(255, 165, 0, 0.8)'; // Цвет свечения (оранжевый)
+
+					// Трассирующий эффект (след за снарядом)
+					ctx.beginPath();
+					ctx.moveTo(missile.x + missile.width / 2, missile.y + missile.height); // Начало следа
+					ctx.lineTo(missile.x + missile.width / 2, missile.y + missile.height - 20); // Конец следа
+					ctx.strokeStyle = 'rgba(255, 165, 0, 0.5)'; // Полупрозрачный оранжевый
+					ctx.lineWidth = 2; // Толщина линии
+					ctx.stroke();
+
+					// Сам снаряд
+					ctx.fillStyle = 'black'; // Яркий оранжевый цвет
+					ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
+
+					ctx.restore(); // Восстанавливаем настройки контекста
+				}
+
+				// Обновляем позицию снаряда
+				if (missile.angle !== undefined) {
+					const angleInRadians = (missile.angle * Math.PI) / 180;
+					missile.x += Math.sin(angleInRadians) * missile.speed;
+					missile.y += Math.cos(angleInRadians) * missile.speed;
+				} else {
+					missile.y += missile.speed;
+				}
+
+				// Удаляем снаряд, если он вышел за пределы экрана
+				if (missile.y > canvas.height || missile.x < 0 || missile.x > canvas.width) {
+					enemyMissiles.splice(index, 1);
+				}
+			});
+		}
+
+        function enemyShoot() {
+            const currentTime = Date.now();
+
+            const infantry = enemies.filter(enemy => enemy.type === 'пехота');
+            const infantryShootCount = Math.ceil(infantry.length / 4);
+            infantry.forEach((enemy, index) => {
+                if (index < infantryShootCount && currentTime - enemy.lastShotTime >= enemyShootingParams.пехота.cooldown) {
+                    enemy.lastShotTime = currentTime;
+                    enemyMissiles.push({
+                        x: enemy.x + enemy.width / 2 - enemyShootingParams.пехота.bulletSize.width / 2,
+                        y: enemy.y + enemy.height,
+                        width: enemyShootingParams.пехота.bulletSize.width,
+                        height: enemyShootingParams.пехота.bulletSize.height,
+                        speed: 4,
+                        type: 'single',
+                        source: 'пехота'
+                    });
+                }
+            });
+
+            const tanks = enemies.filter(enemy => enemy.type === 'танк');
+            if (tanks.length > 0) {
+                const shootingTank = tanks[Math.floor(Math.random() * tanks.length)];
+                if (currentTime - shootingTank.lastShotTime >= enemyShootingParams.танк.cooldown) {
+                    shootingTank.lastShotTime = currentTime;
+                    enemyMissiles.push({
+                        x: shootingTank.x + shootingTank.width / 2 - enemyShootingParams.танк.bulletSize.width / 2,
+                        y: shootingTank.y + shootingTank.height,
+                        width: enemyShootingParams.танк.bulletSize.width,
+                        height: enemyShootingParams.танк.bulletSize.height,
+                        speed: 4,
+                        type: 'single',
+                        source: 'танк'
+                    });
+                }
+            }
+
+            const rszos = enemies.filter(enemy => enemy.type === 'РСЗО');
+            if (rszos.length > 0 && currentTime - lastRszShotTime >= enemyShootingParams.РСЗО.cooldown) {
+                const shootingRsz = rszos[Math.floor(Math.random() * rszos.length)];
+                lastRszShotTime = currentTime;
+                for (let i = 0; i < enemyShootingParams.РСЗО.burstCount; i++) {
+                    const angle = -missileSpreadAngle * (enemyShootingParams.РСЗО.burstCount - 1) / 2 + i * missileSpreadAngle;
+                    const angleInRadians = (angle * Math.PI) / 180;
+                    enemyMissiles.push({
+                        x: shootingRsz.x + shootingRsz.width / 2 - enemyShootingParams.РСЗО.bulletSize.width / 2,
+                        y: shootingRsz.y + shootingRsz.height,
+                        width: enemyShootingParams.РСЗО.bulletSize.width,
+                        height: enemyShootingParams.РСЗО.bulletSize.height,
+                        angle: angle,
+                        speed: 4,
+                        type: 'burst',
+                        source: 'РСЗО'
+                    });
+                }
+            }
+        }
+
+		function checkEnemyMissileCollisions() {
+			enemyMissiles.forEach((missile, index) => {
+				if (checkCollision(player, missile)) {
+					let damage = 0;
+
+					if (medkitEffectActive) {
+						// Если эффект аптечки активен, снижаем урон
+						switch (missile.source) {
+							case 'пехота':
+								damage = 0; // Иммунитет к пехоте
+								playSound('hitImmuneSound'); // Звук попадания во время эффекта
+								break;
+							case 'танк':
+								damage = 10; // Урон от танка снижен на 75% (вместо 40)
+								playSound('hitImmuneSound'); // Звук попадания во время эффекта
+								break;
+							case 'РСЗО':
+								damage = 25; // Урон от РСЗО снижен на 50% (вместо 50)
+								playSound('hitImmuneSound'); // Звук попадания во время эффекта
+								break;
+						}
+					} else {
+						// Если эффект аптечки не активен, применяем стандартный урон
+						switch (missile.source) {
+							case 'пехота':
+								damage = 10;
+								playSound('hitSound'); // Стандартный звук попадания
+								break;
+							case 'танк':
+								damage = 40;
+								playSound('hitSound'); // Стандартный звук попадания
+								break;
+							case 'РСЗО':
+								damage = 100;
+								playSound('hitSound'); // Стандартный звук попадания
+								break;
+						}
+					}
+
+					player.health -= damage;
+
+					if (player.health < 0) {
+						player.health = 0;
+					}
+
+					enemyMissiles.splice(index, 1);
+
+					if (player.health <= 0) {
+						gameOver = true;
+					}
+
+					updateScoreboard();
+				}
+			});
+		}
+
+		function createExplosion(x, y, duration, radius) {
+			explosions.push({
+				x,
+				y,
+				radius: 5,
+				maxRadius: radius,
+				alpha: 1,
+				duration: duration
+			});
+
+			// Проверяем столкновения с врагами
+			checkExplosionCollisions(x, y, radius);
+		}
+		
+		function checkExplosionCollisions(explosionX, explosionY, explosionRadius) {
+			enemies.forEach((enemy, index) => {
+				const enemyCenterX = enemy.x + enemy.width / 2;
+				const enemyCenterY = enemy.y + enemy.height / 2;
+
+				// Рассчитываем расстояние между центром взрыва и центром врага
+				const distance = Math.sqrt(
+					Math.pow(explosionX - enemyCenterX, 2) +
+					Math.pow(explosionY - enemyCenterY, 2)
+				);
+
+				// Если враг в зоне взрыва, удаляем его
+				if (distance <= explosionRadius) {
+					console.log('Враг уничтожен взрывом:', enemy.type); // Отладочное сообщение
+					enemies.splice(index, 1);
+				}
+			});
+		}
+		
+		function createRandomExplosions(centerX, centerY, count = 10, maxRadius = 50, duration = 20) {
+			for (let i = 0; i < count; i++) {
+				const angle = Math.random() * Math.PI * 2; // Случайный угол
+				const distance = Math.random() * maxRadius; // Случайное расстояние от центра
+				const x = centerX + Math.cos(angle) * distance;
+				const y = centerY + Math.sin(angle) * distance;
+
+				createExplosion(x, y, duration, maxRadius);
+			}
+		}
+		
+		function createSpecialExplosion(x, y) {
+			explosions.push({
+				x,
+				y,
+				radius: 5,
+				maxRadius: 40, // Большой радиус
+				alpha: 1,
+				duration: 40  // Долгая длительность
+			});
+		}
+
+		function drawExplosions() {
+			explosions.forEach((explosion, index) => {
+				ctx.beginPath();
+				ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+				ctx.fillStyle = `rgba(255, 100, 0, ${explosion.alpha})`;
+				ctx.fill();
+
+				explosion.radius += 1;
+				explosion.alpha -= 0.05;
+
+				if (explosion.radius > explosion.maxRadius || explosion.alpha <= 0) {
+					explosions.splice(index, 1);
+				}
+			});
+		}
+
+        function checkCollision(obj1, obj2) {
+            return (
+                obj1.x < obj2.x + obj2.width &&
+                obj1.x + obj1.width > obj2.x &&
+                obj1.y < obj2.y + obj2.height &&
+                obj1.y + obj1.height > obj2.y
+            );
+        }
+
+        function avoidCollisions() {
+            for (let i = 0; i < enemies.length; i++) {
+                for (let j = i + 1; j < enemies.length; j++) {
+                    const enemy1 = enemies[i];
+                    const enemy2 = enemies[j];
+
+                    if (checkCollision(enemy1, enemy2)) {
+                        if (enemy1.x < enemy2.x) {
+                            enemy1.x -= 2;
+                            enemy2.x += 2;
+                        } else {
+                            enemy1.x += 2;
+                            enemy2.x -= 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkPlayerCollision() {
+            enemies.forEach((enemy) => {
+                if (checkCollision(player, enemy)) {
+                    gameOver = true;
+                }
+            });
+        }
+
+        function spawnEnemy() {
+            if (!gameOver && !isPaused) {
+                for (let i = 0; i < 3; i++) {
+                    const enemyType = getRandomEnemyType();
+                    const x = Math.random() * (canvas.width - enemyType.width);
+                    enemies.push({
+                        ...enemyType,
+                        x,
+                        y: 0,
+                        speed: enemyType.baseSpeed * speedMultiplier,
+                        lastShotTime: 0
+                    });
+                }
+            }
+        }
+
+        function updateScoreboard() {
+            document.getElementById('modalTotalScore').textContent = score;
+            document.getElementById('modalHighScoreDisplay').textContent = highScore;
+            document.getElementById('modalInfantryCount').textContent = infantryCount;
+            document.getElementById('modalTankCount').textContent = tankCount;
+            document.getElementById('modalRocketLauncherCount').textContent = rocketLauncherCount;
+            document.getElementById('modalLevel').textContent = level;
+            document.getElementById('modalDifficultyLevel').textContent = Math.round((speedMultiplier - 1) * 100);
+            document.getElementById('modalHealthDisplay').textContent = `${player.health}%`;
+
+            if (score >= lastHealthIncreaseScore + 100 && player.health < 100) {
+                player.health += 1;
+                lastHealthIncreaseScore = score;
+                if (player.health > 100) {
+                    player.health = 100;
+                }
+                updateScoreboard();
+            }
+        }
+
+        function checkCollisionsWithMissiles() {
+            player.missiles.forEach((missile, mIndex) => {
+                enemies.forEach((enemy, eIndex) => {
+                    if (checkCollision(missile, enemy)) {
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                        playExplosionSound();
+
+                        if (enemy.type === 'пехота') {
+                            infantryHitCounter++;
+                            if (infantryHitCounter % 10 === 0) {
+                                playInfantryHitSound();
+                            }
+                        }
+
+						// Обновляем счетчики уничтоженных врагов
+						switch (enemy.type) {
+							case 'пехота':
+								infantryKilled++;
+								break;
+							case 'танк':
+								tanksKilled++;
+								break;
+							case 'РСЗО':
+								rocketLaunchersKilled++;
+								break;
+						}
+
+
+                        player.missiles.splice(mIndex, 1);
+                        enemies.splice(eIndex, 1);
+                        score += enemy.score;
+
+                        if (enemy.type === 'пехота') {
+                            infantryCount++;
+                        } else if (enemy.type === 'танк') {
+                            tankCount++;
+                        } else if (enemy.type === 'РСЗО') {
+                            rocketLauncherCount++;
+                        }
+
+                        updateScoreboard();
+                        updateEnemySpeeds();
+                    }
+                });
+            });
+        }
+		
+		function updateEnemies() {
+			enemies.forEach((enemy) => {
+				if (enemy.type === 'пехота' && isInfantryExploding) {
+					return; // Останавливаем пехоту во время взрывов
+				}
+
+				enemy.y += enemy.speed;
+				
+				// Ограничиваем движение врага по горизонтали
+				enemy.x = Math.max(0, Math.min(enemy.x, canvas.width - enemy.width));
+
+				if (enemy.y > canvas.height) {
+					gameOver = true;
+				}
+			});
+		}
+						
+		function destroyAllEnemiesWithSequentialExplosions() {
+			// Останавливаем только пехоту
+			isPaused = true;
+			console.log('Движение пехоты остановлено.');
+			// Сохраняем текущие позиции пехоты
+			const infantryPositions = enemies
+				.filter(enemy => enemy.type === 'пехота')
+				.map(enemy => ({
+					x: enemy.x + enemy.width / 2,
+					y: enemy.y + enemy.height / 2
+				}));
+
+			// Останавливаем только пехоту
+			isPaused = true;
+
+			// Создаем взрывы вокруг каждой пехоты с задержкой
+			infantryPositions.forEach((position, index) => {
+				const explosionCount = 5; // Количество взрывов для каждого врага
+
+				for (let i = 0; i < explosionCount; i++) {
+					setTimeout(() => {
+						createExplosion(
+							position.x + Math.random() * 40 - 20,
+							position.y + Math.random() * 40 - 20,
+							40, // Длительность взрыва
+							40  // Максимальный радиус взрыва
+						);
+					}, i * 300); // Задержка между взрывами
+				}
+
+				// Удаляем пехоту из массива после завершения всех ее взрывов
+				setTimeout(() => {
+					const infantryIndex = enemies.findIndex(enemy => enemy.type === 'пехота');
+					if (infantryIndex !== -1) {
+						enemies.splice(infantryIndex, 1);
+					}
+				}, explosionCount * 300); // Задержка перед удалением пехоты
+			});
+
+			// Возобновляем движение пехоты после завершения всех взрывов
+			setTimeout(() => {
+				isPaused = false;
+			}, infantryPositions.length * explosionCount * 300);
+		}
+		
+		function destroyAllEnemies() {
+			console.log('Уничтожение всех врагов. Количество врагов до:', enemies.length); // Отладочное сообщение
+
+			// Создаем взрывы для всех врагов
+			enemies.forEach((enemy) => {
+				const enemyCenterX = enemy.x + enemy.width / 2;
+				const enemyCenterY = enemy.y + enemy.height / 2;
+
+				for (let i = 0; i < 10; i++) { // 10 взрывов для каждого врага
+					setTimeout(() => {
+						createExplosion(
+							enemyCenterX + Math.random() * 20 - 10, // Случайное смещение по X
+							enemyCenterY + Math.random() * 20 - 10, // Случайное смещение по Y
+							40, // Длительность взрыва
+							40  // Радиус взрыва
+						);
+						
+						// Воспроизводим звук взрыва
+						playSound('rocketExplosionSound'); // Используем новый звук
+						// Или, если используем существующий звук:
+						// playSound('explosionSound');						
+						
+					}, i * 150); // Задержка между взрывами (150 мс)
+				}
+			});
+
+			// Устанавливаем флаг, что пехота находится в процессе уничтожения
+			isInfantryExploding = true;
+
+			console.log('Количество врагов после:', enemies.length); // Отладочное сообщение
+		}
+
+        function playShootSound() {
+            const shootSound = document.getElementById('shootSound');
+            shootSound.currentTime = 0;
+            shootSound.play();
+        }
+
+        function playExplosionSound() {
+            const explosionSound = document.getElementById('explosionSound');
+            explosionSound.currentTime = 0;
+            explosionSound.play();
+        }
+
+        function startBackgroundMusic() {
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            backgroundMusic.play();
+        }
+
+        function stopBackgroundMusic() {
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+        }
+		
+		// Обработчик для события изменения видимости страницы
+		// document.addEventListener('visibilitychange', handleVisibilityChange);
+		
+		let wasPausedBeforeHide = false; // Флаг для хранения состояния паузы до сворачивания
+
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) {
+				// Страница скрыта (свернута или переключена на другую вкладку)
+				wasPausedBeforeHide = isPaused; // Сохраняем состояние паузы
+				if (!isPaused) {
+					pauseGame(); // Ставим игру на паузу, если она не была на паузе
+				}
+			} else {
+				// Страница снова видима
+				if (wasPausedBeforeHide) {
+					// Если игра была на паузе до сворачивания, оставляем ее на паузе
+					pauseGame();
+				} else {
+					// Если игра не была на паузе до сворачивания, продолжаем игру
+					resumeGame();
+				}
+			}
+		});
+
+		function pauseGame() {
+			if (!isPaused) {
+				isPaused = true;
+				console.log('Игра на паузе: страница скрыта.');
+				stopBackgroundMusic(); // Останавливаем фоновую музыку
+				clearInterval(enemySpawnInterval); // Останавливаем спавн врагов
+				document.getElementById('iconsPanel').classList.add('hidden'); // Скрываем панель иконок
+			}
+		}
+
+		function resumeGame() {
+			if (isPaused) {
+				isPaused = false;
+				console.log('Игра возобновлена: страница снова видима.');
+				startBackgroundMusic(); // Возобновляем фоновую музыку
+				enemySpawnInterval = setInterval(spawnEnemy, 1000); // Возобновляем спавн врагов
+				document.getElementById('iconsPanel').classList.remove('hidden'); // Показываем панель иконок
+			}
+		}		
+
+		// Обработчик для события скрытия страницы (для некоторых браузеров)
+		window.addEventListener('pagehide', handlePageHide);
+
+		// Обработчик для события показа страницы (для некоторых браузеров)
+		window.addEventListener('pageshow', handlePageShow);
+
+		function handleVisibilityChange() {
+			if (document.hidden) {
+				// Страница скрыта (свернута или переключена на другую вкладку)
+				pauseGame();
+			} else {
+				// Страница снова видима
+				resumeGame();
+			}
+		}
+
+		function handlePageHide() {
+			// Страница скрыта (например, при переходе на другую вкладку)
+			pauseGame();
+		}
+
+		function handlePageShow() {
+			// Страница снова видима
+			resumeGame();
+		}
+		
+		function pauseGame() {
+			if (!isPaused) {
+				isPaused = true;
+				console.log('Игра на паузе: страница скрыта.');
+				stopBackgroundMusic(); // Останавливаем фоновую музыку
+			}
+		}
+
+		function resumeGame() {
+			if (isPaused) {
+				isPaused = false;
+				console.log('Игра возобновлена: страница снова видима.');
+				startBackgroundMusic(); // Возобновляем фоновую музыку
+			}
+		}
+
+		function restartGame() {
+			console.log("Новая игра. Текущий режим:", isNightMode ? "Ночь" : "День", "Прозрачность:", nightModeAlpha);
+
+			// Сброс параметров стрельбы врагов
+			enemyShootingParams.пехота.cooldown = initialEnemyShootingParams.пехота.cooldown;
+			enemyShootingParams.танк.cooldown = initialEnemyShootingParams.танк.cooldown;
+			enemyShootingParams.РСЗО.cooldown = initialEnemyShootingParams.РСЗО.cooldown;
+
+			// Сброс скорости снарядов врагов
+			enemyMissiles.forEach(missile => {
+				missile.speed = 4; // Начальная скорость снарядов
+			});
+
+			// Сброс lastShotTime для всех врагов
+			enemies.forEach(enemy => {
+				enemy.lastShotTime = 0; // Сбрасываем время последнего выстрела
+			});
+
+			// Сброс всех глобальных переменных
+			isGameStarted = true;
+			gameOver = false;
+			defeatHandled = false;
+			isGameOver = false;
+			isNightMode = false;
+			nightModeAlpha = 0;
+			lastModeSwitchTime = Date.now();
+			clearInterval(explosionInterval);
+			stopBlinking();
+			document.getElementById('scoreModal').style.display = 'none';
+			score = 0;
+			infantryCount = 0;
+			tankCount = 0;
+			rocketLauncherCount = 0;
+			level = 1;
+			speedMultiplier = 1;
+			lastRszShotTime = 0;
+			player.health = 100;
+			lastHealthIncreaseScore = 0;
+			infantryHitCounter = 0;
+			ammo = maxAmmo;
+			lastShotTimeAmmo = Date.now();
+
+			// Сброс состояния эффектов иконок
+			medkitEffectActive = false;
+			ammoEffectActive = false;
+			rocketEffectActive = false;
+			medkitEffectEndTime = 0;
+			ammoEffectEndTime = 0;
+			rocketEffectEndTime = 0;
+
+			// Деактивируем иконки на панели
+			setIconActive('medkitIcon', false);
+			setIconActive('ammoIcon', false);
+			setIconActive('rocketIcon', false);
+
+			// Очистка массивов
+			player.missiles.length = 0;
+			enemies.length = 0;
+			enemyMissiles.length = 0;
+			explosions.length = 0;
+
+			// Сброс состояния иконок
+			resetIcons();
+
+			// Запуск музыки и спавна врагов
+			startBackgroundMusic();
+			clearInterval(enemySpawnInterval);
+			enemySpawnInterval = setInterval(spawnEnemy, 1000);
+
+			// Обновление размеров холста и запуск игрового цикла
+			resizeCanvas();
+			gameLoop();
+		}
+
+        document.getElementById('restartButton').addEventListener('click', restartGame);
+
+        function drawBackground() {
+            if (backgroundImage.complete) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function drawHealthBar() {
+			if (isGameOver) return;
+		
+            const barWidth = canvas.width * 0.3; // Ширина индикатора
+            const barHeight = 24; // Высота индикатора
+            const x = 10; // Левый верхний угол с отступом 10px
+            const y = 10; // Отступ сверху
+
+            // Фон индикатора
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(x, y, barWidth, barHeight);
+
+            // Красный индикатор здоровья
+            ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+            ctx.fillRect(x, y, (player.health / 100) * barWidth, barHeight);
+
+            // Рамка индикатора
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(x, y, barWidth, barHeight);
+        }
+
+		// Функция для плавного перехода
+		function startTransition() {
+			if (isTransitioning) return;
+			isTransitioning = true;
+
+			const targetAlpha = isNightMode ? 0.7 : 0;
+			const startAlpha = nightModeAlpha;
+			const startTime = Date.now();
+
+			function animateTransition() {
+				const elapsedTime = Date.now() - startTime;
+				const progress = Math.min(elapsedTime / transitionDuration, 1);
+
+				nightModeAlpha = startAlpha + (targetAlpha - startAlpha) * progress;
+				console.log("Анимация перехода. Прозрачность:", nightModeAlpha);
+
+				if (progress < 1) {
+					requestAnimationFrame(animateTransition);
+				} else {
+					isTransitioning = false;
+				}
+			}
+
+			animateTransition();
+		}
+		
+		// Функция для переключения режима
+		function toggleNightMode() {
+			isNightMode = !isNightMode;
+			lastModeSwitchTime = Date.now();
+			startTransition();
+			console.log("Переключение режима. Новый режим:", isNightMode ? "Ночь" : "День");
+		}
+
+		function drawNightOverlay() {
+			console.log("Отрисовка затемнения. Прозрачность:", nightModeAlpha);
+			if (nightModeAlpha > 0) {
+				ctx.fillStyle = `rgba(0, 0, 0, ${nightModeAlpha})`;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
+		}
+		
+		
+		function drawAmmoBar() {
+			if (isGameOver) return;
+			
+			const barWidth = canvas.width * 0.3; // Ширина индикатора
+			const barHeight = 24; // Высота индикатора
+			const x = canvas.width - barWidth - 10; // Правый верхний угол с отступом 10px
+			const y = 10; // Отступ сверху
+
+			// Фон индикатора
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+			ctx.fillRect(x, y, barWidth, barHeight);
+
+			// Зеленый индикатор боекомплекта (уменьшение слева направо)
+			ctx.fillStyle = 'rgba(0, 255, 0, 1)';
+			const ammoWidth = (ammo / maxAmmo) * barWidth; // Ширина заполненной части
+			ctx.fillRect(x + barWidth - ammoWidth, y, ammoWidth, barHeight); // Начинаем с правого края
+
+			// Рамка индикатора
+			ctx.strokeStyle = 'white';
+			ctx.strokeRect(x, y, barWidth, barHeight);
+		}
+
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                updateScoreboard();
+            }
+        }
+
+		function togglePause() {
+			isPaused = !isPaused;
+			const iconsPanel = document.getElementById('iconsPanel');
+
+			if (isPaused) {
+				iconsPanel.classList.add('hidden'); // Скрываем панель при паузе
+				clearInterval(enemySpawnInterval); // Останавливаем спавн врагов
+				stopBackgroundMusic(); // Останавливаем музыку
+			} else {
+				iconsPanel.classList.remove('hidden'); // Показываем панель при снятии паузы
+				enemySpawnInterval = setInterval(spawnEnemy, 1000); // Возобновляем спавн врагов
+				startBackgroundMusic(); // Возобновляем музыку
+			}
+		}
+
+        function drawPauseMenu() {
+            if (isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Пауза', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        function shoot() {
+            const currentTime = Date.now();
+			
+			// Если эффект ящика со снарядами активен, игнорируем проверку боекомплекта
+			if (!ammoEffectActive && (currentTime - lastShotTime < 1000 / maxShotsPerSecond || ammo <= 0)) {
+				return; // Не стреляем, если нет боекомплекта или слишком часто
+			}
+
+			lastShotTime = currentTime;
+			lastShotTimeAmmo = currentTime;
+
+			// Если эффект ящика со снарядами не активен, уменьшаем боекомплект
+			if (!ammoEffectActive) {
+				ammo = Math.max(0, ammo - 1);
+			}
+
+            // Остальная логика выстрела
+            for (let i = 0; i < missileCount; i++) {
+                const angle = -missileSpreadAngle * (missileCount - 1) / 2 + i * missileSpreadAngle;
+                const speedVariation = baseMissileSpeed * (0.9 + Math.random() * 0.2);
+                let explosionY;
+                if (i === missileCount - 1) {
+                    explosionY = 0;
+                } else {
+                    explosionY = Math.random() * (canvas.height / 2) + (canvas.height / 4);
+                }
+
+                player.missiles.push({
+                    x: player.x + player.width / 2 - 2.5,
+                    y: player.y,
+                    width: 5,
+                    height: 10,
+                    angle: angle,
+                    speed: speedVariation,
+                    willReachEnd: i === missileCount - 1,
+                    explosionY: explosionY
+                });
+            }
+
+            playShootSound();
+        }
+		
+		function checkEffects() {
+			const currentTime = Date.now();
+
+			// Проверяем эффект аптечки
+			if (medkitEffectActive && currentTime >= medkitEffectEndTime) {
+				medkitEffectActive = false;
+				setIconActive('medkitIcon', false);
+				playSound('effectDeactivateSound'); // Звук деактивации эффекта
+				console.log('Эффект аптечки закончился.');
+			}
+
+			// Проверяем эффект ящика со снарядами
+			if (ammoEffectActive && currentTime >= ammoEffectEndTime) {
+				ammoEffectActive = false;
+				setIconActive('ammoIcon', false);
+				playSound('effectDeactivateSound'); // Звук деактивации эффекта
+				console.log('Эффект ящика со снарядами закончился.');
+			}
+
+			// Проверяем эффект орешника
+			if (rocketEffectActive && currentTime >= rocketEffectEndTime) {
+				rocketEffectActive = false;
+				isInfantryExploding = false; // Сбрасываем флаг
+				setIconActive('rocketIcon', false); // Деактивируем иконку на панели
+				playSound('effectDeactivateSound'); // Звук деактивации эффекта
+				
+				// Восстанавливаем оригинальные параметры стрельбы врагов
+				enemyShootingParams.пехота.cooldown = originalEnemyShootingParams.пехота.cooldown;
+				enemyShootingParams.танк.cooldown = originalEnemyShootingParams.танк.cooldown;
+				enemyShootingParams.РСЗО.cooldown = originalEnemyShootingParams.РСЗО.cooldown;
+
+				console.log('Эффект Орешника закончился: интенсивность выстрелов врагов восстановлена.');
+			}
+		}
+		
+		function activateRocketEffect() {
+			rocketEffectActive = true;
+			rocketEffectEndTime = Date.now() + 60000;
+			console.log('Орешник активирован. Пехота должна остановиться.');
+			destroyAllEnemies();
+			setIconActive('rocketIcon', true);
+		}
+		
+		function checkIconSpawnConditions() {
+			// Условие для аптечки: здоровье игрока < 65% и уничтожено 15 врагов
+			if (player.health < 80 && infantryKilled + tanksKilled + rocketLaunchersKilled >= 15 && !medkitEffectActive) {
+				spawnIcon('medkit');
+				infantryKilled = 0; // Сбрасываем счетчики после появления иконки
+				tanksKilled = 0;
+				rocketLaunchersKilled = 0;
+			}
+
+			// Условие для ящика со снарядами: уничтожено 25 пехотинцев
+			if (infantryKilled >= 25 && !ammoEffectActive) {
+				spawnIcon('ammo');
+				infantryKilled = 0; // Сбрасываем счетчик после появления иконки
+			}
+
+			// Условие для Орешника: враг преодолел 60% поля и уничтожено 25 пехотинцев, 10 танков или 5 РСЗО
+			if (!rocketEffectActive) {
+				// Проверяем, преодолел ли враг 60% поля
+				const threshold = canvas.height * 0.6;
+				const enemyCrossed = enemies.some(enemy => enemy.y >= threshold);
+
+				if (enemyCrossed && (infantryKilled >= 25 || tanksKilled >= 10 || rocketLaunchersKilled >= 5)) {
+					spawnIcon('rocket');
+					infantryKilled = 0; // Сбрасываем счетчики после появления иконки
+					tanksKilled = 0;
+					rocketLaunchersKilled = 0;
+				}
+			}
+		}
+		
+		
+
+		function gameLoop() {
+			console.log("Игровой цикл выполняется. isGameOver:", isGameOver);	
+		
+			if (isGameOver) {
+				console.log("Игра завершена. Останавливаем игровой цикл.");
+				return; // Останавливаем игровой цикл, если игра завершена
+			}		
+		
+		
+			if (gameOver || player.health <= 0) {
+				console.log("Игрок погиб. Обрабатываем поражение...");
+				if (!defeatHandled) {
+					handleDefeat();
+				}
+				return;
+			}
+
+			if (isPaused) {
+				console.log("Игра на паузе. Рисуем меню паузы...");
+				drawPauseMenu();
+				requestAnimationFrame(gameLoop);
+				return;
+			}
+
+			// Проверка времени для автоматического переключения режима
+			if (Date.now() - lastModeSwitchTime >= modeSwitchInterval) {
+				toggleNightMode();
+			}
+
+			// Очистка массивов (удаление вышедших за пределы объектов)
+			function cleanUpArrays() {
+				enemies = enemies.filter(enemy => enemy.y < canvas.height);
+				enemyMissiles = enemyMissiles.filter(missile => missile.y < canvas.height);
+				explosions = explosions.filter(explosion => explosion.alpha > 0);
+			}
+
+			// Обновление состояния игры
+		    console.log("Обновляем состояние игры...");	
+			updateGameState();
+
+			// Восстановление боекомплекта
+			const currentTime = Date.now();
+			if (currentTime - lastShotTimeAmmo >= 1000) { // Если прошла 1 секунда с последнего выстрела
+				ammo = Math.min(maxAmmo, ammo + 5); // Восстанавливаем 5 единиц боекомплекта
+				lastShotTimeAmmo = currentTime; // Обновляем время последнего восстановления
+			}
+
+			// Очистка холста
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+			// Отрисовка фона
+			drawBackground();
+
+			// Отрисовка затемнения (ночной режим)
+			drawNightOverlay();
+
+			console.log("Рисуем игровые элементы...");
+			drawGameElements();
+			
+			console.log("Запускаем следующий кадр игрового цикла...");			
+			requestAnimationFrame(gameLoop);
+		}
+
+		function updateGameState() {
+			updateEnemies();
+			checkIconSpawnConditions();
+			checkEffects();
+			updateIcons();
+			checkIconCollisions();
+			avoidCollisions();
+			checkPlayerCollision();
+			checkCollisionsWithMissiles();
+			checkEnemyMissileCollisions();
+			enemyShoot();
+			updateLevel();
+		}
+
+		function drawGameElements() {
+
+			drawMissiles();
+			drawEnemies();
+			drawEnemyMissiles();
+			drawExplosions();
+			drawIcons();
+			drawPlayer();
+			drawHealthBar();
+			drawAmmoBar();
+		}
+
+		function resizeCanvas() {
+			const maxWidth = 400; // Максимальная ширина игрового поля
+			const touchpadHeight = 0.15 * window.innerHeight; // Высота сенсорной зоны (15% от высоты экрана)
+
+			// Рассчитываем ширину и высоту холста
+			gameWidth = Math.min(window.innerWidth - 40, maxWidth);
+			gameHeight = window.innerHeight - touchpadHeight; // Высота минус сенсорная зона
+
+			// Устанавливаем размеры холста
+			canvas.width = gameWidth;
+			canvas.height = gameHeight;
+
+			// Позиционируем холст по центру горизонтально и вверху вертикально
+			canvas.style.position = 'absolute';
+			canvas.style.left = '50%'; // Центрируем по горизонтали
+			canvas.style.transform = 'translateX(-50%)'; // Смещаем на половину ширины холста
+
+			// Добавляем отступ сверху только для ПК
+			if (platform === 'PC') {
+				canvas.style.top = '20px'; // Отступ 20 пикселей от верхней границы
+			} else {
+				canvas.style.top = '0'; // Для мобильных устройств отступ не нужен
+			}
+
+			// Устанавливаем ширину сенсорной зоны равной ширине холста + 4px (рамка)
+			document.documentElement.style.setProperty('--game-width', `${gameWidth}px`);
+
+			// Пересчитываем позицию игрока, чтобы он оставался по центру внизу
+			player.x = canvas.width / 2 - player.width / 2;
+			player.y = canvas.height - 40;
+
+			// Обновляем позицию панели иконок
+			updateIconsPanelPosition();
+		}
+		
+		function updateIconsPanelPosition() {
+			const iconsPanel = document.getElementById('iconsPanel');
+			if (iconsPanel) {
+				// Рассчитываем доступное пространство между индикаторами
+				const healthBar = document.getElementById('healthBar');
+				const ammoBar = document.getElementById('ammoBar');
+
+				if (healthBar && ammoBar) {
+					const healthBarRight = healthBar.offsetLeft + healthBar.offsetWidth;
+					const ammoBarLeft = ammoBar.offsetLeft;
+					const availableWidth = ammoBarLeft - healthBarRight;
+
+					// Добавляем отступы между индикаторами и панелью иконок
+					const padding = 20; // Отступ в 20 пикселей с каждой стороны
+					const panelWidth = availableWidth - 2 * padding; // Уменьшаем ширину панели на отступы
+
+					// Устанавливаем ширину панели иконок в пределах доступного пространства
+					iconsPanel.style.width = `${panelWidth}px`;
+					iconsPanel.style.left = `${healthBarRight + padding + (panelWidth / 2)}px`;
+				}
+			}
+		}		
+
+        function checkOrientation() {
+            // Если устройство определено как ПК, пропускаем проверку ориентации
+            if (platform === 'PC') {
+                isPaused = false; // Снимаем паузу, если она была
+                startBackgroundMusic(); // Включаем фоновую музыку
+                hideOrientationWarning(); // Скрываем предупреждение (если оно было показано)
+                resizeCanvas(); // Обновляем размеры холста
+                return; // Выходим из функции
+            }
+
+            // Для мобильных устройств проверяем ориентацию
+            const isPortrait = window.innerHeight > window.innerWidth;
+
+            if (!isPortrait) {
+                isPaused = true; // Ставим игру на паузу
+                stopBackgroundMusic(); // Останавливаем фоновую музыку
+                showOrientationWarning(); // Показываем предупреждение
+				document.getElementById('iconsPanel').classList.add('hidden'); // Скрываем панель иконо
+            } else {
+                isPaused = false; // Снимаем паузу, если ориентация правильная
+                startBackgroundMusic(); // Возобновляем фоновую музыку
+                hideOrientationWarning(); // Скрываем предупреждение
+				restoreIconsPanel(); // Восстанавливаем панель иконок
+            }
+			
+			resizeCanvas(); // Обновляем размеры холста			
+        }
+
+        function showOrientationWarning() {
+            const warning = document.createElement('div');
+            warning.id = 'orientationWarning';
+            warning.style.position = 'fixed';
+            warning.style.top = '0';
+            warning.style.left = '0';
+            warning.style.width = '100%';
+            warning.style.height = '100%';
+            warning.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            warning.style.color = 'white';
+            warning.style.display = 'flex';
+            warning.style.justifyContent = 'center';
+            warning.style.alignItems = 'center';
+            warning.style.zIndex = '2000';
+            warning.style.fontSize = '24px';
+            warning.style.textAlign = 'center';
+            warning.style.padding = '20px';
+            warning.style.boxSizing = 'border-box';
+            warning.textContent = 'Пожалуйста, поверните устройство в портретную ориентацию для продолжения игры.';
+            document.body.appendChild(warning);
+        }
+
+        function hideOrientationWarning() {
+            const warning = document.getElementById('orientationWarning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+		
+		function resetIcons() {
+			for (const type in icons) {
+				const icon = icons[type];
+				icon.active = false; // Делаем иконку неактивной
+				icon.x = 0; // Сбрасываем позицию по X
+				icon.y = 0; // Сбрасываем позицию по Y
+				icon.timer = 0; // Сбрасываем таймер
+			}
+			console.log('Состояние иконок сброшено');
+		}
+
+        // Проверка ориентации при загрузке страницы и изменении размера окна
+        checkOrientation();
+        window.addEventListener('resize', () => {
+            checkOrientation(); // Проверяем ориентацию
+            resizeCanvas(); // Обновляем размеры холста
+        });
+
+        // Запрет масштабирования на touch-устройствах
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== 1) {
+                event.preventDefault(); // Запрещаем масштабирование
+            }
+        }, { passive: false });
+
+        // Ожидание загрузки всех изображений
+        Promise.all([
+            new Promise((resolve) => { playerImage.onload = resolve; }),
+            new Promise((resolve) => { infantryImage.onload = resolve; }),
+            new Promise((resolve) => { tankImage.onload = resolve; }),
+            new Promise((resolve) => { rocketLauncherImage.onload = resolve; }),
+            new Promise((resolve) => { backgroundImage.onload = resolve; })
+        ]).then(() => {
+            resizeCanvas(); // Устанавливаем начальные размеры холста
+            document.getElementById('scoreModal').style.display = 'flex';
+        });
+
+        // Логика для модального окна с инструкцией
+        const instructionModal = document.getElementById('instructionModal');
+        const instructionButton = document.getElementById('instructionButton');
+        const instructionModalContent = document.getElementById('instructionModalContent');
+
+        // Открываем модальное окно с инструкцией
+        instructionButton.addEventListener('click', () => {
+            instructionModal.style.display = 'flex';
+        });
+
+        // Закрываем модальное окно при клике в любом месте
+        instructionModal.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+        });
+
+        // Обработка прокрутки текста внутри модального окна
+        let startY = 0;
+
+        instructionModalContent.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY; // Запоминаем начальную позицию касания
+        });
+
+        instructionModalContent.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            const deltaY = startY - currentY; // Вычисляем разницу по Y
+
+            // Прокручиваем содержимое
+            instructionModalContent.scrollBy(0, deltaY);
+
+            startY = currentY; // Обновляем начальную позицию
+        });
+		
+		console.log('Canvas top offset:', canvas.offsetTop);
+		console.log('Canvas padding top:', window.getComputedStyle(canvas).paddingTop);
+
+    </script>
 </body>
 </html>
