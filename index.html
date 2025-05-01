@@ -5,6 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Тосочка: Залповый огонь</title>
     <style>
+        /* Стили для посвящения */
+        #dedication {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            text-align: center;
+            z-index: 3000; /* Выше всех элементов */
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+
+        #dedication.hidden {
+            opacity: 0;
+            pointer-events: none; /* Отключаем взаимодействие с элементом */
+        }
+
+        #dedication h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        #dedication p {
+            margin: 10px 0;
+        }	
+	
         body {
             margin: 0;
             overflow: hidden;
@@ -367,6 +402,12 @@
             <button id="closeIosWarningButton">Закрыть</button>
         </div>
     </div>
+	
+    <!-- Блок посвящения -->
+    <div id="dedication">
+        <h1>К 80-летию Победы в Великой Отечественной войне</h1>
+        <p>Посвящается Кимову Темботу Эльмурзовичу</p>
+    </div>	
 
     <!-- Заставка в iframe -->
     <iframe id="splashFrame" src="splash.html" style="width: 100%; height: 100%; border: none; position: fixed; top: 0; left: 0; z-index: 1999;"></iframe>
@@ -378,7 +419,7 @@
                 splashFrame.remove(); // Удаляем iframe
             }
             document.getElementById('scoreModal').style.display = 'flex'; // Показываем меню
-        }, 8000);
+        }, 14000);
     </script>
 	<div id="gameContainer">
 		<div id="iconsPanel">
@@ -536,6 +577,15 @@
 	<audio id="rocketExplosionSound" src="soundtrack/rocket_explosion.ogg"></audio>
 
     <script>
+	
+        // Добавляем скрытие посвящения через 5 секунд
+        setTimeout(() => {
+            const dedication = document.getElementById('dedication');
+            if (dedication) {
+                dedication.classList.add('hidden'); // Плавно скрываем посвящение
+            }
+        }, 6000); // 6 секунд
+		
 		const loadImage = (src) => new Promise((resolve, reject) => {
 			const img = new Image();
 			img.src = src;
@@ -733,6 +783,7 @@
         let speedMultiplier = 1;
         let level = 1;
         const levelThresholds = [100, 300, 600, 1000];
+		const levelIncrement = 500;
         let isPaused = false;
         let highScore = localStorage.getItem('highScore') || 0;
 		
@@ -1262,16 +1313,25 @@
             document.getElementById('modalDifficultyLevel').textContent = difficultyLevel;
         }
 
-        function updateLevel() {
-            for (let i = 0; i < levelThresholds.length; i++) {
-                if (score >= levelThresholds[i] && level < i + 2) {
-                    level = i + 2;
-                    speedMultiplier = 1 + level * 0.1;
-                    updateScoreboard();
-                    break;
-                }
-            }
-        }
+		function updateLevel() {
+			// Проверяем пороги для первых 5 уровней
+			for (let i = 0; i < levelThresholds.length; i++) {
+				if (score >= levelThresholds[i] && level < i + 2) {
+					level = i + 2;
+					speedMultiplier = 1 + level * 0.1;
+					updateScoreboard();
+					break;
+				}
+			}
+
+			// После 1000 очков увеличиваем уровень каждые 500 очков
+			if (score >= 1000) {
+				const additionalLevels = Math.floor((score - 1000) / levelIncrement);
+				level = 5 + additionalLevels; // Начинаем с уровня 5
+				speedMultiplier = 1 + level * 0.1;
+				updateScoreboard();
+			}
+		}
 
         function drawPlayer() {
             if (isPlayerBlinking && !isPlayerVisible()) return; // Не отображаем игрока, если идет моргание и он невидим
