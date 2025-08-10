@@ -73,12 +73,12 @@
         const DronoBoy = (() => {
             const config = {
                 playerHeight: 1.7,
-                gunPosition: { x: 0.4, y: -0.5, z: -1.4 },
+                gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
                 targetCount: 8,
                 targetSpeed: 0.02,
                 ammoStart: 300,
-                targetSize: 1.2
+                targetSize: 1.9
             };
 
             let scene, camera, renderer, controls;
@@ -173,7 +173,7 @@
                         target.position.sub(center);
                         
                         // Поворот и масштабирование
-                        target.rotation.x = Math.PI / 2;
+                        target.rotation.x = Math.PI / 1;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
                         targetGroup.add(target);
