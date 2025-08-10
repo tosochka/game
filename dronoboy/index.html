@@ -3,57 +3,19 @@
 <head>
     <title>DronoBoy - 3D FPS Game</title>
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            font-family: Arial, sans-serif;
-        }
-        #hud {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            pointer-events: none;
-        }
-        #ammo, #score { 
-            font-size: 24px;
-            margin: 5px;
-        }
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        #hud { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 2px 2px 4px black; }
+        #ammo, #score { font-size: 24px; }
         #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            pointer-events: none;
+            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
+            transform: translate(-50%, -50%); background-color: white; border-radius: 50%;
         }
         #start-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            z-index: 100;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; justify-content: center;
+            align-items: center; color: white; flex-direction: column;
         }
-        #start-button {
-            padding: 10px 20px;
-            font-size: 20px;
-            background: #4CAF50;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-        }
+        #start-button { padding: 10px 20px; font-size: 20px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -64,59 +26,51 @@
     </div>
     <div id="crosshair"></div>
     <div id="start-screen">
-    <!--    <h1>DronoBoy</h1>
-        <p>Стреляйте в мишени. Перезарядка - клавиша R</p> -->
+        <h1>DronoBoy</h1>
+        <p>Стреляйте в мишени. Перезарядка - клавиша R</p>
         <button id="start-button">Начать игру</button>
     </div>
 
-    <!-- Three.js и дополнительные библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/PointerLockControls.js"></script>
-    
+
     <script>
-        // === Игра DronoBoy ===
         const DronoBoy = (() => {
-            // --- Конфигурация ---
+            // Конфигурация
             const config = {
-                player: {
-                    speed: 5,
-                    height: 1.6
-                },
-                targets: {
-                    count: 8,
-                    speed: 0.05
-                },
-                ammo: {
-                    startCount: 30
-                }
+                playerSpeed: 5,
+                targetSpeed: 0.05,
+                ammoStart: 30
             };
 
-            // --- Переменные ---
+            // Переменные
             let scene, camera, renderer, controls;
-            let gun, targets = [], bullets = [];
-            let ammoCount = config.ammo.startCount, score = 0;
+            let gun, targets = [];
+            let ammoCount = config.ammoStart, score = 0;
             let isGameStarted = false;
 
-            // --- Инициализация ---
+            // Инициализация
             function init() {
                 createScene();
                 setupCamera();
                 setupRenderer();
                 createLighting();
                 createGround();
+                loadModels();
+                setupControls();
                 setupEventListeners();
-                setupStartScreen();
+                animate();
             }
 
             function createScene() {
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x87CEEB); // Голубое небо
+                scene.background = new THREE.Color(0x87CEEB);
             }
 
             function setupCamera() {
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.y = config.player.height;
+                camera.position.y = 1.6;
             }
 
             function setupRenderer() {
@@ -127,55 +81,97 @@
 
             function createLighting() {
                 const ambientLight = new THREE.AmbientLight(0x404040);
-                scene.add(ambientLight);
-
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
                 directionalLight.position.set(1, 1, 1);
-                scene.add(directionalLight);
+                scene.add(ambientLight, directionalLight);
             }
 
             function createGround() {
-                const groundGeometry = new THREE.PlaneGeometry(100, 100);
-                const groundMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0x3a5f0b,
-                    roughness: 0.8
-                });
-                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                const ground = new THREE.Mesh(
+                    new THREE.PlaneGeometry(100, 100),
+                    new THREE.MeshStandardMaterial({ color: 0x3a5f0b, roughness: 0.8 })
+                );
                 ground.rotation.x = -Math.PI / 2;
                 scene.add(ground);
             }
 
-            // --- Загрузка моделей .glb ---
+            // Загрузка моделей с fallback на примитивы
             function loadModels() {
+                loadGun();
+                loadTargets();
+            }
+
+            function loadGun() {
                 const loader = new THREE.GLTFLoader();
+                loader.load('models/gun.glb', 
+                    (gltf) => {
+                        gun = gltf.scene;
+                        gun.position.set(0.5, -0.5, -1);
+                        gun.scale.set(0.1, 0.1, 0.1);
+                        camera.add(gun);
+                        scene.add(camera);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error("Ошибка загрузки ружья:", error);
+                        createTempGun();
+                    }
+                );
+            }
 
-                // Загрузка ружья
-                loader.load('models/gun.glb', (gltf) => {
-                    gun = gltf.scene;
-                    gun.position.set(0.5, -0.3, -0.8);
-                    gun.scale.set(0.1, 0.1, 0.1);
-                    camera.add(gun);
-                    scene.add(camera);
-                });
+            function createTempGun() {
+                const geometry = new THREE.BoxGeometry(0.3, 0.1, 0.5);
+                const material = new THREE.MeshStandardMaterial({ color: 0x555555 });
+                gun = new THREE.Mesh(geometry, material);
+                gun.position.set(0.5, -0.5, -1);
+                camera.add(gun);
+                scene.add(camera);
+            }
 
-                // Загрузка мишеней
-                for (let i = 0; i < config.targets.count; i++) {
-                    loader.load('models/target.glb', (gltf) => {
-                        const target = gltf.scene;
-                        target.position.set(
-                            Math.random() * 30 - 15,
-                            Math.random() * 5 + 1,
-                            Math.random() * 30 - 15
-                        );
-                        targets.push(target);
-                        scene.add(target);
-                    });
+            function loadTargets() {
+                const loader = new THREE.GLTFLoader();
+                for (let i = 0; i < 8; i++) {
+                    loader.load('models/target.glb', 
+                        (gltf) => {
+                            const target = gltf.scene;
+                            target.position.set(
+                                Math.random() * 30 - 15,
+                                Math.random() * 5,
+                                Math.random() * 30 - 15
+                            );
+                            targets.push(target);
+                            scene.add(target);
+                        },
+                        undefined,
+                        (error) => {
+                            console.error("Ошибка загрузки мишени:", error);
+                            createTempTargets();
+                        }
+                    );
                 }
             }
 
-            // --- Управление ---
+            function createTempTargets() {
+                const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8);
+                const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+                
+                for (let i = 0; i < 8; i++) {
+                    const target = new THREE.Mesh(geometry, material);
+                    target.position.set(
+                        Math.random() * 30 - 15,
+                        Math.random() * 5,
+                        Math.random() * 30 - 15
+                    );
+                    targets.push(target);
+                    scene.add(target);
+                }
+            }
+
             function setupControls() {
                 controls = new THREE.PointerLockControls(camera, renderer.domElement);
+                document.getElementById('start-button').addEventListener('click', () => {
+                    controls.lock();
+                });
                 controls.addEventListener('lock', () => {
                     isGameStarted = true;
                     document.getElementById('start-screen').style.display = 'none';
@@ -186,19 +182,13 @@
                 });
             }
 
-            function setupStartScreen() {
-                document.getElementById('start-button').addEventListener('click', () => {
-                    controls.lock();
-                });
-            }
-
             function setupEventListeners() {
                 window.addEventListener('resize', onWindowResize);
                 document.addEventListener('mousedown', onMouseDown);
                 document.addEventListener('keydown', onKeyDown);
             }
 
-            // --- Игровая логика ---
+            // Игровая логика
             function shoot() {
                 if (ammoCount <= 0 || !isGameStarted) return;
                 
@@ -208,9 +198,7 @@
                 // Эффект отдачи
                 if (gun) {
                     gun.position.z += 0.1;
-                    setTimeout(() => {
-                        if (gun) gun.position.z -= 0.1;
-                    }, 100);
+                    setTimeout(() => gun.position.z -= 0.1, 100);
                 }
 
                 // Проверка попадания
@@ -221,7 +209,7 @@
                 const intersects = raycaster.intersectObjects(targets);
                 
                 if (intersects.length > 0) {
-                    const hitTarget = intersects[0].object.parent;
+                    const hitTarget = intersects[0].object;
                     scene.remove(hitTarget);
                     targets = targets.filter(t => t !== hitTarget);
                     score += 10;
@@ -231,25 +219,41 @@
             }
 
             function spawnNewTarget() {
+                // Пробуем загрузить .glb, иначе создаём примитив
                 const loader = new THREE.GLTFLoader();
-                loader.load('models/target.glb', (gltf) => {
-                    const target = gltf.scene;
-                    target.position.set(
-                        Math.random() * 30 - 15,
-                        Math.random() * 5 + 1,
-                        -20
-                    );
-                    targets.push(target);
-                    scene.add(target);
-                });
+                loader.load('models/target.glb', 
+                    (gltf) => {
+                        const target = gltf.scene;
+                        target.position.set(
+                            Math.random() * 30 - 15,
+                            Math.random() * 5,
+                            -20
+                        );
+                        targets.push(target);
+                        scene.add(target);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error("Ошибка загрузки новой мишени:", error);
+                        const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8);
+                        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+                        const target = new THREE.Mesh(geometry, material);
+                        target.position.set(
+                            Math.random() * 30 - 15,
+                            Math.random() * 5,
+                            -20
+                        );
+                        targets.push(target);
+                        scene.add(target);
+                    }
+                );
             }
 
             function reload() {
-                ammoCount = config.ammo.startCount;
+                ammoCount = config.ammoStart;
                 updateHUD();
             }
 
-            // --- Вспомогательные функции ---
             function updateHUD() {
                 document.getElementById('ammo').textContent = `Патроны: ${ammoCount}`;
                 document.getElementById('score').textContent = `Очки: ${score}`;
@@ -269,13 +273,13 @@
                 if (e.key === 'r') reload();
             }
 
-            // --- Главный цикл ---
+            // Главный цикл
             function animate() {
                 requestAnimationFrame(animate);
                 
                 // Движение мишеней к игроку
                 targets.forEach(target => {
-                    target.position.z += config.targets.speed;
+                    target.position.z += config.targetSpeed;
                     if (target.position.z > 10) {
                         target.position.z = -20;
                         target.position.x = Math.random() * 30 - 15;
@@ -285,18 +289,9 @@
                 renderer.render(scene, camera);
             }
 
-            // Публичные методы
-            return {
-                init: function() {
-                    init();
-                    setupControls();
-                    loadModels();
-                    animate();
-                }
-            };
+            return { init };
         })();
 
-        // Запуск игры
         window.onload = DronoBoy.init;
     </script>
 </body>
