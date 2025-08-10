@@ -73,13 +73,13 @@
         const DronoBoy = (() => {
             // Конфигурация
             const config = {
-                playerHeight: 1.6,
+                playerHeight: 2.6,
                 gunPosition: { x: 0.5, y: -0.5, z: -1 },
                 gunScale: 0.6,
                 targetCount: 8,
                 targetSpeed: 0.02,
                 ammoStart: 300,
-                targetSize: 1.9 // Размер мишени (радиус)
+                targetSize: 1.9
             };
 
             // Переменные
@@ -157,30 +157,38 @@
                     }
                 );
 
-                // Загрузка мишеней с правильной ориентацией
+                // Загрузка мишеней с гарантированным поворотом
                 for (let i = 0; i < config.targetCount; i++) {
                     loader.load('models/target.glb', 
                         (gltf) => {
                             const target = gltf.scene;
                             
-                            // Настройка ориентации и размера
-                            target.rotation.x = Math.PI / 1; // Поворот на 90 градусов
-                            target.scale.set(config.targetSize, config.targetSize, config.targetSize);
+                            // Сброс всех трансформаций
+                            target.traverse((child) => {
+                                if (child.isMesh) {
+                                    child.rotation.set(0, 0, 0);
+                                    child.position.set(0, 0, 0);
+                                    child.scale.set(1, 1, 1);
+                                    child.geometry.computeBoundingBox();
+                                }
+                            });
                             
-                            // Вычисление bounding box для точных попаданий
-                            new THREE.Box3().setFromObject(target);
+                            // Применение наших трансформаций
+                            target.rotation.x = Math.PI / 2; // 90 градусов
+                            target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                             
                             target.position.set(
                                 Math.random() * 30 - 15,
                                 Math.random() * 5,
                                 Math.random() * 30 - 15
                             );
+                            
                             targets.push(target);
                             scene.add(target);
                         },
                         undefined,
                         () => {
-                            // Fallback: цилиндр (как в оригинале)
+                            // Fallback: цилиндр
                             const target = new THREE.Mesh(
                                 new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
                                 new THREE.MeshStandardMaterial({ color: 0xff0000 })
@@ -255,6 +263,13 @@
                 loader.load('models/target.glb', 
                     (gltf) => {
                         const target = gltf.scene;
+                        target.traverse((child) => {
+                            if (child.isMesh) {
+                                child.rotation.set(0, 0, 0);
+                                child.position.set(0, 0, 0);
+                                child.scale.set(1, 1, 1);
+                            }
+                        });
                         target.rotation.x = Math.PI / 2;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         target.position.set(
