@@ -162,7 +162,7 @@
 
             function spawnNewTarget() {
                 const loader = new THREE.GLTFLoader();
-                loader.load('models/target.obj', 
+                loader.load('models/target.glb', 
                     (gltf) => {
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
