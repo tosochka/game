@@ -73,9 +73,9 @@
         const DronoBoy = (() => {
             // Конфигурация
             const config = {
-                playerHeight: 1.6,
+                playerHeight: 2.6,
                 gunPosition: { x: 0.5, y: -0.5, z: -1 },
-                gunScale: 0.1,
+                gunScale: 0.4,
                 targetCount: 8,
                 targetSpeed: 0.02,
                 ammoStart: 300,
@@ -174,7 +174,7 @@
                             });
                             
                             // Применение наших трансформаций
-                            target.rotation.x = Math.PI / 2; // 90 градусов
+                            target.rotation.x = Math.PI / 1; // 90 градусов
                             target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                             
                             target.position.set(
