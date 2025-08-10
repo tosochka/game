@@ -171,6 +171,9 @@
                         const box = new THREE.Box3().setFromObject(target);
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
+						
+						// Поворот на 180 градусов по Y (Math.PI радиан)
+						target.rotation.y = Math.PI;						
                         
                         // Поворот и масштабирование
                         target.rotation.x = Math.PI / 1;
