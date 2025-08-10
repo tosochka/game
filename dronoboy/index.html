@@ -71,7 +71,6 @@
 
     <script>
         const DronoBoy = (() => {
-            // Конфигурация
             const config = {
                 playerHeight: 1.7,
                 gunPosition: { x: 0.4, y: -0.5, z: -1.4 },
@@ -82,13 +81,11 @@
                 targetSize: 1.2
             };
 
-            // Переменные
             let scene, camera, renderer, controls;
             let gun, targets = [];
             let ammoCount = config.ammoStart, score = 0;
             let isGameStarted = false;
 
-            // Инициализация
             function init() {
                 createScene();
                 setupCamera();
@@ -157,52 +154,58 @@
                     }
                 );
 
-                // Загрузка мишеней с гарантированным поворотом
+                // Загрузка мишеней
                 for (let i = 0; i < config.targetCount; i++) {
-                    loader.load('models/target.glb', 
-                        (gltf) => {
-                            const target = gltf.scene;
-                            
-                            // Сброс всех трансформаций
-                            target.traverse((child) => {
-                                if (child.isMesh) {
-                                    child.rotation.set(0, 0, 0);
-                                    child.position.set(0, 0, 0);
-                                    child.scale.set(1, 1, 1);
-                                    child.geometry.computeBoundingBox();
-                                }
-                            });
-                            
-                            // Применение наших трансформаций
-                            target.rotation.x = Math.PI / 1; // 90 градусов
-                            target.scale.set(config.targetSize, config.targetSize, config.targetSize);
-                            
-                            target.position.set(
-                                Math.random() * 30 - 15,
-                                Math.random() * 5,
-                                Math.random() * 30 - 15
-                            );
-                            
-                            targets.push(target);
-                            scene.add(target);
-                        },
-                        undefined,
-                        () => {
-                            // Fallback: цилиндр
-                            const target = new THREE.Mesh(
-                                new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                                new THREE.MeshStandardMaterial({ color: 0xff0000 })
-                            );
-                            target.position.set(
-                                Math.random() * 30 - 15,
-                                Math.random() * 5,
-                                Math.random() * 30 - 15
-                            );
-                            targets.push(target);
-                            scene.add(target);
-                        }
-                    );
+                    spawnNewTarget();
                 }
+            }
+
+            function spawnNewTarget() {
+                const loader = new THREE.GLTFLoader();
+                loader.load('models/target.glb', 
+                    (gltf) => {
+                        const targetGroup = new THREE.Group();
+                        const target = gltf.scene;
+                        
+                        // Центрирование модели
+                        const box = new THREE.Box3().setFromObject(target);
+                        const center = box.getCenter(new THREE.Vector3());
+                        target.position.sub(center);
+                        
+                        // Поворот и масштабирование
+                        target.rotation.x = Math.PI / 2;
+                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
+                        
+                        targetGroup.add(target);
+                        targetGroup.position.set(
+                            Math.random() * 30 - 15,
+                            Math.random() * 5,
+                            Math.random() * -30 - 10
+                        );
+                        
+                        // Добавляем пользовательское свойство для идентификации
+                        targetGroup.userData.isTarget = true;
+                        target.userData.isTarget = true;
+                        
+                        targets.push(targetGroup);
+                        scene.add(targetGroup);
+                    },
+                    undefined,
+                    () => {
+                        const target = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
+                            new THREE.MeshStandardMaterial({ color: 0xff0000 })
+                        );
+                        target.position.set(
+                            Math.random() * 30 - 15,
+                            Math.random() * 5,
+                            Math.random() * -30 - 10
+                        );
+                        target.userData.isTarget = true;
+                        targets.push(target);
+                        scene.add(target);
+                    }
+                );
             }
 
             function setupControls() {
@@ -246,55 +249,26 @@
                     camera.position,
                     camera.getWorldDirection(new THREE.Vector3())
                 );
-                const intersects = raycaster.intersectObjects(targets);
                 
-                if (intersects.length > 0) {
-                    const hitTarget = intersects[0].object;
-                    scene.remove(hitTarget);
-                    targets = targets.filter(t => t !== hitTarget);
+                // Проверяем пересечения со всеми объектами сцены
+                const intersects = raycaster.intersectObjects(scene.children, true);
+                
+                // Ищем первое пересечение с мишенью
+                const hit = intersects.find(i => i.object.userData.isTarget);
+                if (hit) {
+                    const hitTarget = hit.object;
+                    
+                    // Удаляем группу или саму мишень
+                    const targetToRemove = hitTarget.parent?.userData.isTarget 
+                        ? hitTarget.parent 
+                        : hitTarget;
+                    
+                    scene.remove(targetToRemove);
+                    targets = targets.filter(t => t !== targetToRemove);
                     score += 10;
                     spawnNewTarget();
                     updateHUD();
                 }
-            }
-
-            function spawnNewTarget() {
-                const loader = new THREE.GLTFLoader();
-                loader.load('models/target.glb', 
-                    (gltf) => {
-                        const target = gltf.scene;
-                        target.traverse((child) => {
-                            if (child.isMesh) {
-                                child.rotation.set(0, 0, 0);
-                                child.position.set(0, 0, 0);
-                                child.scale.set(1, 1, 1);
-                            }
-                        });
-                        target.rotation.x = Math.PI / 2;
-                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
-                        target.position.set(
-                            Math.random() * 30 - 15,
-                            Math.random() * 5,
-                            -20
-                        );
-                        targets.push(target);
-                        scene.add(target);
-                    },
-                    undefined,
-                    () => {
-                        const target = new THREE.Mesh(
-                            new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                            new THREE.MeshStandardMaterial({ color: 0xff0000 })
-                        );
-                        target.position.set(
-                            Math.random() * 30 - 15,
-                            Math.random() * 5,
-                            -20
-                        );
-                        targets.push(target);
-                        scene.add(target);
-                    }
-                );
             }
 
             function reload() {
