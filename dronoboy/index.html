@@ -75,11 +75,11 @@
             const config = {
                 playerHeight: 1.6,
                 gunPosition: { x: 0.5, y: -0.5, z: -1 },
-                gunScale: 0.7,
+                gunScale: 0.6,
                 targetCount: 8,
                 targetSpeed: 0.02,
                 ammoStart: 300,
-                targetSize: 1.5 // Размер мишени (радиус)
+                targetSize: 1.9 // Размер мишени (радиус)
             };
 
             // Переменные
@@ -164,7 +164,7 @@
                             const target = gltf.scene;
                             
                             // Настройка ориентации и размера
-                            target.rotation.x = Math.PI; // Поворот на 90 градусов
+                            target.rotation.x = Math.PI / 2; // Поворот на 90 градусов
                             target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                             
                             // Вычисление bounding box для точных попаданий
