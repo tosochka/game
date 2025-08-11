@@ -60,8 +60,6 @@
     <div id="crosshair"></div>
     <!-- Стартовый экран -->
     <div id="start-screen">
-        <!-- <h1>DronoBoy</h1>
-        <p>Стреляйте в мишени. Перезарядка - клавиша R</p> -->
         <button id="start-button">Начать игру</button>
     </div>
 
@@ -167,13 +165,18 @@
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
+                        // Помечаем все части модели как мишень
+                        target.traverse(child => {
+                            child.userData.isTarget = true;
+                        });
+                        
                         // Центрирование модели
                         const box = new THREE.Box3().setFromObject(target);
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
-						
-						// Поворот на 180 градусов по Y (Math.PI радиан)
-						 target.rotation.y = Math.PI / 1;						
+                        
+                        // Поворот на 180 градусов по Y (Math.PI радиан)
+                        target.rotation.y = Math.PI / 1;						
                         
                         // Поворот и масштабирование
                         target.rotation.x = Math.PI / 18;
@@ -186,9 +189,8 @@
                             Math.random() * -30 - 10
                         );
                         
-                        // Добавляем пользовательское свойство для идентификации
+                        // Помечаем группу как мишень
                         targetGroup.userData.isTarget = true;
-                        target.userData.isTarget = true;
                         
                         targets.push(targetGroup);
                         scene.add(targetGroup);
@@ -253,18 +255,24 @@
                     camera.getWorldDirection(new THREE.Vector3())
                 );
                 
-                // Проверяем пересечения со всеми объектами сцены
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
-                // Ищем первое пересечение с мишенью
-                const hit = intersects.find(i => i.object.userData.isTarget);
+                const hit = intersects.find(i => {
+                    // Проверяем как сам объект, так и всех его родителей
+                    let obj = i.object;
+                    while (obj) {
+                        if (obj.userData.isTarget) return true;
+                        obj = obj.parent;
+                    }
+                    return false;
+                });
+                
                 if (hit) {
-                    const hitTarget = hit.object;
-                    
-                    // Удаляем группу или саму мишень
-                    const targetToRemove = hitTarget.parent?.userData.isTarget 
-                        ? hitTarget.parent 
-                        : hitTarget;
+                    // Находим верхний объект-мишень в иерархии
+                    let targetToRemove = hit.object;
+                    while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
+                        targetToRemove = targetToRemove.parent;
+                    }
                     
                     scene.remove(targetToRemove);
                     targets = targets.filter(t => t !== targetToRemove);
