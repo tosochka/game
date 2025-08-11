@@ -72,13 +72,19 @@
                 playerHeight: 1.7,
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
-                targetCount: 8,
-                targetSpeed: 0.09,
+                targetCount: 12,
+                targetSpeed: { min: 0.07, max: 0.12 }, // Диапазон скоростей
                 ammoStart: 300,
                 targetSize: 0.5,
+                targetHeight: {
+                    min: 1.5,
+                    max: 30
+                },
                 spawnDistance: { min: -120, max: -80 },
                 despawnDistance: 100,
-                fadeDistance: 60 // Дистанция для плавного появления/исчезновения
+                fadeDistance: 60,
+                waveAmplitude: 3, // Амплитуда волнообразного движения
+                waveFrequency: 0.1 // Частота волнообразного движения
             };
 
             let scene, camera, renderer, controls;
@@ -167,15 +173,15 @@
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
-                        // Настройка прозрачности для плавного появления
+                        // Настройка прозрачности
                         target.traverse(child => {
                             if (child.isMesh) {
                                 child.material.transparent = true;
-                                child.material.opacity = 0; // Начинаем с прозрачной
+                                child.material.opacity = 0;
                             }
                         });
                         
-                        // Центрирование модели
+                        // Центрирование
                         const box = new THREE.Box3().setFromObject(target);
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
@@ -186,37 +192,59 @@
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
                         targetGroup.add(target);
+                        
+                        // Позиция с учетом высоты
+                        const initialHeight = Math.random() * (config.targetHeight.max - config.targetHeight.min) + config.targetHeight.min;
                         targetGroup.position.set(
                             Math.random() * 60 - 30,
-                            Math.random() * 5,
+                            initialHeight,
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         
-                        // Добавляем пользовательские свойства
-                        targetGroup.userData.isTarget = true;
-                        targetGroup.userData.fadingIn = true; // Флаг для плавного появления
-                        target.userData.isTarget = true;
+                        // Случайная скорость в заданном диапазоне
+                        const speed = Math.random() * (config.targetSpeed.max - config.targetSpeed.min) + config.targetSpeed.min;
+                        
+                        targetGroup.userData = {
+                            isTarget: true,
+                            fadingIn: true,
+                            speed: speed,
+                            waveMotion: Math.random() > 0.5, // 50% chance волнообразного движения
+                            initialHeight: initialHeight,
+                            waveOffset: Math.random() * Math.PI * 2 // Случайное смещение для волны
+                        };
                         
                         targets.push(targetGroup);
                         scene.add(targetGroup);
                     },
                     undefined,
                     () => {
+                        const initialHeight = Math.random() * (config.targetHeight.max - config.targetHeight.min) + config.targetHeight.min;
+                        const speed = Math.random() * (config.targetSpeed.max - config.targetSpeed.min) + config.targetSpeed.min;
+                        
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
                             new THREE.MeshStandardMaterial({ 
                                 color: 0xff0000,
                                 transparent: true,
-                                opacity: 0 // Начинаем с прозрачной
+                                opacity: 0
                             })
                         );
+                        
                         target.position.set(
                             Math.random() * 60 - 30,
-                            Math.random() * 5,
+                            initialHeight,
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
-                        target.userData.isTarget = true;
-                        target.userData.fadingIn = true; // Флаг для плавного появления
+                        
+                        target.userData = {
+                            isTarget: true,
+                            fadingIn: true,
+                            speed: speed,
+                            waveMotion: Math.random() > 0.5,
+                            initialHeight: initialHeight,
+                            waveOffset: Math.random() * Math.PI * 2
+                        };
+                        
                         targets.push(target);
                         scene.add(target);
                     }
@@ -270,27 +298,22 @@
                 for (const intersect of intersects) {
                     let obj = intersect.object;
                     
-                    // Ищем мишень в иерархии объектов
                     while (obj) {
                         if (obj.userData.isTarget) {
-                            // Находим корневой объект мишени
                             let targetToRemove = obj;
                             while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
                                 targetToRemove = targetToRemove.parent;
                             }
                             
-                            // Удаляем мишень
                             scene.remove(targetToRemove);
                             targets = targets.filter(t => t !== targetToRemove);
                             
-                            // Увеличиваем счет
                             score += 10;
                             updateHUD();
                             
-                            // Создаем новую мишень
                             spawnNewTarget();
                             
-                            return; // Выходим после первого попадания
+                            return;
                         }
                         obj = obj.parent;
                     }
@@ -325,8 +348,14 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
-                    // Движение мишени
-                    target.position.z += config.targetSpeed;
+                    // Движение вперед с индивидуальной скоростью
+                    target.position.z += target.userData.speed;
+                    
+                    // Волнообразное движение (если включено)
+                    if (target.userData.waveMotion) {
+                        target.position.y = target.userData.initialHeight + 
+                                        Math.sin(target.position.z * config.waveFrequency + target.userData.waveOffset) * config.waveAmplitude;
+                    }
                     
                     // Плавное появление
                     if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
@@ -341,7 +370,7 @@
                         }
                     }
                     
-                    // Плавное исчезновение при выходе за границы
+                    // Плавное исчезновение
                     if (target.position.z > config.despawnDistance - config.fadeDistance) {
                         const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
                         target.traverse(child => {
@@ -351,7 +380,7 @@
                         });
                     }
                     
-                    // Удаление мишени при выходе за границы
+                    // Удаление мишени
                     if (target.position.z > config.despawnDistance) {
                         scene.remove(target);
                         targets = targets.filter(t => t !== target);
