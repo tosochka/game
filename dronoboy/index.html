@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - С плавными мишенями</title>
+    <title>DronoBoy - С плавными мишенями и тенями</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -73,7 +73,7 @@
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
                 targetCount: 12,
-                targetSpeed: { min: 0.07, max: 0.12 }, // Диапазон скоростей
+                targetSpeed: { min: 0.07, max: 0.12 },
                 ammoStart: 300,
                 targetSize: 0.5,
                 targetHeight: {
@@ -83,8 +83,8 @@
                 spawnDistance: { min: -120, max: -80 },
                 despawnDistance: 100,
                 fadeDistance: 60,
-                waveAmplitude: 3, // Амплитуда волнообразного движения
-                waveFrequency: 0.1 // Частота волнообразного движения
+                waveAmplitude: 3,
+                waveFrequency: 0.1
             };
 
             let scene, camera, renderer, controls;
@@ -117,14 +117,29 @@
             function setupRenderer() {
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 document.getElementById('game-container').appendChild(renderer.domElement);
             }
 
             function createLighting() {
                 const ambientLight = new THREE.AmbientLight(0x404040);
+                scene.add(ambientLight);
+                
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-                directionalLight.position.set(1, 1, 1);
-                scene.add(ambientLight, directionalLight);
+                directionalLight.position.set(1, 10, 1);
+                directionalLight.castShadow = true;
+                
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -50;
+                directionalLight.shadow.camera.right = 50;
+                directionalLight.shadow.camera.top = 50;
+                directionalLight.shadow.camera.bottom = -50;
+                
+                scene.add(directionalLight);
             }
 
             function createGround() {
@@ -133,13 +148,13 @@
                     new THREE.MeshStandardMaterial({ color: 0x3a5f0b })
                 );
                 ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
                 scene.add(ground);
             }
 
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
-                // Загрузка оружия
                 loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
@@ -160,7 +175,6 @@
                     }
                 );
 
-                // Создание мишеней
                 for (let i = 0; i < config.targetCount; i++) {
                     spawnNewTarget();
                 }
@@ -173,27 +187,25 @@
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
-                        // Настройка прозрачности
                         target.traverse(child => {
                             if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
                                 child.material.transparent = true;
                                 child.material.opacity = 0;
                             }
                         });
                         
-                        // Центрирование
                         const box = new THREE.Box3().setFromObject(target);
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
                         
-                        // Поворот и масштабирование
                         target.rotation.y = Math.PI;
                         target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
                         targetGroup.add(target);
                         
-                        // Позиция с учетом высоты
                         const initialHeight = Math.random() * (config.targetHeight.max - config.targetHeight.min) + config.targetHeight.min;
                         targetGroup.position.set(
                             Math.random() * 60 - 30,
@@ -201,16 +213,15 @@
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         
-                        // Случайная скорость в заданном диапазоне
                         const speed = Math.random() * (config.targetSpeed.max - config.targetSpeed.min) + config.targetSpeed.min;
                         
                         targetGroup.userData = {
                             isTarget: true,
                             fadingIn: true,
                             speed: speed,
-                            waveMotion: Math.random() > 0.5, // 50% chance волнообразного движения
+                            waveMotion: Math.random() > 0.5,
                             initialHeight: initialHeight,
-                            waveOffset: Math.random() * Math.PI * 2 // Случайное смещение для волны
+                            waveOffset: Math.random() * Math.PI * 2
                         };
                         
                         targets.push(targetGroup);
@@ -230,6 +241,8 @@
                             })
                         );
                         
+                        target.castShadow = true;
+                        target.receiveShadow = true;
                         target.position.set(
                             Math.random() * 60 - 30,
                             initialHeight,
@@ -348,16 +361,13 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
-                    // Движение вперед с индивидуальной скоростью
                     target.position.z += target.userData.speed;
                     
-                    // Волнообразное движение (если включено)
                     if (target.userData.waveMotion) {
                         target.position.y = target.userData.initialHeight + 
                                         Math.sin(target.position.z * config.waveFrequency + target.userData.waveOffset) * config.waveAmplitude;
                     }
                     
-                    // Плавное появление
                     if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
                         const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
                         target.traverse(child => {
@@ -370,7 +380,6 @@
                         }
                     }
                     
-                    // Плавное исчезновение
                     if (target.position.z > config.despawnDistance - config.fadeDistance) {
                         const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
                         target.traverse(child => {
@@ -380,7 +389,6 @@
                         });
                     }
                     
-                    // Удаление мишени
                     if (target.position.z > config.despawnDistance) {
                         scene.remove(target);
                         targets = targets.filter(t => t !== target);
