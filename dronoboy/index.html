@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Исправленная версия</title>
+    <title>DronoBoy - Рабочая версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -76,17 +76,16 @@
                 targetSpeed: 0.08,
                 ammoStart: 300,
                 targetSize: 0.5,
-                spawnDistance: { min: -80, max: -40 },
+                spawnDistance: { min: -50, max: -30 },
                 despawnDistance: 30,
-                fadeDistance: 20,
-                hitFadeDuration: 300
+                fadeDistance: 15,
+                hitFadeDuration: 30
             };
 
             let scene, camera, renderer, controls;
             let gun, targets = [];
             let ammoCount = config.ammoStart, score = 0;
             let isGameStarted = false;
-            let targetMaterials = [];
 
             function init() {
                 createScene();
@@ -135,6 +134,7 @@
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
+                // Загрузка оружия
                 loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
@@ -155,6 +155,7 @@
                     }
                 );
 
+                // Создание мишеней
                 for (let i = 0; i < config.targetCount; i++) {
                     spawnNewTarget();
                 }
@@ -164,61 +165,50 @@
                 const loader = new THREE.GLTFLoader();
                 loader.load('models/target.glb', 
                     (gltf) => {
-                        const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
+                        // Помечаем все части модели как мишень
                         target.traverse(child => {
                             if (child.isMesh) {
                                 child.userData.isTarget = true;
-                                child.material = child.material.clone();
                                 child.material.transparent = true;
                                 child.material.opacity = 0;
-                                targetMaterials.push(child.material);
                             }
                         });
                         
-                        const box = new THREE.Box3().setFromObject(target);
-                        const center = box.getCenter(new THREE.Vector3());
-                        target.position.sub(center);
-                        target.rotation.y = Math.PI;
-                        target.rotation.x = Math.PI / 18;
-                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
-                        
-                        targetGroup.add(target);
-                        targetGroup.position.set(
-                            Math.random() * 60 - 30,
-                            Math.random() * 5,
+                        // Настройка положения и размера
+                        target.position.set(
+                            Math.random() * 40 - 20,
+                            Math.random() * 3 + 1,
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
+                        target.rotation.y = Math.PI;
+                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
-                        targetGroup.userData.isTarget = true;
-                        targetGroup.userData.fadingIn = true;
-                        targetGroup.userData.shouldRemove = false;
+                        target.userData.isTarget = true;
+                        target.userData.fadingIn = true;
                         
-                        targets.push(targetGroup);
-                        scene.add(targetGroup);
+                        targets.push(target);
+                        scene.add(target);
                     },
                     undefined,
                     () => {
-                        const material = new THREE.MeshStandardMaterial({ 
-                            color: 0xff0000,
-                            transparent: true,
-                            opacity: 0
-                        });
-                        targetMaterials.push(material);
-                        
+                        // Фолбэк-мишень (цилиндр)
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                            material
+                            new THREE.MeshStandardMaterial({ 
+                                color: 0xff0000,
+                                transparent: true,
+                                opacity: 0
+                            })
                         );
                         target.position.set(
-                            Math.random() * 60 - 30,
-                            Math.random() * 5,
+                            Math.random() * 40 - 20,
+                            Math.random() * 3 + 1,
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         target.userData.isTarget = true;
                         target.userData.fadingIn = true;
-                        target.userData.shouldRemove = false;
                         
                         targets.push(target);
                         scene.add(target);
@@ -258,6 +248,7 @@
                 ammoCount--;
                 updateHUD();
 
+                // Анимация отдачи оружия
                 if (gun) {
                     gun.position.z += 0.1;
                     setTimeout(() => gun.position.z -= 0.1, 100);
@@ -270,49 +261,44 @@
                 
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
-                const hit = intersects.find(i => {
-                    let obj = i.object;
+                // Ищем пересечение с мишенью
+                for (const intersect of intersects) {
+                    let obj = intersect.object;
+                    
+                    // Проверяем всю иерархию объектов
                     while (obj) {
-                        if (obj.userData.isTarget) return true;
+                        if (obj.userData.isTarget) {
+                            const target = obj;
+                            
+                            // Плавное исчезновение
+                            const startTime = Date.now();
+                            const fadeOut = () => {
+                                const elapsed = Date.now() - startTime;
+                                const progress = Math.min(1, elapsed / config.hitFadeDuration);
+                                
+                                target.traverse(child => {
+                                    if (child.isMesh) {
+                                        child.material.opacity = 1 - progress;
+                                    }
+                                });
+                                
+                                if (progress < 1) {
+                                    requestAnimationFrame(fadeOut);
+                                } else {
+                                    // Удаление мишени
+                                    scene.remove(target);
+                                    targets = targets.filter(t => t !== target);
+                                    score += 10;
+                                    updateHUD();
+                                    spawnNewTarget();
+                                }
+                            };
+                            
+                            fadeOut();
+                            return;
+                        }
                         obj = obj.parent;
                     }
-                    return false;
-                });
-                
-                if (hit) {
-                    let targetToRemove = hit.object;
-                    while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
-                        targetToRemove = targetToRemove.parent;
-                    }
-
-                    const actualTarget = targets.find(t => t === targetToRemove);
-                    if (!actualTarget) return;
-
-                    actualTarget.userData.shouldRemove = true;
-                    
-                    const startTime = Date.now();
-                    const fadeOut = () => {
-                        const elapsed = Date.now() - startTime;
-                        const progress = Math.min(1, elapsed / config.hitFadeDuration);
-                        
-                        actualTarget.traverse(child => {
-                            if (child.isMesh) {
-                                child.material.opacity = 1 - progress;
-                            }
-                        });
-                        
-                        if (progress < 1) {
-                            requestAnimationFrame(fadeOut);
-                        } else {
-                            scene.remove(actualTarget);
-                            targets = targets.filter(t => t !== actualTarget);
-                            score += 10;
-                            updateHUD();
-                            spawnNewTarget();
-                        }
-                    };
-                    
-                    fadeOut();
                 }
             }
 
@@ -344,10 +330,10 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
-                    if (target.userData.shouldRemove) return;
-                    
+                    // Движение мишени
                     target.position.z += config.targetSpeed;
                     
+                    // Плавное появление
                     if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
                         const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
                         target.traverse(child => {
@@ -358,6 +344,7 @@
                         if (fadeProgress >= 1) target.userData.fadingIn = false;
                     }
                     
+                    // Плавное исчезновение при выходе за границы
                     if (target.position.z > config.despawnDistance - config.fadeDistance) {
                         const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
                         target.traverse(child => {
@@ -367,6 +354,7 @@
                         });
                     }
                     
+                    // Удаление мишени при выходе за границы
                     if (target.position.z > config.despawnDistance) {
                         scene.remove(target);
                         targets = targets.filter(t => t !== target);
