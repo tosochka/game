@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Финальная исправленная версия</title>
+    <title>DronoBoy - 3D FPS Game</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -58,6 +58,7 @@
         <div id="score">Очки: 0</div>
     </div>
     <div id="crosshair"></div>
+    <!-- Стартовый экран -->
     <div id="start-screen">
         <button id="start-button">Начать игру</button>
     </div>
@@ -73,11 +74,9 @@
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
                 targetCount: 8,
-                targetSpeed: 0.04,
+                targetSpeed: 0.06,
                 ammoStart: 300,
-                targetSize: 0.5,
-                spawnDistance: { min: -50, max: -30 },
-                despawnDistance: 30
+                targetSize: 0.5
             };
 
             let scene, camera, renderer, controls;
@@ -132,7 +131,7 @@
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
-                // Загрузка оружия
+                // Загрузка ружья
                 loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
@@ -153,7 +152,7 @@
                     }
                 );
 
-                // Создание мишеней
+                // Загрузка мишеней
                 for (let i = 0; i < config.targetCount; i++) {
                     spawnNewTarget();
                 }
@@ -163,48 +162,51 @@
                 const loader = new THREE.GLTFLoader();
                 loader.load('models/target.glb', 
                     (gltf) => {
+                        const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
                         // Помечаем все части модели как мишень
-                        target.traverse((child) => {
-                            if (child.isMesh) {
-                                child.userData.isTarget = true;
-                            }
+                        target.traverse(child => {
+                            child.userData.isTarget = true;
                         });
                         
-                        // Настройка положения и размера
-                        target.position.set(
-                            Math.random() * 40 - 20,
-                            Math.random() * 3 + 1,
-                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
-                        );
-                        target.rotation.y = Math.PI;
+                        // Центрирование модели
+                        const box = new THREE.Box3().setFromObject(target);
+                        const center = box.getCenter(new THREE.Vector3());
+                        target.position.sub(center);
+                        
+                        // Поворот на 180 градусов по Y (Math.PI радиан)
+                        target.rotation.y = Math.PI / 1;						
+                        
+                        // Поворот и масштабирование
+                        target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
-                        // Помечаем всю группу как мишень
-                        target.userData.isTarget = true;
-                        target.userData.wasHit = false;
+                        targetGroup.add(target);
+                        targetGroup.position.set(
+                            Math.random() * 30 - 15,
+                            Math.random() * 5,
+                            Math.random() * -30 - 10
+                        );
                         
-                        targets.push(target);
-                        scene.add(target);
+                        // Помечаем группу как мишень
+                        targetGroup.userData.isTarget = true;
+                        
+                        targets.push(targetGroup);
+                        scene.add(targetGroup);
                     },
                     undefined,
                     () => {
-                        // Фолбэк-мишень (цилиндр)
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                            new THREE.MeshStandardMaterial({ 
-                                color: 0xff0000
-                            })
+                            new THREE.MeshStandardMaterial({ color: 0xff0000 })
                         );
                         target.position.set(
-                            Math.random() * 40 - 20,
-                            Math.random() * 3 + 1,
-                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
+                            Math.random() * 30 - 15,
+                            Math.random() * 5,
+                            Math.random() * -30 - 10
                         );
                         target.userData.isTarget = true;
-                        target.userData.wasHit = false;
-                        
                         targets.push(target);
                         scene.add(target);
                     }
@@ -243,7 +245,6 @@
                 ammoCount--;
                 updateHUD();
 
-                // Анимация отдачи оружия
                 if (gun) {
                     gun.position.z += 0.1;
                     setTimeout(() => gun.position.z -= 0.1, 100);
@@ -256,31 +257,28 @@
                 
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
-                // Обрабатываем все пересечения
-                for (const intersect of intersects) {
-                    let obj = intersect.object;
-                    
-                    // Ищем мишень в иерархии объектов
-                    while (obj && obj !== scene) {
-                        if (obj.userData.isTarget && !obj.userData.wasHit) {
-                            // Помечаем мишень как пораженную
-                            obj.userData.wasHit = true;
-                            
-                            // Увеличиваем счет
-                            score += 10;
-                            updateHUD();
-                            
-                            // Немедленно удаляем мишень
-                            scene.remove(obj);
-                            targets = targets.filter(t => t !== obj);
-                            
-                            // Создаем новую мишень
-                            spawnNewTarget();
-                            
-                            return; // Выходим после первого попадания
-                        }
+                const hit = intersects.find(i => {
+                    // Проверяем как сам объект, так и всех его родителей
+                    let obj = i.object;
+                    while (obj) {
+                        if (obj.userData.isTarget) return true;
                         obj = obj.parent;
                     }
+                    return false;
+                });
+                
+                if (hit) {
+                    // Находим верхний объект-мишень в иерархии
+                    let targetToRemove = hit.object;
+                    while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
+                        targetToRemove = targetToRemove.parent;
+                    }
+                    
+                    scene.remove(targetToRemove);
+                    targets = targets.filter(t => t !== targetToRemove);
+                    score += 10;
+                    spawnNewTarget();
+                    updateHUD();
                 }
             }
 
@@ -311,18 +309,11 @@
             function animate() {
                 requestAnimationFrame(animate);
                 
-                // Обновляем только непораженные мишени
                 targets.forEach(target => {
-                    if (target.userData.wasHit) return;
-                    
-                    // Движение мишени
                     target.position.z += config.targetSpeed;
-                    
-                    // Удаление мишени при выходе за границы
-                    if (target.position.z > config.despawnDistance) {
-                        scene.remove(target);
-                        targets = targets.filter(t => t !== target);
-                        spawnNewTarget();
+                    if (target.position.z > 10) {
+                        target.position.z = -20;
+                        target.position.x = Math.random() * 30 - 15;
                     }
                 });
 
