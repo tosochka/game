@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Полностью исправленная версия</title>
+    <title>DronoBoy - Финальная исправленная версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -73,13 +73,11 @@
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
                 targetCount: 8,
-                targetSpeed: 0.03,
+                targetSpeed: 0.04,
                 ammoStart: 300,
                 targetSize: 0.5,
                 spawnDistance: { min: -50, max: -30 },
-                despawnDistance: 30,
-                fadeDistance: 15,
-                hitFadeDuration: 20
+                despawnDistance: 30
             };
 
             let scene, camera, renderer, controls;
@@ -167,12 +165,10 @@
                     (gltf) => {
                         const target = gltf.scene;
                         
-                        // Явно помечаем все части модели как мишень
+                        // Помечаем все части модели как мишень
                         target.traverse((child) => {
                             if (child.isMesh) {
                                 child.userData.isTarget = true;
-                                child.material.transparent = true;
-                                child.material.opacity = 1;
                             }
                         });
                         
@@ -198,9 +194,7 @@
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
                             new THREE.MeshStandardMaterial({ 
-                                color: 0xff0000,
-                                transparent: true,
-                                opacity: 1
+                                color: 0xff0000
                             })
                         );
                         target.position.set(
@@ -318,7 +312,9 @@
                 requestAnimationFrame(animate);
                 
                 // Обновляем только непораженные мишени
-                targets.filter(t => !t.userData.wasHit).forEach(target => {
+                targets.forEach(target => {
+                    if (target.userData.wasHit) return;
+                    
                     // Движение мишени
                     target.position.z += config.targetSpeed;
                     
