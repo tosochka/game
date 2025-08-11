@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Рабочая версия</title>
+    <title>DronoBoy - С плавными переходами</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -76,8 +76,9 @@
                 targetSpeed: 0.06,
                 ammoStart: 300,
                 targetSize: 0.5,
-                spawnDistance: { min: -80, max: -40 }, // Увеличенные расстояния
-                despawnDistance: 50 // Увеличенное расстояние исчезновения
+                spawnDistance: { min: -80, max: -40 },
+                despawnDistance: 50,
+                fadeDistance: 10
             };
 
             let scene, camera, renderer, controls;
@@ -163,38 +164,41 @@
                 const loader = new THREE.GLTFLoader();
                 loader.load('models/target.glb', 
                     (gltf) => {
-                        const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
-                        // Центрирование модели
-                        const box = new THREE.Box3().setFromObject(target);
-                        const center = box.getCenter(new THREE.Vector3());
-                        target.position.sub(center);
+                        // Настройка прозрачности для плавного появления
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.transparent = true;
+                                child.material.opacity = 0;
+                                child.userData.isTarget = true;
+                            }
+                        });
                         
-                        // Поворот и масштабирование
-                        target.rotation.y = Math.PI;
-                        target.rotation.x = Math.PI / 18;
-                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
-                        
-                        targetGroup.add(target);
-                        targetGroup.position.set(
+                        // Позиционирование
+                        target.position.set(
                             Math.random() * 60 - 30,
                             Math.random() * 5,
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
+                        target.rotation.y = Math.PI;
+                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
-                        // Добавляем пользовательское свойство для идентификации
-                        targetGroup.userData.isTarget = true;
                         target.userData.isTarget = true;
+                        target.userData.fadingIn = true;
                         
-                        targets.push(targetGroup);
-                        scene.add(targetGroup);
+                        targets.push(target);
+                        scene.add(target);
                     },
                     undefined,
                     () => {
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                            new THREE.MeshStandardMaterial({ color: 0xff0000 })
+                            new THREE.MeshStandardMaterial({ 
+                                color: 0xff0000,
+                                transparent: true,
+                                opacity: 0
+                            })
                         );
                         target.position.set(
                             Math.random() * 60 - 30,
@@ -202,6 +206,8 @@
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         target.userData.isTarget = true;
+                        target.userData.fadingIn = true;
+                        
                         targets.push(target);
                         scene.add(target);
                     }
@@ -255,7 +261,6 @@
                 for (const intersect of intersects) {
                     let obj = intersect.object;
                     
-                    // Ищем мишень в иерархии объектов
                     while (obj) {
                         if (obj.userData.isTarget) {
                             // Находим корневой объект мишени
@@ -275,7 +280,7 @@
                             // Создаем новую мишень
                             spawnNewTarget();
                             
-                            return; // Выходим после первого попадания
+                            return;
                         }
                         obj = obj.parent;
                     }
@@ -310,10 +315,35 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
+                    // Движение мишени
                     target.position.z += config.targetSpeed;
+                    
+                    // Плавное появление
+                    if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
+                        const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = fadeProgress;
+                            }
+                        });
+                        if (fadeProgress >= 1) target.userData.fadingIn = false;
+                    }
+                    
+                    // Плавное исчезновение
+                    if (target.position.z > config.despawnDistance - config.fadeDistance) {
+                        const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = fadeProgress;
+                            }
+                        });
+                    }
+                    
+                    // Удаление мишени при выходе за границы
                     if (target.position.z > config.despawnDistance) {
-                        target.position.z = config.spawnDistance.min;
-                        target.position.x = Math.random() * 60 - 30;
+                        scene.remove(target);
+                        targets = targets.filter(t => t !== target);
+                        spawnNewTarget();
                     }
                 });
 
