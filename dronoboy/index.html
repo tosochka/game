@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Финальная рабочая версия</title>
+    <title>DronoBoy - Полностью исправленная версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -73,13 +73,13 @@
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
                 targetCount: 8,
-                targetSpeed: 0.02,
+                targetSpeed: 0.03,
                 ammoStart: 300,
-                targetSize: 0.3,
+                targetSize: 0.5,
                 spawnDistance: { min: -50, max: -30 },
                 despawnDistance: 30,
                 fadeDistance: 15,
-                hitFadeDuration: 30
+                hitFadeDuration: 20
             };
 
             let scene, camera, renderer, controls;
@@ -167,7 +167,7 @@
                     (gltf) => {
                         const target = gltf.scene;
                         
-                        // Явно помечаем ВСЕ части модели как мишень
+                        // Явно помечаем все части модели как мишень
                         target.traverse((child) => {
                             if (child.isMesh) {
                                 child.userData.isTarget = true;
@@ -187,7 +187,7 @@
                         
                         // Помечаем всю группу как мишень
                         target.userData.isTarget = true;
-                        target.userData.isBeingRemoved = false;
+                        target.userData.wasHit = false;
                         
                         targets.push(target);
                         scene.add(target);
@@ -209,7 +209,7 @@
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         target.userData.isTarget = true;
-                        target.userData.isBeingRemoved = false;
+                        target.userData.wasHit = false;
                         
                         targets.push(target);
                         scene.add(target);
@@ -268,36 +268,22 @@
                     
                     // Ищем мишень в иерархии объектов
                     while (obj && obj !== scene) {
-                        if (obj.userData.isTarget && !obj.userData.isBeingRemoved) {
-                            // Помечаем мишень как удаляемую
-                            obj.userData.isBeingRemoved = true;
+                        if (obj.userData.isTarget && !obj.userData.wasHit) {
+                            // Помечаем мишень как пораженную
+                            obj.userData.wasHit = true;
                             
-                            // Плавное исчезновение
-                            const startTime = Date.now();
-                            const fadeOut = () => {
-                                const elapsed = Date.now() - startTime;
-                                const progress = Math.min(1, elapsed / config.hitFadeDuration);
-                                
-                                obj.traverse((child) => {
-                                    if (child.isMesh) {
-                                        child.material.opacity = 1 - progress;
-                                    }
-                                });
-                                
-                                if (progress < 1) {
-                                    requestAnimationFrame(fadeOut);
-                                } else {
-                                    // Удаление мишени
-                                    scene.remove(obj);
-                                    targets = targets.filter(t => t !== obj);
-                                    score += 10;
-                                    updateHUD();
-                                    spawnNewTarget();
-                                }
-                            };
+                            // Увеличиваем счет
+                            score += 10;
+                            updateHUD();
                             
-                            fadeOut();
-                            return;
+                            // Немедленно удаляем мишень
+                            scene.remove(obj);
+                            targets = targets.filter(t => t !== obj);
+                            
+                            // Создаем новую мишень
+                            spawnNewTarget();
+                            
+                            return; // Выходим после первого попадания
                         }
                         obj = obj.parent;
                     }
@@ -331,8 +317,8 @@
             function animate() {
                 requestAnimationFrame(animate);
                 
-                // Обновляем только мишени, которые не удаляются
-                targets.filter(t => !t.userData.isBeingRemoved).forEach(target => {
+                // Обновляем только непораженные мишени
+                targets.filter(t => !t.userData.wasHit).forEach(target => {
                     // Движение мишени
                     target.position.z += config.targetSpeed;
                     
