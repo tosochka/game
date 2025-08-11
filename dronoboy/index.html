@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - 3D FPS Game</title>
+    <title>DronoBoy - Улучшенная версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -58,7 +58,6 @@
         <div id="score">Очки: 0</div>
     </div>
     <div id="crosshair"></div>
-    <!-- Стартовый экран -->
     <div id="start-screen">
         <button id="start-button">Начать игру</button>
     </div>
@@ -74,15 +73,20 @@
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
                 targetCount: 8,
-                targetSpeed: 0.06,
+                targetSpeed: 0.08,
                 ammoStart: 300,
-                targetSize: 0.5
+                targetSize: 0.5,
+                spawnDistance: { min: -80, max: -40 },
+                despawnDistance: 30,
+                fadeDistance: 20,
+                hitFadeDuration: 30
             };
 
             let scene, camera, renderer, controls;
             let gun, targets = [];
             let ammoCount = config.ammoStart, score = 0;
             let isGameStarted = false;
+            let targetMaterials = [];
 
             function init() {
                 createScene();
@@ -165,48 +169,57 @@
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
-                        // Помечаем все части модели как мишень
                         target.traverse(child => {
-                            child.userData.isTarget = true;
+                            if (child.isMesh) {
+                                child.userData.isTarget = true;
+                                child.material = child.material.clone();
+                                child.material.transparent = true;
+                                child.material.opacity = 0;
+                                targetMaterials.push(child.material);
+                            }
                         });
                         
-                        // Центрирование модели
                         const box = new THREE.Box3().setFromObject(target);
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
-                        
-                        // Поворот на 180 градусов по Y (Math.PI радиан)
-                        target.rotation.y = Math.PI / 1;						
-                        
-                        // Поворот и масштабирование
+                        target.rotation.y = Math.PI;
                         target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
                         targetGroup.add(target);
                         targetGroup.position.set(
-                            Math.random() * 30 - 15,
+                            Math.random() * 60 - 30,
                             Math.random() * 5,
-                            Math.random() * -30 - 10
+                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         
-                        // Помечаем группу как мишень
                         targetGroup.userData.isTarget = true;
+                        targetGroup.userData.fadingIn = true;
                         
                         targets.push(targetGroup);
                         scene.add(targetGroup);
                     },
                     undefined,
                     () => {
+                        const material = new THREE.MeshStandardMaterial({ 
+                            color: 0xff0000,
+                            transparent: true,
+                            opacity: 0
+                        });
+                        targetMaterials.push(material);
+                        
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                            new THREE.MeshStandardMaterial({ color: 0xff0000 })
+                            material
                         );
                         target.position.set(
-                            Math.random() * 30 - 15,
+                            Math.random() * 60 - 30,
                             Math.random() * 5,
-                            Math.random() * -30 - 10
+                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         target.userData.isTarget = true;
+                        target.userData.fadingIn = true;
+                        
                         targets.push(target);
                         scene.add(target);
                     }
@@ -258,7 +271,6 @@
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
                 const hit = intersects.find(i => {
-                    // Проверяем как сам объект, так и всех его родителей
                     let obj = i.object;
                     while (obj) {
                         if (obj.userData.isTarget) return true;
@@ -268,17 +280,35 @@
                 });
                 
                 if (hit) {
-                    // Находим верхний объект-мишень в иерархии
                     let targetToRemove = hit.object;
                     while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
                         targetToRemove = targetToRemove.parent;
                     }
                     
-                    scene.remove(targetToRemove);
-                    targets = targets.filter(t => t !== targetToRemove);
-                    score += 10;
-                    spawnNewTarget();
-                    updateHUD();
+                    const startTime = Date.now();
+                    
+                    const fadeOut = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(1, elapsed / config.hitFadeDuration);
+                        
+                        targetToRemove.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = 1 - progress;
+                            }
+                        });
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(fadeOut);
+                        } else {
+                            scene.remove(targetToRemove);
+                            targets = targets.filter(t => t !== targetToRemove);
+                            score += 10;
+                            updateHUD();
+                            spawnNewTarget();
+                        }
+                    };
+                    
+                    fadeOut();
                 }
             }
 
@@ -311,9 +341,30 @@
                 
                 targets.forEach(target => {
                     target.position.z += config.targetSpeed;
-                    if (target.position.z > 10) {
-                        target.position.z = -20;
-                        target.position.x = Math.random() * 30 - 15;
+                    
+                    if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
+                        const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = fadeProgress;
+                            }
+                        });
+                        if (fadeProgress >= 1) target.userData.fadingIn = false;
+                    }
+                    
+                    if (target.position.z > config.despawnDistance - config.fadeDistance) {
+                        const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = fadeProgress;
+                            }
+                        });
+                    }
+                    
+                    if (target.position.z > config.despawnDistance) {
+                        scene.remove(target);
+                        targets = targets.filter(t => t !== target);
+                        spawnNewTarget();
                     }
                 });
 
