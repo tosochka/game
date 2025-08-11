@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Улучшенная версия</title>
+    <title>DronoBoy - Исправленная версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -79,7 +79,7 @@
                 spawnDistance: { min: -80, max: -40 },
                 despawnDistance: 30,
                 fadeDistance: 20,
-                hitFadeDuration: 30
+                hitFadeDuration: 300
             };
 
             let scene, camera, renderer, controls;
@@ -135,7 +135,6 @@
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
-                // Загрузка ружья
                 loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
@@ -156,7 +155,6 @@
                     }
                 );
 
-                // Загрузка мишеней
                 for (let i = 0; i < config.targetCount; i++) {
                     spawnNewTarget();
                 }
@@ -195,6 +193,7 @@
                         
                         targetGroup.userData.isTarget = true;
                         targetGroup.userData.fadingIn = true;
+                        targetGroup.userData.shouldRemove = false;
                         
                         targets.push(targetGroup);
                         scene.add(targetGroup);
@@ -219,6 +218,7 @@
                         );
                         target.userData.isTarget = true;
                         target.userData.fadingIn = true;
+                        target.userData.shouldRemove = false;
                         
                         targets.push(target);
                         scene.add(target);
@@ -284,14 +284,18 @@
                     while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
                         targetToRemove = targetToRemove.parent;
                     }
+
+                    const actualTarget = targets.find(t => t === targetToRemove);
+                    if (!actualTarget) return;
+
+                    actualTarget.userData.shouldRemove = true;
                     
                     const startTime = Date.now();
-                    
                     const fadeOut = () => {
                         const elapsed = Date.now() - startTime;
                         const progress = Math.min(1, elapsed / config.hitFadeDuration);
                         
-                        targetToRemove.traverse(child => {
+                        actualTarget.traverse(child => {
                             if (child.isMesh) {
                                 child.material.opacity = 1 - progress;
                             }
@@ -300,8 +304,8 @@
                         if (progress < 1) {
                             requestAnimationFrame(fadeOut);
                         } else {
-                            scene.remove(targetToRemove);
-                            targets = targets.filter(t => t !== targetToRemove);
+                            scene.remove(actualTarget);
+                            targets = targets.filter(t => t !== actualTarget);
                             score += 10;
                             updateHUD();
                             spawnNewTarget();
@@ -340,6 +344,8 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
+                    if (target.userData.shouldRemove) return;
+                    
                     target.position.z += config.targetSpeed;
                     
                     if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
