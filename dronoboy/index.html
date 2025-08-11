@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - С коридором для мишеней</title>
+    <title>DronoBoy - Коридор для мишеней</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -107,22 +107,15 @@
                         'models/rock1.glb',
                         'models/rock2.glb'
                     ],
-                    scaleRange: { min: 10.5, max: 20.0 }, //  min: 10.5, max: 20.0 
+                    scaleRange: { min: 10.5, max: 20.0 },
                     positionRange: { x: 45, z: 80 }
                 },
                 safeRadius: 15,
                 minTargetHeight: 2.0,
                 collisionDistance: 5.0,
-                spawnCorridor: {
-                    width: 30,
-                    minZ: -120,
-                    maxZ: -80
-                },
-                landscapeDensity: {
-                    front: 0.3,
-                    back: 1.0,
-                    sides: 0.8
-                }
+                corridorWidth: 30,
+                corridorDepth: 100,
+                frontClearZone: 40
             };
 
             let scene, camera, renderer, controls;
@@ -196,31 +189,27 @@
                 return Math.sqrt(x*x + z*z) > config.safeRadius;
             }
 
-            function getLandscapeDensity(x, z) {
-                if (z < config.spawnCorridor.minZ && z > config.spawnCorridor.maxZ && 
-                    Math.abs(x) < config.spawnCorridor.width/2) {
-                    return config.landscapeDensity.front;
-                }
-                else if (z > 0) {
-                    return config.landscapeDensity.back;
-                }
-                else {
-                    return config.landscapeDensity.sides;
-                }
-            }
-
             function getRandomSafePosition() {
                 let x, z;
                 let attempts = 0;
                 const maxAttempts = 100;
                 
                 do {
-                    x = Math.random() * config.landscapeObjects.positionRange.x * 2 - 
-                        config.landscapeObjects.positionRange.x;
-                    z = Math.random() * config.landscapeObjects.positionRange.z * 2 - 
-                        config.landscapeObjects.positionRange.z;
+                    if (Math.random() > 0.5) {
+                        x = Math.random() > 0.5 ? 
+                            (config.corridorWidth/2 + Math.random() * (config.landscapeObjects.positionRange.x - config.corridorWidth/2)) :
+                            -(config.corridorWidth/2 + Math.random() * (config.landscapeObjects.positionRange.x - config.corridorWidth/2));
+                    } else {
+                        x = Math.random() * config.landscapeObjects.positionRange.x * 2 - config.landscapeObjects.positionRange.x;
+                    }
+                    
+                    z = Math.random() > 0.3 ? 
+                        -(Math.random() * config.landscapeObjects.positionRange.z) :
+                        Math.random() * config.frontClearZone;
+                    
                     attempts++;
-                } while (!isPositionSafe(x, z) && attempts < maxAttempts);
+                } while ((!isPositionSafe(x, z) && attempts < maxAttempts) || 
+                        (Math.abs(x) < config.corridorWidth/2 && z > -config.corridorDepth));
                 
                 return { x, z };
             }
@@ -257,23 +246,18 @@
 
             function loadLandscapeObjects() {
                 const loader = new THREE.GLTFLoader();
-                const objectsToCreate = Math.floor(config.landscapeObjects.count * 1.5);
                 
-                for (let i = 0; i < objectsToCreate; i++) {
-                    const { x, z } = getRandomSafePosition();
-                    
-                    const density = getLandscapeDensity(x, z);
-                    if (Math.random() > density) continue;
-                    
+                for (let i = 0; i < config.landscapeObjects.count; i++) {
                     const typeIndex = Math.floor(Math.random() * config.landscapeObjects.types.length);
                     const modelPath = config.landscapeObjects.types[typeIndex];
+                    const { x, z } = getRandomSafePosition();
                     
                     loader.load(modelPath, 
                         (gltf) => {
                             const obj = gltf.scene;
                             const scale = Math.random() * 
-                                       (config.landscapeObjects.scaleRange.max - config.landscapeObjects.scaleRange.min) + 
-                                       config.landscapeObjects.scaleRange.min;
+                                         (config.landscapeObjects.scaleRange.max - config.landscapeObjects.scaleRange.min) + 
+                                         config.landscapeObjects.scaleRange.min;
                             
                             obj.scale.set(scale, scale, scale);
                             obj.position.set(x, 0, z);
@@ -387,13 +371,13 @@
                             initialHeight = Math.random() * 
                                          (config.targetHeight.max - config.targetHeight.min) + 
                                          config.targetHeight.min;
-                            x = Math.random() * config.spawnCorridor.width - config.spawnCorridor.width/2;
+                            x = Math.random() * config.corridorWidth - config.corridorWidth/2;
                             z = Math.random() * 
                               (config.spawnDistance.max - config.spawnDistance.min) + 
                               config.spawnDistance.min;
                             attempts++;
                         } while (
-                            initialHeight < config.minTargetHeight && 
+                            initialHeight < config.minTargetHeight &&
                             attempts < maxAttempts
                         );
                         
@@ -426,13 +410,13 @@
                             initialHeight = Math.random() * 
                                          (config.targetHeight.max - config.targetHeight.min) + 
                                          config.targetHeight.min;
-                            x = Math.random() * config.spawnCorridor.width - config.spawnCorridor.width/2;
+                            x = Math.random() * config.corridorWidth - config.corridorWidth/2;
                             z = Math.random() * 
                               (config.spawnDistance.max - config.spawnDistance.min) + 
                               config.spawnDistance.min;
                             attempts++;
                         } while (
-                            initialHeight < config.minTargetHeight && 
+                            initialHeight < config.minTargetHeight &&
                             attempts < maxAttempts
                         );
                         
