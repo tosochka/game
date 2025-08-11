@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - 3D FPS Game</title>
+    <title>DronoBoy - Рабочая версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -58,7 +58,6 @@
         <div id="score">Очки: 0</div>
     </div>
     <div id="crosshair"></div>
-    <!-- Стартовый экран -->
     <div id="start-screen">
         <button id="start-button">Начать игру</button>
     </div>
@@ -76,7 +75,9 @@
                 targetCount: 8,
                 targetSpeed: 0.06,
                 ammoStart: 300,
-                targetSize: 0.5
+                targetSize: 0.5,
+                spawnDistance: { min: -80, max: -40 }, // Увеличенные расстояния
+                despawnDistance: 50 // Увеличенное расстояние исчезновения
             };
 
             let scene, camera, renderer, controls;
@@ -131,7 +132,7 @@
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
-                // Загрузка ружья
+                // Загрузка оружия
                 loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
@@ -152,7 +153,7 @@
                     }
                 );
 
-                // Загрузка мишеней
+                // Создание мишеней
                 for (let i = 0; i < config.targetCount; i++) {
                     spawnNewTarget();
                 }
@@ -165,32 +166,26 @@
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
-                        // Помечаем все части модели как мишень
-                        target.traverse(child => {
-                            child.userData.isTarget = true;
-                        });
-                        
                         // Центрирование модели
                         const box = new THREE.Box3().setFromObject(target);
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
                         
-                        // Поворот на 180 градусов по Y (Math.PI радиан)
-                        target.rotation.y = Math.PI / 1;						
-                        
                         // Поворот и масштабирование
+                        target.rotation.y = Math.PI;
                         target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
                         targetGroup.add(target);
                         targetGroup.position.set(
-                            Math.random() * 30 - 15,
+                            Math.random() * 60 - 30,
                             Math.random() * 5,
-                            Math.random() * -30 - 10
+                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         
-                        // Помечаем группу как мишень
+                        // Добавляем пользовательское свойство для идентификации
                         targetGroup.userData.isTarget = true;
+                        target.userData.isTarget = true;
                         
                         targets.push(targetGroup);
                         scene.add(targetGroup);
@@ -202,9 +197,9 @@
                             new THREE.MeshStandardMaterial({ color: 0xff0000 })
                         );
                         target.position.set(
-                            Math.random() * 30 - 15,
+                            Math.random() * 60 - 30,
                             Math.random() * 5,
-                            Math.random() * -30 - 10
+                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         target.userData.isTarget = true;
                         targets.push(target);
@@ -257,28 +252,33 @@
                 
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
-                const hit = intersects.find(i => {
-                    // Проверяем как сам объект, так и всех его родителей
-                    let obj = i.object;
+                for (const intersect of intersects) {
+                    let obj = intersect.object;
+                    
+                    // Ищем мишень в иерархии объектов
                     while (obj) {
-                        if (obj.userData.isTarget) return true;
+                        if (obj.userData.isTarget) {
+                            // Находим корневой объект мишени
+                            let targetToRemove = obj;
+                            while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
+                                targetToRemove = targetToRemove.parent;
+                            }
+                            
+                            // Удаляем мишень
+                            scene.remove(targetToRemove);
+                            targets = targets.filter(t => t !== targetToRemove);
+                            
+                            // Увеличиваем счет
+                            score += 10;
+                            updateHUD();
+                            
+                            // Создаем новую мишень
+                            spawnNewTarget();
+                            
+                            return; // Выходим после первого попадания
+                        }
                         obj = obj.parent;
                     }
-                    return false;
-                });
-                
-                if (hit) {
-                    // Находим верхний объект-мишень в иерархии
-                    let targetToRemove = hit.object;
-                    while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
-                        targetToRemove = targetToRemove.parent;
-                    }
-                    
-                    scene.remove(targetToRemove);
-                    targets = targets.filter(t => t !== targetToRemove);
-                    score += 10;
-                    spawnNewTarget();
-                    updateHUD();
                 }
             }
 
@@ -311,9 +311,9 @@
                 
                 targets.forEach(target => {
                     target.position.z += config.targetSpeed;
-                    if (target.position.z > 10) {
-                        target.position.z = -20;
-                        target.position.x = Math.random() * 30 - 15;
+                    if (target.position.z > config.despawnDistance) {
+                        target.position.z = config.spawnDistance.min;
+                        target.position.x = Math.random() * 60 - 30;
                     }
                 });
 
