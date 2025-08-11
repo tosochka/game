@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Коридор для мишеней</title>
+    <title>DronoBoy - Полная версия с разделением зон</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -86,7 +86,7 @@
                 waveAmplitude: 3,
                 waveFrequency: 0.1,
                 landscapeObjects: {
-                    count: 80, // Количество ландшафтных объектов 80
+                    count: 60, // Количество ландшафтных объектов 80
                     types: [
                         'models/tree1.glb',
                         'models/tree2.glb',
@@ -110,12 +110,11 @@
                     scaleRange: { min: 10.5, max: 20.0 },
                     positionRange: { x: 45, z: 80 }
                 },
-                safeRadius: 15,
+                safeRadius: 3,
                 minTargetHeight: 2.0,
-                collisionDistance: 5.0,
-                corridorWidth: 30,
-                corridorDepth: 100,
-                frontClearZone: 40
+                targetMovementRangeX: 30,
+                landscapeSafeMargin: 5,
+                minDistanceBetweenObjects: 3
             };
 
             let scene, camera, renderer, controls;
@@ -189,29 +188,52 @@
                 return Math.sqrt(x*x + z*z) > config.safeRadius;
             }
 
-            function getRandomSafePosition() {
+            function isPositionValid(x, z, objects) {
+                if (!isPositionSafe(x, z)) return false;
+                
+                if (Math.abs(x) < config.targetMovementRangeX + config.landscapeSafeMargin) {
+                    return false;
+                }
+                
+                for (const obj of objects) {
+                    const dx = x - obj.position.x;
+                    const dz = z - obj.position.z;
+                    const distance = Math.sqrt(dx*dx + dz*dz);
+                    
+                    if (distance < config.minDistanceBetweenObjects) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+
+            function getRandomSafePosition(existingObjects) {
                 let x, z;
                 let attempts = 0;
                 const maxAttempts = 100;
                 
-                do {
-                    if (Math.random() > 0.5) {
-                        x = Math.random() > 0.5 ? 
-                            (config.corridorWidth/2 + Math.random() * (config.landscapeObjects.positionRange.x - config.corridorWidth/2)) :
-                            -(config.corridorWidth/2 + Math.random() * (config.landscapeObjects.positionRange.x - config.corridorWidth/2));
-                    } else {
-                        x = Math.random() * config.landscapeObjects.positionRange.x * 2 - config.landscapeObjects.positionRange.x;
-                    }
-                    
-                    z = Math.random() > 0.3 ? 
-                        -(Math.random() * config.landscapeObjects.positionRange.z) :
-                        Math.random() * config.frontClearZone;
-                    
-                    attempts++;
-                } while ((!isPositionSafe(x, z) && attempts < maxAttempts) || 
-                        (Math.abs(x) < config.corridorWidth/2 && z > -config.corridorDepth));
+                const xRange = config.landscapeObjects.positionRange.x;
+                const zRange = config.landscapeObjects.positionRange.z;
                 
-                return { x, z };
+                const leftZone = {
+                    min: -xRange,
+                    max: -config.targetMovementRangeX - config.landscapeSafeMargin
+                };
+                
+                const rightZone = {
+                    min: config.targetMovementRangeX + config.landscapeSafeMargin,
+                    max: xRange
+                };
+                
+                do {
+                    const zone = Math.random() > 0.5 ? leftZone : rightZone;
+                    x = Math.random() * (zone.max - zone.min) + zone.min;
+                    z = Math.random() * zRange * 2 - zRange;
+                    attempts++;
+                } while (!isPositionValid(x, z, existingObjects) && attempts < maxAttempts);
+                
+                return attempts < maxAttempts ? { x, z } : null;
             }
 
             function loadModels() {
@@ -246,11 +268,14 @@
 
             function loadLandscapeObjects() {
                 const loader = new THREE.GLTFLoader();
+                const placedObjects = [];
                 
                 for (let i = 0; i < config.landscapeObjects.count; i++) {
                     const typeIndex = Math.floor(Math.random() * config.landscapeObjects.types.length);
                     const modelPath = config.landscapeObjects.types[typeIndex];
-                    const { x, z } = getRandomSafePosition();
+                    const position = getRandomSafePosition(placedObjects);
+                    
+                    if (!position) continue;
                     
                     loader.load(modelPath, 
                         (gltf) => {
@@ -260,7 +285,7 @@
                                          config.landscapeObjects.scaleRange.min;
                             
                             obj.scale.set(scale, scale, scale);
-                            obj.position.set(x, 0, z);
+                            obj.position.set(position.x, 0, position.z);
                             obj.rotation.y = Math.random() * Math.PI * 2;
                             
                             obj.traverse(child => {
@@ -270,10 +295,9 @@
                                 }
                             });
                             
-                            obj.userData.boundingBox = new THREE.Box3().setFromObject(obj);
                             obj.userData.isLandscape = true;
-                            
                             landscape.push(obj);
+                            placedObjects.push(obj);
                             scene.add(obj);
                         },
                         undefined,
@@ -294,47 +318,18 @@
                                        config.landscapeObjects.scaleRange.min;
                             
                             obj.scale.set(scale, scale, scale);
-                            obj.position.set(x, 0, z);
+                            obj.position.set(position.x, 0, position.z);
                             obj.rotation.y = Math.random() * Math.PI * 2;
                             obj.castShadow = true;
                             obj.receiveShadow = true;
-                            obj.userData.boundingBox = new THREE.Box3().setFromObject(obj);
                             obj.userData.isLandscape = true;
                             
                             landscape.push(obj);
+                            placedObjects.push(obj);
                             scene.add(obj);
                         }
                     );
                 }
-            }
-
-            function checkTargetCollision(target) {
-                target.userData.boundingBox = new THREE.Box3().setFromObject(target);
-                
-                if (target.position.y < config.minTargetHeight) {
-                    target.position.y = config.minTargetHeight;
-                    return true;
-                }
-                
-                for (const obj of landscape) {
-                    if (obj.userData.boundingBox && target.userData.boundingBox) {
-                        if (target.userData.boundingBox.intersectsBox(obj.userData.boundingBox)) {
-                            const direction = new THREE.Vector3().subVectors(
-                                target.position, 
-                                obj.position
-                            ).normalize();
-                            
-                            target.position.addScaledVector(
-                                direction, 
-                                config.collisionDistance
-                            );
-                            
-                            return true;
-                        }
-                    }
-                }
-                
-                return false;
             }
 
             function spawnNewTarget() {
@@ -371,14 +366,15 @@
                             initialHeight = Math.random() * 
                                          (config.targetHeight.max - config.targetHeight.min) + 
                                          config.targetHeight.min;
-                            x = Math.random() * config.corridorWidth - config.corridorWidth/2;
+                            x = Math.random() * config.targetMovementRangeX * 2 - config.targetMovementRangeX;
                             z = Math.random() * 
                               (config.spawnDistance.max - config.spawnDistance.min) + 
                               config.spawnDistance.min;
                             attempts++;
                         } while (
-                            initialHeight < config.minTargetHeight &&
-                            attempts < maxAttempts
+                            (!isPositionSafe(x, z) && 
+                            attempts < maxAttempts) ||
+                            initialHeight < config.minTargetHeight
                         );
                         
                         targetGroup.position.set(x, initialHeight, z);
@@ -393,8 +389,7 @@
                             speed: speed,
                             waveMotion: Math.random() > 0.5,
                             initialHeight: initialHeight,
-                            waveOffset: Math.random() * Math.PI * 2,
-                            boundingBox: new THREE.Box3().setFromObject(targetGroup)
+                            waveOffset: Math.random() * Math.PI * 2
                         };
                         
                         targets.push(targetGroup);
@@ -410,14 +405,15 @@
                             initialHeight = Math.random() * 
                                          (config.targetHeight.max - config.targetHeight.min) + 
                                          config.targetHeight.min;
-                            x = Math.random() * config.corridorWidth - config.corridorWidth/2;
+                            x = Math.random() * config.targetMovementRangeX * 2 - config.targetMovementRangeX;
                             z = Math.random() * 
                               (config.spawnDistance.max - config.spawnDistance.min) + 
                               config.spawnDistance.min;
                             attempts++;
                         } while (
-                            initialHeight < config.minTargetHeight &&
-                            attempts < maxAttempts
+                            (!isPositionSafe(x, z) && 
+                            attempts < maxAttempts) ||
+                            initialHeight < config.minTargetHeight
                         );
                         
                         const speed = Math.random() * 
@@ -443,8 +439,7 @@
                             speed: speed,
                             waveMotion: Math.random() > 0.5,
                             initialHeight: initialHeight,
-                            waveOffset: Math.random() * Math.PI * 2,
-                            boundingBox: new THREE.Box3().setFromObject(target)
+                            waveOffset: Math.random() * Math.PI * 2
                         };
                         
                         targets.push(target);
@@ -550,8 +545,6 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
-                    const prevPosition = target.position.clone();
-                    
                     target.position.z += target.userData.speed;
                     
                     if (target.userData.waveMotion) {
@@ -560,16 +553,8 @@
                                         target.userData.waveOffset) * config.waveAmplitude;
                     }
                     
-                    if (checkTargetCollision(target)) {
-                        target.position.copy(prevPosition);
-                        target.position.y += 1.0;
-                        
-                        if (checkTargetCollision(target)) {
-                            scene.remove(target);
-                            targets = targets.filter(t => t !== target);
-                            spawnNewTarget();
-                            return;
-                        }
+                    if (target.position.y < config.minTargetHeight) {
+                        target.position.y = config.minTargetHeight;
                     }
                     
                     if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
