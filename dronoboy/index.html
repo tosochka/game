@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Рабочая версия</title>
+    <title>DronoBoy - Финальная рабочая версия</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -167,12 +167,12 @@
                     (gltf) => {
                         const target = gltf.scene;
                         
-                        // Помечаем все части модели как мишень
-                        target.traverse(child => {
+                        // Явно помечаем ВСЕ части модели как мишень
+                        target.traverse((child) => {
                             if (child.isMesh) {
                                 child.userData.isTarget = true;
                                 child.material.transparent = true;
-                                child.material.opacity = 0;
+                                child.material.opacity = 1;
                             }
                         });
                         
@@ -185,8 +185,9 @@
                         target.rotation.y = Math.PI;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
+                        // Помечаем всю группу как мишень
                         target.userData.isTarget = true;
-                        target.userData.fadingIn = true;
+                        target.userData.isBeingRemoved = false;
                         
                         targets.push(target);
                         scene.add(target);
@@ -199,7 +200,7 @@
                             new THREE.MeshStandardMaterial({ 
                                 color: 0xff0000,
                                 transparent: true,
-                                opacity: 0
+                                opacity: 1
                             })
                         );
                         target.position.set(
@@ -208,7 +209,7 @@
                             Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
                         );
                         target.userData.isTarget = true;
-                        target.userData.fadingIn = true;
+                        target.userData.isBeingRemoved = false;
                         
                         targets.push(target);
                         scene.add(target);
@@ -261,14 +262,15 @@
                 
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
-                // Ищем пересечение с мишенью
+                // Обрабатываем все пересечения
                 for (const intersect of intersects) {
                     let obj = intersect.object;
                     
-                    // Проверяем всю иерархию объектов
-                    while (obj) {
-                        if (obj.userData.isTarget) {
-                            const target = obj;
+                    // Ищем мишень в иерархии объектов
+                    while (obj && obj !== scene) {
+                        if (obj.userData.isTarget && !obj.userData.isBeingRemoved) {
+                            // Помечаем мишень как удаляемую
+                            obj.userData.isBeingRemoved = true;
                             
                             // Плавное исчезновение
                             const startTime = Date.now();
@@ -276,7 +278,7 @@
                                 const elapsed = Date.now() - startTime;
                                 const progress = Math.min(1, elapsed / config.hitFadeDuration);
                                 
-                                target.traverse(child => {
+                                obj.traverse((child) => {
                                     if (child.isMesh) {
                                         child.material.opacity = 1 - progress;
                                     }
@@ -286,8 +288,8 @@
                                     requestAnimationFrame(fadeOut);
                                 } else {
                                     // Удаление мишени
-                                    scene.remove(target);
-                                    targets = targets.filter(t => t !== target);
+                                    scene.remove(obj);
+                                    targets = targets.filter(t => t !== obj);
                                     score += 10;
                                     updateHUD();
                                     spawnNewTarget();
@@ -329,30 +331,10 @@
             function animate() {
                 requestAnimationFrame(animate);
                 
-                targets.forEach(target => {
+                // Обновляем только мишени, которые не удаляются
+                targets.filter(t => !t.userData.isBeingRemoved).forEach(target => {
                     // Движение мишени
                     target.position.z += config.targetSpeed;
-                    
-                    // Плавное появление
-                    if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
-                        const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
-                        target.traverse(child => {
-                            if (child.isMesh) {
-                                child.material.opacity = fadeProgress;
-                            }
-                        });
-                        if (fadeProgress >= 1) target.userData.fadingIn = false;
-                    }
-                    
-                    // Плавное исчезновение при выходе за границы
-                    if (target.position.z > config.despawnDistance - config.fadeDistance) {
-                        const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
-                        target.traverse(child => {
-                            if (child.isMesh) {
-                                child.material.opacity = fadeProgress;
-                            }
-                        });
-                    }
                     
                     // Удаление мишени при выходе за границы
                     if (target.position.z > config.despawnDistance) {
