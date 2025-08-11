@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - С плавными и атакующими мишенями</title>
+    <title>DronoBoy - С плавными мишенями</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -11,7 +11,7 @@
             color: white;
             text-shadow: 2px 2px 4px black;
         }
-        #ammo, #score, #timer, #health { font-size: 24px; }
+        #ammo, #score { font-size: 24px; }
         #crosshair {
             position: absolute;
             top: 50%;
@@ -56,8 +56,6 @@
     <div id="hud">
         <div id="ammo">Патроны: 300</div>
         <div id="score">Очки: 0</div>
-        <div id="timer">Время: 999</div>
-        <div id="health">Здоровье: 100</div>
     </div>
     <div id="crosshair"></div>
     <div id="start-screen">
@@ -74,29 +72,19 @@
                 playerHeight: 1.7,
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
-                targetCount: 12,
+                targetCount: 8,
                 targetSpeed: 0.09,
                 ammoStart: 300,
                 targetSize: 0.5,
                 spawnDistance: { min: -120, max: -80 },
                 despawnDistance: 100,
-                fadeDistance: 60,
-                targetHeight: {
-                    min: 1.7,
-                    max: 30
-                },
-                gameDuration: 999,
-                playerHealth: 100,
-                attackerChance: 0.3,
-                waveMotionChance: 0.7,
-                attackDistance: 1, // Дистанция для начала атаки
-                attackHeight: 1.0   // Высота атаки (уровень игрока)
+                fadeDistance: 60 // Дистанция для плавного появления/исчезновения
             };
 
             let scene, camera, renderer, controls;
             let gun, targets = [];
-            let ammoCount = config.ammoStart, score = 0, health = config.playerHealth, gameTime = config.gameDuration;
-            let isGameStarted = false, gameInterval;
+            let ammoCount = config.ammoStart, score = 0;
+            let isGameStarted = false;
 
             function init() {
                 createScene();
@@ -135,7 +123,7 @@
 
             function createGround() {
                 const ground = new THREE.Mesh(
-                    new THREE.PlaneGeometry(1000, 1000),
+                    new THREE.PlaneGeometry(100, 100),
                     new THREE.MeshStandardMaterial({ color: 0x3a5f0b })
                 );
                 ground.rotation.x = -Math.PI / 2;
@@ -146,12 +134,11 @@
                 const loader = new THREE.GLTFLoader();
                 
                 // Загрузка оружия
-                loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/models/gltf/duck/duck.gltf', 
+                loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
                         gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
                         gun.scale.set(config.gunScale, config.gunScale, config.gunScale);
-                        gun.rotation.y = Math.PI;
                         camera.add(gun);
                         scene.add(camera);
                     },
@@ -174,41 +161,66 @@
             }
 
             function spawnNewTarget() {
-                const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0xff0000,
-                    transparent: true,
-                    opacity: 0
-                });
-                
-                const target = new THREE.Mesh(geometry, material);
-                
-                // Позиция
-                target.position.set(
-                    Math.random() * 60 - 30,
-                    Math.random() * (config.targetHeight.max - config.targetHeight.min) + config.targetHeight.min,
-                    Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
+                const loader = new THREE.GLTFLoader();
+                loader.load('models/target.glb', 
+                    (gltf) => {
+                        const targetGroup = new THREE.Group();
+                        const target = gltf.scene;
+                        
+                        // Настройка прозрачности для плавного появления
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.transparent = true;
+                                child.material.opacity = 0; // Начинаем с прозрачной
+                            }
+                        });
+                        
+                        // Центрирование модели
+                        const box = new THREE.Box3().setFromObject(target);
+                        const center = box.getCenter(new THREE.Vector3());
+                        target.position.sub(center);
+                        
+                        // Поворот и масштабирование
+                        target.rotation.y = Math.PI;
+                        target.rotation.x = Math.PI / 18;
+                        target.scale.set(config.targetSize, config.targetSize, config.targetSize);
+                        
+                        targetGroup.add(target);
+                        targetGroup.position.set(
+                            Math.random() * 60 - 30,
+                            Math.random() * 5,
+                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
+                        );
+                        
+                        // Добавляем пользовательские свойства
+                        targetGroup.userData.isTarget = true;
+                        targetGroup.userData.fadingIn = true; // Флаг для плавного появления
+                        target.userData.isTarget = true;
+                        
+                        targets.push(targetGroup);
+                        scene.add(targetGroup);
+                    },
+                    undefined,
+                    () => {
+                        const target = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
+                            new THREE.MeshStandardMaterial({ 
+                                color: 0xff0000,
+                                transparent: true,
+                                opacity: 0 // Начинаем с прозрачной
+                            })
+                        );
+                        target.position.set(
+                            Math.random() * 60 - 30,
+                            Math.random() * 5,
+                            Math.random() * (config.spawnDistance.max - config.spawnDistance.min) + config.spawnDistance.min
+                        );
+                        target.userData.isTarget = true;
+                        target.userData.fadingIn = true; // Флаг для плавного появления
+                        targets.push(target);
+                        scene.add(target);
+                    }
                 );
-                
-                // Свойства мишени
-                target.userData = {
-                    isTarget: true,
-                    fadingIn: true,
-                    speed: config.targetSpeed * (0.8 + Math.random() * 0.4),
-                    isAttacker: Math.random() < config.attackerChance,
-                    points: 10,
-                    waveMotion: Math.random() < config.waveMotionChance,
-                    initialY: target.position.y
-                };
-                
-                if (target.userData.isAttacker) {
-                    target.userData.speed *= 1.5;
-                    target.userData.diveSpeed = 0.05;
-                    target.userData.points = 20;
-                }
-                
-                targets.push(target);
-                scene.add(target);
             }
 
             function setupControls() {
@@ -221,9 +233,6 @@
                 });
 
                 controls.addEventListener('lock', () => {
-                    if (!isGameStarted) {
-                        startGame();
-                    }
                     isGameStarted = true;
                     document.getElementById('start-screen').style.display = 'none';
                 });
@@ -232,52 +241,6 @@
                     isGameStarted = false;
                     document.getElementById('start-screen').style.display = 'flex';
                 });
-            }
-
-            function startGame() {
-                resetGame();
-                gameInterval = setInterval(updateGame, 1000);
-            }
-
-            function resetGame() {
-                // Очистка старых мишеней
-                targets.forEach(target => scene.remove(target));
-                targets = [];
-                
-                // Сброс параметров
-                ammoCount = config.ammoStart;
-                score = 0;
-                health = config.playerHealth;
-                gameTime = config.gameDuration;
-                
-                // Создание новых мишеней
-                for (let i = 0; i < config.targetCount; i++) {
-                    spawnNewTarget();
-                }
-                
-                // Обновление HUD
-                updateHUD();
-                
-                // Остановка старого таймера
-                if (gameInterval) clearInterval(gameInterval);
-            }
-
-            function endGame() {
-                isGameStarted = false;
-                controls.unlock();
-                clearInterval(gameInterval);
-                document.getElementById('start-screen').style.display = 'flex';
-            }
-
-            function updateGame() {
-                if (!isGameStarted) return;
-                
-                gameTime--;
-                document.getElementById('timer').textContent = `Время: ${gameTime}`;
-                
-                if (gameTime <= 0 || health <= 0) {
-                    endGame();
-                }
             }
 
             function setupEventListeners() {
@@ -291,14 +254,12 @@
                 
                 ammoCount--;
                 updateHUD();
-                
-                // Эффект выстрела
+
                 if (gun) {
                     gun.position.z += 0.1;
                     setTimeout(() => gun.position.z -= 0.1, 100);
                 }
-                
-                // Создание луча
+
                 const raycaster = new THREE.Raycaster(
                     camera.position,
                     camera.getWorldDirection(new THREE.Vector3())
@@ -307,32 +268,32 @@
                 const intersects = raycaster.intersectObjects(scene.children, true);
                 
                 for (const intersect of intersects) {
-                    if (intersect.object.userData.isTarget) {
-                        const target = intersect.object;
-                        
-                        // Удаляем мишень
-                        scene.remove(target);
-                        targets = targets.filter(t => t !== target);
-                        
-                        // Увеличиваем счет
-                        score += target.userData.points;
-                        updateHUD();
-                        
-                        // Создаем новую мишень
-                        spawnNewTarget();
-                        
-                        return;
+                    let obj = intersect.object;
+                    
+                    // Ищем мишень в иерархии объектов
+                    while (obj) {
+                        if (obj.userData.isTarget) {
+                            // Находим корневой объект мишени
+                            let targetToRemove = obj;
+                            while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
+                                targetToRemove = targetToRemove.parent;
+                            }
+                            
+                            // Удаляем мишень
+                            scene.remove(targetToRemove);
+                            targets = targets.filter(t => t !== targetToRemove);
+                            
+                            // Увеличиваем счет
+                            score += 10;
+                            updateHUD();
+                            
+                            // Создаем новую мишень
+                            spawnNewTarget();
+                            
+                            return; // Выходим после первого попадания
+                        }
+                        obj = obj.parent;
                     }
-                }
-            }
-
-            function takeDamage(amount) {
-                health -= amount;
-                if (health < 0) health = 0;
-                updateHUD();
-                
-                if (health <= 0) {
-                    endGame();
                 }
             }
 
@@ -344,7 +305,6 @@
             function updateHUD() {
                 document.getElementById('ammo').textContent = `Патроны: ${ammoCount}`;
                 document.getElementById('score').textContent = `Очки: ${score}`;
-                document.getElementById('health').textContent = `Здоровье: ${health}`;
             }
 
             function onWindowResize() {
@@ -365,52 +325,33 @@
                 requestAnimationFrame(animate);
                 
                 targets.forEach(target => {
-                    // Движение вперед
-                    target.position.z += target.userData.speed;
-                    
-                    // Волнообразное движение
-                    if (target.userData.waveMotion) {
-                        target.position.y = target.userData.initialY + Math.sin(target.position.z * 0.1) * 2;
-                    }
-                    
-                    // Атака на игрока
-                    if (target.userData.isAttacker && target.position.z > -config.attackDistance) {
-                        // Плавное снижение до уровня игрока
-                        if (target.position.y > config.attackHeight) {
-                            target.position.y -= target.userData.diveSpeed;
-                        }
-                        
-                        // Проверка столкновения с игроком
-                        const distanceToPlayer = Math.sqrt(
-                            Math.pow(target.position.x - camera.position.x, 2) +
-                            Math.pow(target.position.z - camera.position.z, 2)
-                        );
-                        
-                        if (distanceToPlayer < 2 && target.position.y < config.playerHeight + 1) {
-                            takeDamage(10);
-                            scene.remove(target);
-                            targets = targets.filter(t => t !== target);
-                            spawnNewTarget();
-                            return;
-                        }
-                    }
+                    // Движение мишени
+                    target.position.z += config.targetSpeed;
                     
                     // Плавное появление
                     if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
                         const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
-                        target.material.opacity = fadeProgress;
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = fadeProgress;
+                            }
+                        });
                         if (fadeProgress >= 1) {
                             target.userData.fadingIn = false;
                         }
                     }
                     
-                    // Плавное исчезновение
+                    // Плавное исчезновение при выходе за границы
                     if (target.position.z > config.despawnDistance - config.fadeDistance) {
                         const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
-                        target.material.opacity = fadeProgress;
+                        target.traverse(child => {
+                            if (child.isMesh) {
+                                child.material.opacity = fadeProgress;
+                            }
+                        });
                     }
                     
-                    // Удаление мишени
+                    // Удаление мишени при выходе за границы
                     if (target.position.z > config.despawnDistance) {
                         scene.remove(target);
                         targets = targets.filter(t => t !== target);
