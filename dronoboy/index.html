@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Полная версия с расширенной зоной</title>
+    <title>DronoBoy - Эффект горизонта</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -69,8 +69,7 @@
 
     <script>
         const DronoBoy = (() => {
-            // Базовые параметры (оригинальные значения)
-            const baseConfig = {
+            const config = {
                 playerHeight: 1.7,
                 gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
                 gunScale: 0.9,
@@ -79,11 +78,11 @@
                 ammoStart: 30,
                 targetSize: 0.5,
                 targetHeight: { min: 2.0, max: 20 },
-                spawnDistance: { min: -120, max: -80 },
-                despawnDistance: 100,
-                fadeDistance: 60,
+                spawnDistance: { min: -150, max: -100 },
+                despawnDistance: 150, // Увеличенное расстояние деспауна
+                fadeDistance: 80, // Увеличенная дистанция исчезновения
                 waveAmplitude: 3,
-                waveFrequency: 0.1,
+                waveFrequency: 0.1, // Меньшая частота для более плавных волн
                 landscapeObjects: {
                     count: 90,
                     types: [
@@ -111,50 +110,15 @@
                 },
                 safeRadius: 3,
                 minTargetHeight: 2.0,
-                targetMovementRangeX: 30,
+                targetMovementRangeX: 40,
                 landscapeSafeMargin: 5,
                 minDistanceBetweenObjects: 3,
                 playerSpeed: 0.2,
                 healthStart: 100,
                 grenadeSpawnChance: 0.01,
                 grenadeDamage: 20,
-                playerBoundsExtension: 15
-            };
-
-            // Коэффициент масштабирования мира (1.5 - увеличение в 1.5 раза)
-            const worldScale = 1.0;
-
-            // Автоматический расчет масштабированных параметров
-            const config = {
-                ...baseConfig,
-                targetSpeed: {
-                    min: baseConfig.targetSpeed.min * worldScale,
-                    max: baseConfig.targetSpeed.max * worldScale
-                },
-                spawnDistance: {
-                    min: baseConfig.spawnDistance.min * worldScale,
-                    max: baseConfig.spawnDistance.max * worldScale
-                },
-                despawnDistance: baseConfig.despawnDistance * worldScale,
-                fadeDistance: baseConfig.fadeDistance * worldScale,
-                waveAmplitude: baseConfig.waveAmplitude * worldScale,
-                landscapeObjects: {
-                    ...baseConfig.landscapeObjects,
-                    positionRange: {
-                        x: baseConfig.landscapeObjects.positionRange.x * worldScale,
-                        z: baseConfig.landscapeObjects.positionRange.z * worldScale
-                    }
-                },
-                targetMovementRangeX: baseConfig.targetMovementRangeX * worldScale,
-                playerBoundsExtension: baseConfig.playerBoundsExtension * worldScale,
-                get playerBounds() {
-                    return {
-                        minX: -this.landscapeObjects.positionRange.x - this.playerBoundsExtension,
-                        maxX: this.landscapeObjects.positionRange.x + this.playerBoundsExtension,
-                        minZ: -this.landscapeObjects.positionRange.z - this.playerBoundsExtension,
-                        maxZ: this.landscapeObjects.positionRange.z + this.playerBoundsExtension
-                    };
-                }
+                playerBoundsExtension: 25,
+                groundExtension: 100 // Дополнительная зона земли за пределами игровой зоны
             };
 
             let scene, camera, renderer, controls;
@@ -178,7 +142,7 @@
             function createScene() {
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x87CEEB);
-                scene.fog = new THREE.Fog(0x87CEEB, 60 * worldScale, 120 * worldScale);
+                scene.fog = new THREE.Fog(0x87CEEB, 80, 200); // Увеличенный туман для плавного исчезновения
             }
 
             function setupCamera() {
@@ -202,14 +166,14 @@
                 directionalLight.position.set(1, 2, 1);
                 directionalLight.castShadow = true;
                 
-                directionalLight.shadow.mapSize.width = 1024;
-                directionalLight.shadow.mapSize.height = 1024;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
                 directionalLight.shadow.camera.near = 0.5;
                 directionalLight.shadow.camera.far = 500;
-                directionalLight.shadow.camera.left = -80 * worldScale;
-                directionalLight.shadow.camera.right = 80 * worldScale;
-                directionalLight.shadow.camera.top = 80 * worldScale;
-                directionalLight.shadow.camera.bottom = -80 * worldScale;
+                directionalLight.shadow.camera.left = -100;
+                directionalLight.shadow.camera.right = 100;
+                directionalLight.shadow.camera.top = 100;
+                directionalLight.shadow.camera.bottom = -100;
                 
                 scene.add(directionalLight);
 
@@ -222,13 +186,12 @@
             }
 
             function createGround() {
-                const groundSize = Math.max(
-                    config.landscapeObjects.positionRange.x * 2 + config.playerBoundsExtension * 2,
-                    config.landscapeObjects.positionRange.z * 2 + config.playerBoundsExtension * 2
-                );
+                // Рассчитываем размер земли с учетом дополнительной зоны
+                const groundWidth = config.landscapeObjects.positionRange.x * 2 + config.groundExtension * 2;
+                const groundHeight = config.landscapeObjects.positionRange.z * 2 + config.groundExtension * 2;
                 
                 const ground = new THREE.Mesh(
-                    new THREE.PlaneGeometry(groundSize, groundSize),
+                    new THREE.PlaneGeometry(groundWidth, groundHeight, 50, 50),
                     new THREE.MeshStandardMaterial({ 
                         color: 0x2a4d0b,
                         roughness: 0.8,
@@ -488,7 +451,8 @@
                             waveMotion: Math.random() > 0.5,
                             initialHeight: initialHeight,
                             waveOffset: Math.random() * Math.PI * 2,
-                            canDropGrenade: Math.random() > 0.7
+                            canDropGrenade: Math.random() > 0.7,
+                            initialScale: config.targetSize
                         };
                         
                         targets.push(targetGroup);
@@ -541,7 +505,8 @@
                             waveMotion: Math.random() > 0.5,
                             initialHeight: initialHeight,
                             waveOffset: Math.random() * Math.PI * 2,
-                            canDropGrenade: Math.random() > 0.7
+                            canDropGrenade: Math.random() > 0.7,
+                            initialScale: 1
                         };
                         
                         targets.push(target);
@@ -646,7 +611,13 @@
                 if (moveVector.length() > 0) {
                     const newPosition = controls.getObject().position.clone().add(moveVector);
                     
-                    const bounds = config.playerBounds;
+                    const bounds = {
+                        minX: -config.landscapeObjects.positionRange.x - config.playerBoundsExtension,
+                        maxX: config.landscapeObjects.positionRange.x + config.playerBoundsExtension,
+                        minZ: -config.landscapeObjects.positionRange.z - config.playerBoundsExtension,
+                        maxZ: config.landscapeObjects.positionRange.z + config.playerBoundsExtension
+                    };
+                    
                     if (newPosition.x > bounds.minX && newPosition.x < bounds.maxX &&
                         newPosition.z > bounds.minZ && newPosition.z < bounds.maxZ) {
                         controls.getObject().position.copy(newPosition);
@@ -829,6 +800,7 @@
                             target.position.y = config.minTargetHeight;
                         }
                         
+                        // Эффект появления при подлете
                         if (target.userData.fadingIn && target.position.z < config.spawnDistance.max + config.fadeDistance) {
                             const fadeProgress = Math.min(1, (target.position.z - config.spawnDistance.max) / config.fadeDistance);
                             target.traverse(child => {
@@ -841,11 +813,15 @@
                             }
                         }
                         
+                        // Эффект исчезновения при улете
                         if (target.position.z > config.despawnDistance - config.fadeDistance) {
                             const fadeProgress = 1 - Math.min(1, (target.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
                             target.traverse(child => {
                                 if (child.isMesh) {
                                     child.material.opacity = fadeProgress;
+                                    // Уменьшение размера при улете
+                                    const scale = target.userData.initialScale * fadeProgress;
+                                    child.scale.set(scale, scale, scale);
                                 }
                             });
                         }
