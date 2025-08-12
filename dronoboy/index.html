@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DronoBoy - Полная версия с разделением зон и гранатами</title>
+    <title>DronoBoy - Полная версия с карбоновым ружьем</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #hud {
@@ -166,15 +166,17 @@
             }
 
             function createLighting() {
-                const ambientLight = new THREE.AmbientLight(0x404040);
+                // Мягкий ambient свет с холодным оттенком
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
                 scene.add(ambientLight);
                 
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-                directionalLight.position.set(1, 10, 1);
+                // Основной направленный свет - менее интенсивный и более рассеянный
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 2, 1); // Более низкое положение
                 directionalLight.castShadow = true;
                 
-                directionalLight.shadow.mapSize.width = 2048;
-                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.mapSize.width = 1024;
+                directionalLight.shadow.mapSize.height = 1024;
                 directionalLight.shadow.camera.near = 0.5;
                 directionalLight.shadow.camera.far = 500;
                 directionalLight.shadow.camera.left = -50;
@@ -184,20 +186,24 @@
                 
                 scene.add(directionalLight);
 
-                // Добавляем заполняющий свет
-                const fillLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+                // Заполняющий свет с теплым оттенком
+                const fillLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
                 scene.add(fillLight);
 
-                // Добавляем контровой свет
-                const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-                backLight.position.set(-5, 5, -5);
+                // Контровой свет для подчеркивания краев
+                const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                backLight.position.set(-5, 3, -5);
                 scene.add(backLight);
             }
 
             function createGround() {
                 const ground = new THREE.Mesh(
                     new THREE.PlaneGeometry(200, 200),
-                    new THREE.MeshStandardMaterial({ color: 0x3a5f0b })
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0x2a4d0b, // Более темный зеленый
+                        roughness: 0.8,
+                        metalness: 0.1
+                    })
                 );
                 ground.rotation.x = -Math.PI / 2;
                 ground.receiveShadow = true;
@@ -266,7 +272,7 @@
                         gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
                         gun.scale.set(config.gunScale, config.gunScale, config.gunScale);
                         
-                        // Применение карбонового материала
+                        // Карбоновый материал для ружья
                         const carbonMaterial = new THREE.MeshStandardMaterial({
                             color: 0x333333,
                             roughness: 0.4,
@@ -352,6 +358,9 @@
                                 if (child.isMesh) {
                                     child.castShadow = true;
                                     child.receiveShadow = true;
+                                    // Приглушенные материалы для ландшафта
+                                    child.material.roughness = 0.9;
+                                    child.material.metalness = 0.05;
                                 }
                             });
                             
@@ -369,7 +378,9 @@
                             const obj = new THREE.Mesh(
                                 geometry,
                                 new THREE.MeshStandardMaterial({ 
-                                    color: Math.random() > 0.5 ? 0x228B22 : 0x808080 
+                                    color: Math.random() > 0.5 ? 0x1a5a1a : 0x707070, // Приглушенные цвета
+                                    roughness: 0.9,
+                                    metalness: 0.05
                                 })
                             );
                             
@@ -405,6 +416,9 @@
                                 child.receiveShadow = true;
                                 child.material.transparent = true;
                                 child.material.opacity = 0;
+                                // Приглушенный материал для мишеней
+                                child.material.roughness = 0.7;
+                                child.material.metalness = 0.1;
                             }
                         });
                         
@@ -484,9 +498,11 @@
                         const target = new THREE.Mesh(
                             new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
                             new THREE.MeshStandardMaterial({ 
-                                color: 0xff0000,
+                                color: 0xcc0000,
                                 transparent: true,
-                                opacity: 0
+                                opacity: 0,
+                                roughness: 0.7,
+                                metalness: 0.1
                             })
                         );
                         
@@ -515,7 +531,10 @@
                 
                 const grenade = new THREE.Mesh(
                     new THREE.SphereGeometry(0.3, 8, 8),
-                    new THREE.MeshStandardMaterial({ color: 0x880000 })
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0x660000, // Темно-красный
+                        roughness: 0.8
+                    })
                 );
                 
                 grenade.position.copy(target.position);
@@ -637,9 +656,10 @@
             function explodeGrenade(grenade) {
                 const explosionGeometry = new THREE.SphereGeometry(1, 8, 8);
                 const explosionMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xff6600,
+                    color: 0xff5500, // Приглушенный оранжевый
                     transparent: true,
-                    opacity: 0.7
+                    opacity: 0.6,
+                    roughness: 0.5
                 });
                 const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
                 explosion.position.copy(grenade.position);
