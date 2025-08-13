@@ -140,17 +140,19 @@
                 },
 
                 kamikazeSettings: {
-                    heightRange: { min: 1.0, max: 1.7 },
+                    heightRange: { min: 1.5, max: 5 },
                     trackingSpeed: 0.03,
-                    attackStartDistance: 80,
+                    attackStartDistance: 50,
                     damage: 0.0,
                     acceleration: 0.001,
                     maxSpeed: 0.3,
                     minDistanceToGround: 0.5,
                     attackHeightOffset: 0.8,
                     heightVariation: 1.5,
-                    attackDelayRange: { min: 5000, max: 30000 },
-                    minDistanceBetween: 3 // Минимальная дистанция между камикадзе
+                    attackDelayRange: { min: 10000, max: 30000 },
+                    minDistanceBetween: 2.5,
+                    avoidanceAngle: 0.5,
+                    sideStepFactor: 0.7
                 },
 
                 damageEffects: {
@@ -297,18 +299,6 @@
                 return attempts < maxAttempts ? { x, z } : null;
             }
 
-            function isKamikazePositionValid(target, newPosition) {
-                for (const otherTarget of targets) {
-                    if (otherTarget !== target && otherTarget.userData.isKamikaze) {
-                        const distance = newPosition.distanceTo(otherTarget.position);
-                        if (distance < config.kamikazeSettings.minDistanceBetween) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            }
-
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
@@ -447,7 +437,7 @@
             function spawnNewTarget() {
                 const isHighTarget = Math.random() < config.bomberSettings.spawnRatio;
                 const heightRange = isHighTarget ? config.bomberSettings.heightRange : config.kamikazeSettings.heightRange;
-                const targetColor = isHighTarget ? 0xcc0000 : 0xff6666; // Бомберы - темно-красные, камикадзе - светло-красные
+                const targetColor = isHighTarget ? 0xcc0000 : 0xff6666;
 
                 const loader = new THREE.GLTFLoader();
                 loader.load('models/target.glb', 
@@ -635,8 +625,15 @@
                         config.kamikazeSettings.attackDelayRange.min;
                 }
                 
+                // Сохраняем предыдущую позицию для расчета направления
+                const prevPosition = target.userData.lastPosition || target.position.clone();
+                target.userData.lastPosition = target.position.clone();
+                
                 if (Date.now() < target.userData.attackTime) {
                     target.position.z += target.userData.baseSpeed;
+                    
+                    // Поворачиваем дрона лицом вперед (по оси Z)
+                    target.rotation.y = Math.PI; // 180 градусов, если модель изначально смотрит назад
                     return false;
                 }
                 
@@ -648,18 +645,64 @@
                 const direction = new THREE.Vector3();
                 direction.subVectors(playerPosition, targetPosition).normalize();
                 
-                const newPosition = target.position.clone();
-                newPosition.x += direction.x * config.kamikazeSettings.trackingSpeed;
-                newPosition.z += direction.z * target.userData.currentSpeed;
+                // Рассчитываем угол поворота для направления движения
+                const angle = Math.atan2(direction.x, direction.z);
+                target.rotation.y = angle;
                 
-                if (isKamikazePositionValid(target, newPosition)) {
-                    target.position.copy(newPosition);
-                } else {
-                    const zOnlyPosition = target.position.clone();
-                    zOnlyPosition.z += direction.z * target.userData.currentSpeed;
-                    if (isKamikazePositionValid(target, zOnlyPosition)) {
-                        target.position.copy(zOnlyPosition);
+                const moveDistance = target.userData.currentSpeed;
+                const desiredPosition = target.position.clone().add(
+                    direction.clone().multiplyScalar(moveDistance)
+                );
+                
+                let canMove = true;
+                for (const otherTarget of targets) {
+                    if (otherTarget !== target && otherTarget.userData.isKamikaze) {
+                        const distance = desiredPosition.distanceTo(otherTarget.position);
+                        if (distance < config.kamikazeSettings.minDistanceBetween) {
+                            canMove = false;
+                            break;
+                        }
                     }
+                }
+                
+                if (!canMove) {
+                    const zOnlyPosition = target.position.clone();
+                    zOnlyPosition.z += direction.z * moveDistance;
+                    let zOnlyValid = true;
+                    
+                    for (const otherTarget of targets) {
+                        if (otherTarget !== target && otherTarget.userData.isKamikaze) {
+                            const distance = zOnlyPosition.distanceTo(otherTarget.position);
+                            if (distance < config.kamikazeSettings.minDistanceBetween) {
+                                zOnlyValid = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (zOnlyValid) {
+                        target.position.copy(zOnlyPosition);
+                    } else {
+                        const sideStep = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
+                        const sidePosition = target.position.clone().add(sideStep.multiplyScalar(moveDistance * config.kamikazeSettings.sideStepFactor));
+                        let sideValid = true;
+                        
+                        for (const otherTarget of targets) {
+                            if (otherTarget !== target && otherTarget.userData.isKamikaze) {
+                                const distance = sidePosition.distanceTo(otherTarget.position);
+                                if (distance < config.kamikazeSettings.minDistanceBetween) {
+                                    sideValid = false;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (sideValid) {
+                            target.position.copy(sidePosition);
+                        }
+                    }
+                } else {
+                    target.position.copy(desiredPosition);
                 }
                 
                 if (!target.userData.attackHeight) {
