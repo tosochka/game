@@ -131,7 +131,7 @@
 
                 bomberSettings: {
                     spawnRatio: 0.5,
-                    bombChance: 0.01,
+                    bombChance: 0.03,
                     bombIntensity: 1.0,
                     minBombInterval: 1000,
                     maxBombInterval: 3000,
@@ -143,13 +143,14 @@
                     heightRange: { min: 1.0, max: 1.7 },
                     trackingSpeed: 0.03,
                     attackStartDistance: 80,
-                    damage: 0,
+                    damage: 0.0,
                     acceleration: 0.001,
                     maxSpeed: 0.3,
-                    minDistanceToGround: 0.8,
+                    minDistanceToGround: 0.5,
                     attackHeightOffset: 0.8,
-                    heightVariation: 3.5,
-                    attackDelayRange: { min: 5000, max: 10000 }
+                    heightVariation: 1.5,
+                    attackDelayRange: { min: 5000, max: 30000 },
+                    minDistanceBetween: 3 // Минимальная дистанция между камикадзе
                 },
 
                 damageEffects: {
@@ -296,6 +297,18 @@
                 return attempts < maxAttempts ? { x, z } : null;
             }
 
+            function isKamikazePositionValid(target, newPosition) {
+                for (const otherTarget of targets) {
+                    if (otherTarget !== target && otherTarget.userData.isKamikaze) {
+                        const distance = newPosition.distanceTo(otherTarget.position);
+                        if (distance < config.kamikazeSettings.minDistanceBetween) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
             function loadModels() {
                 const loader = new THREE.GLTFLoader();
                 
@@ -434,7 +447,7 @@
             function spawnNewTarget() {
                 const isHighTarget = Math.random() < config.bomberSettings.spawnRatio;
                 const heightRange = isHighTarget ? config.bomberSettings.heightRange : config.kamikazeSettings.heightRange;
-                const targetColor = isHighTarget ? 0xcc0000 : 0x0000cc;
+                const targetColor = isHighTarget ? 0xcc0000 : 0xff6666; // Бомберы - темно-красные, камикадзе - светло-красные
 
                 const loader = new THREE.GLTFLoader();
                 loader.load('models/target.glb', 
@@ -615,7 +628,6 @@
                 const targetPosition = target.position.clone();
                 const groundLevel = 0;
                 
-                // Инициализация времени атаки
                 if (!target.userData.attackTime) {
                     target.userData.attackTime = Date.now() + 
                         Math.random() * (config.kamikazeSettings.attackDelayRange.max - 
@@ -623,40 +635,43 @@
                         config.kamikazeSettings.attackDelayRange.min;
                 }
                 
-                // Ждем пока не наступит время атаки
                 if (Date.now() < target.userData.attackTime) {
-                    // Просто летим вперед с базовой скоростью
                     target.position.z += target.userData.baseSpeed;
                     return false;
                 }
                 
-                // Плавное увеличение скорости
                 target.userData.currentSpeed = Math.min(
                     target.userData.currentSpeed + config.kamikazeSettings.acceleration,
                     config.kamikazeSettings.maxSpeed
                 );
                 
-                // Расчет направления к игроку
                 const direction = new THREE.Vector3();
                 direction.subVectors(playerPosition, targetPosition).normalize();
                 
-                // Плавное движение к игроку
-                target.position.x += direction.x * config.kamikazeSettings.trackingSpeed;
-                target.position.z += direction.z * target.userData.currentSpeed;
+                const newPosition = target.position.clone();
+                newPosition.x += direction.x * config.kamikazeSettings.trackingSpeed;
+                newPosition.z += direction.z * target.userData.currentSpeed;
                 
-                // Определяем целевую высоту атаки
+                if (isKamikazePositionValid(target, newPosition)) {
+                    target.position.copy(newPosition);
+                } else {
+                    const zOnlyPosition = target.position.clone();
+                    zOnlyPosition.z += direction.z * target.userData.currentSpeed;
+                    if (isKamikazePositionValid(target, zOnlyPosition)) {
+                        target.position.copy(zOnlyPosition);
+                    }
+                }
+                
                 if (!target.userData.attackHeight) {
                     target.userData.attackHeight = config.playerHeight + 
                         (Math.random() * 2 - 1) * config.kamikazeSettings.heightVariation;
                 }
                 
-                // Плавное изменение высоты
                 if (Math.abs(target.position.y - target.userData.attackHeight) > 0.1) {
                     const heightDirection = target.userData.attackHeight > target.position.y ? 1 : -1;
                     target.position.y += heightDirection * 0.02;
                 }
                 
-                // Проверка столкновений
                 const distanceToPlayer = targetPosition.distanceTo(playerPosition);
                 const hitPlayer = distanceToPlayer < 1.5 && 
                     Math.abs(target.position.y - playerPosition.y) < 1.0;
@@ -676,7 +691,6 @@
             }
 
             function showDamageEffect() {
-                // Тряска камеры
                 const originalPosition = camera.position.clone();
                 const shakeIntensity = config.damageEffects.screenShakeIntensity;
                 
@@ -693,7 +707,6 @@
                     }
                 }, 50);
                 
-                // Эффект затуманивания экрана
                 damageOverlay.style.opacity = 1;
                 setTimeout(() => {
                     damageOverlay.style.opacity = 0;
@@ -701,7 +714,6 @@
             }
 
             function explodeTarget(target) {
-                // Простой эффект взрыва
                 const explosionGeometry = new THREE.SphereGeometry(1.5, 16, 16);
                 const explosionMaterial = new THREE.MeshStandardMaterial({
                     color: target.userData.color,
