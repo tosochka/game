@@ -363,7 +363,7 @@
                 loadLandscapeObjects();
 
                 for (let i = 0; i < config.targetCount; i++) {
-                    spawnNewTarget();
+                    ();
                 }
             }
 
@@ -449,7 +449,7 @@
                         const target = gltf.scene;
                         
                         // Поворачиваем модель на 180 градусов (пункт 2)
-                        target.rotation.y = Math.PI;
+                        // target.rotation.y = Math.PI;
                         
                         target.traverse(child => {
                             if (child.isMesh) {
@@ -1094,5 +1094,6 @@
 </body>
 
 </html>
+
 
 
