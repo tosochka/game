@@ -140,7 +140,7 @@
                 },
 
                 kamikazeSettings: {
-                    heightRange: { min: 1.5, max: 5 },
+                    heightRange: { min: 1.5, max: 9 },
                     trackingSpeed: 0.03,
                     attackStartDistance: 50,
                     damage: 0.0,
@@ -508,7 +508,8 @@
                             baseSpeed: speed,
                             currentSpeed: speed,
                             targetRotation: Math.PI, // Начальный поворот (уже развернуты)
-                            rotationSpeed: config.kamikazeSettings.rotationSpeed
+                            rotationSpeed: config.kamikazeSettings.rotationSpeed,
+                            isAttacking: false
                         };
                         
                         targets.push(targetGroup);
@@ -568,7 +569,8 @@
                             baseSpeed: speed,
                             currentSpeed: speed,
                             targetRotation: Math.PI,
-                            rotationSpeed: config.kamikazeSettings.rotationSpeed
+                            rotationSpeed: config.kamikazeSettings.rotationSpeed,
+                            isAttacking: false
                         };
                         
                         targets.push(target);
@@ -645,6 +647,9 @@
                     }
                     return false;
                 }
+                
+                // Помечаем, что началась атака
+                target.userData.isAttacking = true;
                 
                 target.userData.currentSpeed = Math.min(
                     target.userData.currentSpeed + config.kamikazeSettings.acceleration,
