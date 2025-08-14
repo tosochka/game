@@ -135,14 +135,14 @@
                     bombIntensity: 1.0,
                     minBombInterval: 1000,
                     maxBombInterval: 3000,
-                    heightRange: { min: 9, max: 15 },
+                    heightRange: { min: 10, max: 20 },
                     damage: 20
                 },
 
                 kamikazeSettings: {
-                    heightRange: { min: 1.5, max: 4 },
+                    heightRange: { min: 1.5, max: 2 },
                     trackingSpeed: 0.1,
-                    attackStartDistance: 5,
+                    attackStartDistance: 25,
                     damage: 0.0,
                     explosionRange: 5,
                     attackSpeedMultiplier: 1.5,
@@ -156,7 +156,7 @@
                 },
                 damageEffects: {
                     cameraShakeDuration: 300,
-                    cameraShakeIntensity: 0.5,
+                    cameraShakeIntensity: 0.7,
                     damageOverlayDuration: 300,
                     damageOverlayOpacity: 0.5
                 }
@@ -363,7 +363,7 @@
                 loadLandscapeObjects();
 
                 for (let i = 0; i < config.targetCount; i++) {
-                    ();
+                    spawnNewTarget();
                 }
             }
 
@@ -448,9 +448,7 @@
                         const targetGroup = new THREE.Group();
                         const target = gltf.scene;
                         
-                        // Поворачиваем модель на 180 градусов (пункт 2)
-                         target.rotation.y = Math.PI / 2;
-                        
+                        // Убрали поворот на 180 градусов, теперь модель летит лицом вперед
                         target.traverse(child => {
                             if (child.isMesh) {
                                 child.castShadow = true;
@@ -458,7 +456,7 @@
                                 child.material.transparent = true;
                                 child.material.opacity = 0;
                                 child.material.roughness = 0.7;
-                                child.material.metalness = 0.1,
+                                child.material.metalness = 0.1;
                                 child.material.color.setHex(targetColor);
                             }
                         });
@@ -467,7 +465,8 @@
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
                         
-                        // target.rotation.y = Math.PI;
+                        // Ориентируем модель правильно (лицом по направлению движения)
+                        target.rotation.y = 0; // Теперь модель смотрит вперед по оси Z
                         target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
                         
@@ -654,12 +653,10 @@
                 const targetPos = target.position;
                 const attack = target.userData.attackParams;
 
-                // Вычисляем направление движения
                 const direction = new THREE.Vector3();
                 
                 if (!attack.isInFinalAttack) {
-                    // Движение вперед по Z
-                    direction.set(0, 0, 1);
+                    direction.set(0, 0, 1); // Движение вперед по Z
                     
                     const distanceToPlayer = targetPos.distanceTo(player);
                     if (distanceToPlayer < attack.attackStartDistance) {
@@ -671,17 +668,14 @@
                         );
                     }
                 } else {
-                    // Движение к зафиксированной точке атаки
                     direction.subVectors(attack.fixedTargetPoint, targetPos).normalize();
-                    
-                    // Применяем гравитацию для более резкого пикирования
                     direction.y -= config.kamikazeSettings.gravity;
                     direction.normalize();
                 }
 
                 // Плавный поворот модели в направлении движения
                 if (direction.length() > 0 && target.children && target.children[0]) {
-                    const targetRotation = Math.atan2(direction.x, direction.z);
+                    const targetRotation = Math.atan2(-direction.x, -direction.z); // Инвертируем направление для правильной ориентации
                     target.children[0].rotation.y = THREE.MathUtils.lerp(
                         target.children[0].rotation.y, 
                         targetRotation, 
@@ -1092,9 +1086,4 @@
         window.onload = DronoBoy.init;
     </script>
 </body>
-
 </html>
-
-
-
-
