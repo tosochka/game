@@ -140,7 +140,7 @@
                 },
 
                 kamikazeSettings: {
-                    heightRange: { min: 1.5, max: 5 },
+                    heightRange: { min: 2.8, max: 7 },
                     trackingSpeed: 0.03,
                     attackStartDistance: 50,
                     damage: 0.0,
@@ -149,10 +149,11 @@
                     minDistanceToGround: 0.5,
                     attackHeightOffset: 0.8,
                     heightVariation: 1.5,
-                    attackDelayRange: { min: 10000, max: 30000 },
+                    attackDelayRange: { min: 5000, max: 30000 },
                     minDistanceBetween: 2.5,
                     avoidanceAngle: 0.5,
-                    sideStepFactor: 0.7
+                    sideStepFactor: 0.7,
+                    rotationSpeed: 0.05
                 },
 
                 damageEffects: {
@@ -452,7 +453,7 @@
                                 child.material.transparent = true;
                                 child.material.opacity = 0;
                                 child.material.roughness = 0.7;
-                                child.material.metalness = 0.1;
+                                child.material.metalness = 0.1,
                                 child.material.color.setHex(targetColor);
                             }
                         });
@@ -461,6 +462,7 @@
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
                         
+                        // Разворачиваем модель на 180 градусов при загрузке
                         target.rotation.y = Math.PI;
                         target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
@@ -504,7 +506,9 @@
                             color: targetColor,
                             lastBombTime: 0,
                             baseSpeed: speed,
-                            currentSpeed: speed
+                            currentSpeed: speed,
+                            targetRotation: Math.PI, // Начальный поворот (уже развернуты)
+                            rotationSpeed: config.kamikazeSettings.rotationSpeed
                         };
                         
                         targets.push(targetGroup);
@@ -562,7 +566,9 @@
                             color: targetColor,
                             lastBombTime: 0,
                             baseSpeed: speed,
-                            currentSpeed: speed
+                            currentSpeed: speed,
+                            targetRotation: Math.PI,
+                            rotationSpeed: config.kamikazeSettings.rotationSpeed
                         };
                         
                         targets.push(target);
@@ -631,9 +637,6 @@
                 
                 if (Date.now() < target.userData.attackTime) {
                     target.position.z += target.userData.baseSpeed;
-                    
-                    // Поворачиваем дрона лицом вперед (по оси Z)
-                    target.rotation.y = Math.PI; // 180 градусов, если модель изначально смотрит назад
                     return false;
                 }
                 
@@ -645,9 +648,29 @@
                 const direction = new THREE.Vector3();
                 direction.subVectors(playerPosition, targetPosition).normalize();
                 
-                // Рассчитываем угол поворота для направления движения
-                const angle = Math.atan2(direction.x, direction.z);
-                target.rotation.y = angle;
+                // Рассчитываем желаемый угол поворота
+                const targetAngle = Math.atan2(direction.x, direction.z);
+                
+                // Плавный поворот к целевому углу
+                const angleDifference = targetAngle - target.userData.targetRotation;
+                
+                // Нормализуем разницу углов для плавного поворота
+                if (angleDifference > Math.PI) {
+                    target.userData.targetRotation += 2 * Math.PI;
+                } else if (angleDifference < -Math.PI) {
+                    target.userData.targetRotation -= 2 * Math.PI;
+                }
+                
+                // Плавное изменение угла поворота
+                target.userData.targetRotation += (targetAngle - target.userData.targetRotation) * 
+                                               target.userData.rotationSpeed;
+                
+                // Применяем поворот
+                if (target.children && target.children[0]) {
+                    target.children[0].rotation.y = target.userData.targetRotation;
+                } else {
+                    target.rotation.y = target.userData.targetRotation;
+                }
                 
                 const moveDistance = target.userData.currentSpeed;
                 const desiredPosition = target.position.clone().add(
