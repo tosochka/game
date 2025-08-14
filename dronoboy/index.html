@@ -449,7 +449,7 @@
                         const target = gltf.scene;
                         
                         // Поворачиваем модель на 180 градусов (пункт 2)
-                        // target.rotation.y = Math.PI;
+                         target.rotation.y = Math.PI / 2;
                         
                         target.traverse(child => {
                             if (child.isMesh) {
@@ -1094,6 +1094,7 @@
 </body>
 
 </html>
+
 
 
 
