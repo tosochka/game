@@ -135,15 +135,15 @@
                     bombIntensity: 1.0,
                     minBombInterval: 1000,
                     maxBombInterval: 3000,
-                    heightRange: { min: 10, max: 20 },
+                    heightRange: { min: 9, max: 15 },
                     damage: 20
                 },
 
                 kamikazeSettings: {
-                    heightRange: { min: 1.5, max: 9 },
+                    heightRange: { min: 1.5, max: 10 },
                     trackingSpeed: 0.03,
                     attackStartDistance: 50,
-                    damage: 0.0,
+                    damage: 10,
                     acceleration: 0.001,
                     maxSpeed: 0.3,
                     minDistanceToGround: 0.5,
@@ -462,7 +462,6 @@
                         const center = box.getCenter(new THREE.Vector3());
                         target.position.sub(center);
                         
-                        // Разворачиваем модель на 180 градусов при загрузке
                         target.rotation.y = Math.PI;
                         target.rotation.x = Math.PI / 18;
                         target.scale.set(config.targetSize, config.targetSize, config.targetSize);
@@ -507,7 +506,7 @@
                             lastBombTime: 0,
                             baseSpeed: speed,
                             currentSpeed: speed,
-                            targetRotation: Math.PI, // Начальный поворот (уже развернуты)
+                            targetRotation: Math.PI,
                             rotationSpeed: config.kamikazeSettings.rotationSpeed,
                             isAttacking: false
                         };
@@ -633,60 +632,52 @@
                         config.kamikazeSettings.attackDelayRange.min;
                 }
                 
-                // Сохраняем предыдущую позицию для расчета направления
                 const prevPosition = target.userData.lastPosition || target.position.clone();
                 target.userData.lastPosition = target.position.clone();
                 
+                const moveDirection = new THREE.Vector3();
+                moveDirection.subVectors(target.position, prevPosition);
+                
+                if (moveDirection.length() > 0.01) {
+                    moveDirection.normalize();
+                    
+                    const moveAngle = Math.atan2(moveDirection.x, moveDirection.z);
+                    const targetAngle = moveAngle + Math.PI;
+                    
+                    if (target.children && target.children[0]) {
+                        const currentRotation = target.children[0].rotation.y;
+                        let angleDifference = targetAngle - currentRotation;
+                        
+                        angleDifference = ((angleDifference + Math.PI) % (Math.PI * 2)) - Math.PI;
+                        
+                        target.children[0].rotation.y += angleDifference * target.userData.rotationSpeed;
+                    } else {
+                        const currentRotation = target.rotation.y;
+                        let angleDifference = targetAngle - currentRotation;
+                        
+                        angleDifference = ((angleDifference + Math.PI) % (Math.PI * 2)) - Math.PI;
+                        
+                        target.rotation.y += angleDifference * target.userData.rotationSpeed;
+                    }
+                }
+                
                 if (Date.now() < target.userData.attackTime) {
                     target.position.z += target.userData.baseSpeed;
-                    // Поворачиваем лицом вперед (по оси Z)
-                    if (target.children && target.children[0]) {
-                        target.children[0].rotation.y = Math.PI;
-                    } else {
-                        target.rotation.y = Math.PI;
-                    }
                     return false;
                 }
                 
-                // Помечаем, что началась атака
                 target.userData.isAttacking = true;
-                
                 target.userData.currentSpeed = Math.min(
                     target.userData.currentSpeed + config.kamikazeSettings.acceleration,
                     config.kamikazeSettings.maxSpeed
                 );
                 
-                const direction = new THREE.Vector3();
-                direction.subVectors(playerPosition, targetPosition).normalize();
-                
-                // Рассчитываем угол поворота для направления движения
-                const targetAngle = Math.atan2(direction.x, direction.z);
-                
-                // Плавный поворот к направлению движения
-                if (target.children && target.children[0]) {
-                    // Для групповых объектов поворачиваем дочерний элемент
-                    const currentRotation = target.children[0].rotation.y;
-                    let angleDifference = targetAngle - currentRotation;
-                    
-                    // Нормализуем разницу углов для кратчайшего поворота
-                    if (angleDifference > Math.PI) angleDifference -= Math.PI * 2;
-                    if (angleDifference < -Math.PI) angleDifference += Math.PI * 2;
-                    
-                    target.children[0].rotation.y += angleDifference * target.userData.rotationSpeed;
-                } else {
-                    // Для простых объектов поворачиваем сам объект
-                    const currentRotation = target.rotation.y;
-                    let angleDifference = targetAngle - currentRotation;
-                    
-                    if (angleDifference > Math.PI) angleDifference -= Math.PI * 2;
-                    if (angleDifference < -Math.PI) angleDifference += Math.PI * 2;
-                    
-                    target.rotation.y += angleDifference * target.userData.rotationSpeed;
-                }
+                const attackDirection = new THREE.Vector3();
+                attackDirection.subVectors(playerPosition, targetPosition).normalize();
                 
                 const moveDistance = target.userData.currentSpeed;
                 const desiredPosition = target.position.clone().add(
-                    direction.clone().multiplyScalar(moveDistance)
+                    attackDirection.clone().multiplyScalar(moveDistance)
                 );
                 
                 let canMove = true;
@@ -702,7 +693,7 @@
                 
                 if (!canMove) {
                     const zOnlyPosition = target.position.clone();
-                    zOnlyPosition.z += direction.z * moveDistance;
+                    zOnlyPosition.z += attackDirection.z * moveDistance;
                     let zOnlyValid = true;
                     
                     for (const otherTarget of targets) {
@@ -718,8 +709,10 @@
                     if (zOnlyValid) {
                         target.position.copy(zOnlyPosition);
                     } else {
-                        const sideStep = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
-                        const sidePosition = target.position.clone().add(sideStep.multiplyScalar(moveDistance * config.kamikazeSettings.sideStepFactor));
+                        const sideStep = new THREE.Vector3(-attackDirection.z, 0, attackDirection.x).normalize();
+                        const sidePosition = target.position.clone().add(
+                            sideStep.multiplyScalar(moveDistance * config.kamikazeSettings.sideStepFactor)
+                        );
                         let sideValid = true;
                         
                         for (const otherTarget of targets) {
