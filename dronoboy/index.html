@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DronoBoy - Эффект горизонта</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            text-shadow: 2px 2px 4px black;
+        }
+        #ammo, #score, #health { font-size: 24px; }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+        }
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            flex-direction: column;
+        }
+        #start-button {
+            padding: 10px 20px;
+            font-size: 20px;
+            background: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.1s;
+        }
+        #start-button:active {
+            transform: scale(0.95);
+            background: #45a049;
+        }
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 0, 0, 0);
+            pointer-events: none;
+            transition: background-color 0.3s;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="hud">
+        <div id="ammo">Патроны: 30</div>
+        <div id="score">Очки: 0</div>
+        <div id="health">Здоровье: 100</div>
+    </div>
+    <div id="crosshair"></div>
+    <div id="damage-overlay"></div>
+    <div id="start-screen">
+        <button id="start-button">Начать игру</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/PointerLockControls.js"></script>
+
+    <script>
+        const DronoBoy = (() => {
+            const config = {
+                playerHeight: 1.7,
+                gunPosition: { x: 0.4, y: -0.5, z: -1.35 },
+                gunScale: 0.9,
+                bombers: {
+                    count: 15,
+                    model: 'models/bomber.glb',
+                    speed: { min: 0.1, max: 0.15 },
+                    heightRange: { min: 8, max: 15 },
+                    bombChance: 0.03,
+                    bombIntensity: 1.0,
+                    minBombInterval: 1000,
+                    maxBombInterval: 6000,
+                    damage: 20,
+                    color: 0xcc0000,
+                    size: 0.5
+                },
+                kamikaze: {
+                    count: 4,
+                    model: 'models/kamikaze.glb',
+                    speed: { min: 0.12, max: 0.18 },
+                    heightRange: { min: 1.5, max: 7 },
+                    trackingSpeed: 0.1,
+                    attackStartDistance: 10,
+                    damage: 0,
+                    explosionRange: 5,
+                    attackSpeedMultiplier: 1.5,
+                    attackHeightRange: { min: -0.5, max: 1.0 },
+                    formationSpread: { 
+                        horizontal: 3, 
+                        vertical: 2
+                    },
+                    gravity: 0.05,
+                    rotationSpeed: 0.1,
+                    color: 0x0000cc,
+                    size: 0.4
+                },
+                spawnDistance: { min: -150, max: -100 },
+                despawnDistance: 150,
+                fadeDistance: 80,
+                waveAmplitude: 3,
+                waveFrequency: 0.1,
+                landscapeObjects: {
+                    count: 90,
+                    types: [
+                        'models/tree1.glb',
+                        'models/tree2.glb',
+                        'models/tree3.glb',
+                        'models/tree4.glb',
+                        'models/tree5.glb',
+                        'models/tree6.glb',
+                        'models/tree7.glb',
+                        'models/tree8.glb',
+                        'models/tree9.glb',
+                        'models/tree10.glb',
+                        'models/tree11.glb',
+                        'models/tree12.glb',
+                        'models/tree13.glb',
+                        'models/tree14.glb',
+                        'models/tree15.glb',
+                        'models/tree16.glb',
+                        'models/rock1.glb',
+                        'models/rock2.glb'
+                    ],
+                    scaleRange: { min: 10.5, max: 20.0 },
+                    positionRange: { x: 45, z: 80 }
+                },
+                safeRadius: 3,
+                targetMovementRangeX: 40,
+                landscapeSafeMargin: 5,
+                minDistanceBetweenObjects: 3,
+                playerSpeed: 0.2,
+                healthStart: 100,
+                playerBoundsExtension: 25,
+                groundExtension: 100,
+                spawnInterval: 2000,
+                ammoStart: 30,
+                damageEffects: {
+                    cameraShakeDuration: 300,
+                    cameraShakeIntensity: 0.5,
+                    damageOverlayDuration: 300,
+                    damageOverlayOpacity: 0.5
+                }
+            };
+
+            let scene, camera, renderer, controls;
+            let gun, bombers = [], kamikaze = [], landscape = [], grenades = [];
+            let ammoCount = config.ammoStart, score = 0, health = config.healthStart;
+            let isGameStarted = false;
+            let moveState = { forward: false, backward: false };
+            let lastSpawnTime = 0;
+            let kamikazeFormationCenter = new THREE.Vector3();
+            let damageOverlay = document.getElementById('damage-overlay');
+            let isCameraShaking = false;
+            let cameraOriginalPosition = new THREE.Vector3();
+            let lastDamageTime = 0;
+
+            function init() {
+                createScene();
+                setupCamera();
+                setupRenderer();
+                createLighting();
+                createGround();
+                loadModels();
+                setupControls();
+                setupEventListeners();
+                animate();
+            }
+
+            function createScene() {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87CEEB);
+                scene.fog = new THREE.Fog(0x87CEEB, 80, 200);
+            }
+
+            function setupCamera() {
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                camera.position.y = config.playerHeight;
+            }
+
+            function setupRenderer() {
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.getElementById('game-container').appendChild(renderer.domElement);
+            }
+
+            function createLighting() {
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 2, 1);
+                directionalLight.castShadow = true;
+                
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -100;
+                directionalLight.shadow.camera.right = 100;
+                directionalLight.shadow.camera.top = 100;
+                directionalLight.shadow.camera.bottom = -100;
+                
+                scene.add(directionalLight);
+
+                const fillLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+                scene.add(fillLight);
+
+                const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                backLight.position.set(-5, 3, -5);
+                scene.add(backLight);
+            }
+
+            function createGround() {
+                const groundWidth = config.landscapeObjects.positionRange.x * 2 + config.groundExtension * 2;
+                const groundHeight = config.landscapeObjects.positionRange.z * 2 + config.groundExtension * 2;
+                
+                const ground = new THREE.Mesh(
+                    new THREE.PlaneGeometry(groundWidth, groundHeight, 50, 50),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0x2a4d0b,
+                        roughness: 0.8,
+                        metalness: 0.1
+                    })
+                );
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                ground.userData.isGround = true;
+                scene.add(ground);
+            }
+
+            function isPositionSafe(x, z) {
+                return Math.sqrt(x*x + z*z) > config.safeRadius;
+            }
+
+            function isPositionValid(x, z, objects) {
+                if (!isPositionSafe(x, z)) return false;
+                
+                if (Math.abs(x) < config.targetMovementRangeX + config.landscapeSafeMargin) {
+                    return false;
+                }
+                
+                for (const obj of objects) {
+                    const dx = x - obj.position.x;
+                    const dz = z - obj.position.z;
+                    const distance = Math.sqrt(dx*dx + dz*dz);
+                    
+                    if (distance < config.minDistanceBetweenObjects) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+
+            function getRandomSafePosition(existingObjects) {
+                let x, z;
+                let attempts = 0;
+                const maxAttempts = 100;
+                
+                const xRange = config.landscapeObjects.positionRange.x;
+                const zRange = config.landscapeObjects.positionRange.z;
+                
+                const leftZone = {
+                    min: -xRange,
+                    max: -config.targetMovementRangeX - config.landscapeSafeMargin
+                };
+                
+                const rightZone = {
+                    min: config.targetMovementRangeX + config.landscapeSafeMargin,
+                    max: xRange
+                };
+                
+                do {
+                    const zone = Math.random() > 0.5 ? leftZone : rightZone;
+                    x = Math.random() * (zone.max - zone.min) + zone.min;
+                    z = Math.random() * zRange * 2 - zRange;
+                    attempts++;
+                } while (!isPositionValid(x, z, existingObjects) && attempts < maxAttempts);
+                
+                return attempts < maxAttempts ? { x, z } : null;
+            }
+
+            function loadModels() {
+                const loader = new THREE.GLTFLoader();
+                
+                // Загрузка оружия
+                loader.load('models/gun.glb', 
+                    (gltf) => {
+                        gun = gltf.scene;
+                        gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
+                        gun.scale.set(config.gunScale, config.gunScale, config.gunScale);
+                        
+                        const carbonMaterial = new THREE.MeshStandardMaterial({
+                            color: 0x333333,
+                            roughness: 0.4,
+                            metalness: 0.7,
+                            emissive: 0x111111,
+                            emissiveIntensity: 0.1
+                        });
+                        
+                        gun.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material = carbonMaterial;
+                                child.material.defines = {
+                                    "USE_UV": ""
+                                };
+                                child.material.onBeforeCompile = (shader) => {
+                                    shader.fragmentShader = shader.fragmentShader.replace(
+                                        "#include <dithering_fragment>",
+                                        `
+                                        float carbonPattern = sin(vUv.x * 200.0) * sin(vUv.y * 100.0);
+                                        carbonPattern = smoothstep(0.4, 0.6, carbonPattern);
+                                        gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * 1.2, carbonPattern);
+                                        #include <dithering_fragment>
+                                        `
+                                    );
+                                };
+                            }
+                        });
+                        
+                        camera.add(gun);
+                        scene.add(camera);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Error loading gun model:', error);
+                        gun = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.3, 0.1, 0.5),
+                            new THREE.MeshStandardMaterial({ 
+                                color: 0x222222,
+                                roughness: 0.3,
+                                metalness: 0.8,
+                                emissive: 0x050505
+                            })
+                        );
+                        gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
+                        camera.add(gun);
+                        scene.add(camera);
+                    }
+                );
+
+                loadLandscapeObjects();
+
+                // Создаем бомбардировщики
+                for (let i = 0; i < config.bombers.count; i++) {
+                    spawnBomber();
+                }
+
+                // Создаем камикадзе
+                for (let i = 0; i < config.kamikaze.count; i++) {
+                    spawnKamikaze();
+                }
+            }
+
+            function spawnBomber() {
+                const loader = new THREE.GLTFLoader();
+                loader.load(config.bombers.model, 
+                    (gltf) => {
+                        const bomber = gltf.scene;
+                        
+                        // Поворачиваем модель на 180 градусов, чтобы она смотрела вперед
+                        bomber.rotation.y = Math.PI;
+                        
+                        const initialHeight = Math.random() * 
+                                           (config.bombers.heightRange.max - config.bombers.heightRange.min) + 
+                                           config.bombers.heightRange.min;
+                        
+                        const position = getRandomSpawnPosition();
+                        if (!position) return;
+                        
+                        bomber.position.set(position.x, initialHeight, position.z);
+                        bomber.scale.set(config.bombers.size, config.bombers.size, config.bombers.size);
+                        
+                        bomber.traverse(child => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                child.material.transparent = true;
+                                child.material.opacity = 0;
+                                child.material.roughness = 0.7;
+                                child.material.metalness = 0.1;
+                                child.material.color.setHex(config.bombers.color);
+                            }
+                        });
+                        
+                        const box = new THREE.Box3().setFromObject(bomber);
+                        const center = box.getCenter(new THREE.Vector3());
+                        bomber.position.sub(center);
+                        
+                        bomber.rotation.x = Math.PI / 18;
+                        
+                        const speed = Math.random() * 
+                                    (config.bombers.speed.max - config.bombers.speed.min) + 
+                                    config.bombers.speed.min;
+
+                        bomber.userData = {
+                            isTarget: true,
+                            isBomber: true,
+                            fadingIn: true,
+                            speed: speed,
+                            waveMotion: Math.random() > 0.5,
+                            initialHeight: initialHeight,
+                            waveOffset: Math.random() * Math.PI * 2,
+                            initialScale: config.bombers.size,
+                            color: config.bombers.color,
+                            lastBombTime: 0,
+                            baseSpeed: speed
+                        };
+                        
+                        bombers.push(bomber);
+                        scene.add(bomber);
+                    },
+                    undefined,
+                    () => {
+                        createFallbackBomber();
+                    }
+                );
+            }
+
+            function spawnKamikaze() {
+                const loader = new THREE.GLTFLoader();
+                loader.load(config.kamikaze.model, 
+                    (gltf) => {
+                        const kamikazeObj = gltf.scene;
+                        
+                        // Поворачиваем модель на 180 градусов, чтобы она смотрела вперед
+                        kamikazeObj.rotation.y = Math.PI;
+                        
+                        const initialHeight = Math.random() * 
+                                           (config.kamikaze.heightRange.max - config.kamikaze.heightRange.min) + 
+                                           config.kamikaze.heightRange.min;
+                        
+                        const position = getRandomSpawnPosition();
+                        if (!position) return;
+                        
+                        kamikazeObj.position.set(position.x, initialHeight, position.z);
+                        kamikazeObj.scale.set(config.kamikaze.size, config.kamikaze.size, config.kamikaze.size);
+                        
+                        kamikazeObj.traverse(child => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                child.material.transparent = true;
+                                child.material.opacity = 0;
+                                child.material.roughness = 0.7;
+                                child.material.metalness = 0.1,
+                                child.material.color.setHex(config.kamikaze.color);
+                            }
+                        });
+                        
+                        const box = new THREE.Box3().setFromObject(kamikazeObj);
+                        const center = box.getCenter(new THREE.Vector3());
+                        kamikazeObj.position.sub(center);
+                        
+                        const speed = Math.random() * 
+                                    (config.kamikaze.speed.max - config.kamikaze.speed.min) + 
+                                    config.kamikaze.speed.min;
+
+                        kamikazeObj.userData = {
+                            isTarget: true,
+                            isKamikaze: true,
+                            fadingIn: true,
+                            speed: speed,
+                            initialHeight: initialHeight,
+                            initialScale: config.kamikaze.size,
+                            color: config.kamikaze.color,
+                            baseSpeed: speed,
+                            attackParams: {
+                                attackStartDistance: config.kamikaze.attackStartDistance,
+                                fixedTargetPoint: null,
+                                isInFinalAttack: false,
+                                gravity: config.kamikaze.gravity,
+                                speedMultiplier: config.kamikaze.attackSpeedMultiplier,
+                                explosionDistance: config.kamikaze.explosionRange,
+                                formationOffset: new THREE.Vector3(
+                                    (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.horizontal,
+                                    (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
+                                    0
+                                ),
+                                targetRotation: 0
+                            }
+                        };
+                        
+                        kamikaze.push(kamikazeObj);
+                        scene.add(kamikazeObj);
+                    },
+                    undefined,
+                    () => {
+                        createFallbackKamikaze();
+                    }
+                );
+            }
+
+            function getRandomSpawnPosition() {
+                let x, z;
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                do {
+                    x = Math.random() * config.targetMovementRangeX * 2 - config.targetMovementRangeX;
+                    z = Math.random() * 
+                      (config.spawnDistance.max - config.spawnDistance.min) + 
+                      config.spawnDistance.min;
+                    attempts++;
+                } while (
+                    (!isPositionSafe(x, z)) && 
+                    attempts < maxAttempts
+                );
+                
+                return attempts < maxAttempts ? { x, z } : null;
+            }
+
+            function createFallbackBomber() {
+                const initialHeight = Math.random() * 
+                                   (config.bombers.heightRange.max - config.bombers.heightRange.min) + 
+                                   config.bombers.heightRange.min;
+                
+                const position = getRandomSpawnPosition();
+                if (!position) return;
+                
+                const bomber = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
+                    new THREE.MeshStandardMaterial({ 
+                        color: config.bombers.color,
+                        transparent: true,
+                        opacity: 0,
+                        roughness: 0.7,
+                        metalness: 0.1
+                    })
+                );
+                
+                bomber.castShadow = true;
+                bomber.receiveShadow = true;
+                bomber.position.set(position.x, initialHeight, position.z);
+                
+                const speed = Math.random() * 
+                            (config.bombers.speed.max - config.bombers.speed.min) + 
+                            config.bombers.speed.min;
+
+                bomber.userData = {
+                    isTarget: true,
+                    isBomber: true,
+                    fadingIn: true,
+                    speed: speed,
+                    waveMotion: Math.random() > 0.5,
+                    initialHeight: initialHeight,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    initialScale: 1,
+                    color: config.bombers.color,
+                    lastBombTime: 0,
+                    baseSpeed: speed
+                };
+                
+                bombers.push(bomber);
+                scene.add(bomber);
+            }
+
+            function createFallbackKamikaze() {
+                const initialHeight = Math.random() * 
+                                   (config.kamikaze.heightRange.max - config.kamikaze.heightRange.min) + 
+                                   config.kamikaze.heightRange.min;
+                
+                const position = getRandomSpawnPosition();
+                if (!position) return;
+                
+                const kamikazeObj = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.5, 1, 8),
+                    new THREE.MeshStandardMaterial({ 
+                        color: config.kamikaze.color,
+                        transparent: true,
+                        opacity: 0,
+                        roughness: 0.7,
+                        metalness: 0.1
+                    })
+                );
+                
+                kamikazeObj.castShadow = true;
+                kamikazeObj.receiveShadow = true;
+                kamikazeObj.position.set(position.x, initialHeight, position.z);
+                
+                const speed = Math.random() * 
+                            (config.kamikaze.speed.max - config.kamikaze.speed.min) + 
+                            config.kamikaze.speed.min;
+
+                kamikazeObj.userData = {
+                    isTarget: true,
+                    isKamikaze: true,
+                    fadingIn: true,
+                    speed: speed,
+                    initialHeight: initialHeight,
+                    initialScale: 1,
+                    color: config.kamikaze.color,
+                    baseSpeed: speed,
+                    attackParams: {
+                        attackStartDistance: config.kamikaze.attackStartDistance,
+                        fixedTargetPoint: null,
+                        isInFinalAttack: false,
+                        gravity: config.kamikaze.gravity,
+                        speedMultiplier: config.kamikaze.attackSpeedMultiplier,
+                        explosionDistance: config.kamikaze.explosionRange,
+                        formationOffset: new THREE.Vector3(
+                            (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.horizontal,
+                            (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
+                            0
+                        ),
+                        targetRotation: 0
+                    }
+                };
+                
+                kamikaze.push(kamikazeObj);
+                scene.add(kamikazeObj);
+            }
+
+            function loadLandscapeObjects() {
+                const loader = new THREE.GLTFLoader();
+                const placedObjects = [];
+                
+                for (let i = 0; i < config.landscapeObjects.count; i++) {
+                    const typeIndex = Math.floor(Math.random() * config.landscapeObjects.types.length);
+                    const modelPath = config.landscapeObjects.types[typeIndex];
+                    const position = getRandomSafePosition(placedObjects);
+                    
+                    if (!position) continue;
+                    
+                    loader.load(modelPath, 
+                        (gltf) => {
+                            const obj = gltf.scene;
+                            const scale = Math.random() * 
+                                         (config.landscapeObjects.scaleRange.max - config.landscapeObjects.scaleRange.min) + 
+                                         config.landscapeObjects.scaleRange.min;
+                            
+                            obj.scale.set(scale, scale, scale);
+                            obj.position.set(position.x, 0, position.z);
+                            obj.rotation.y = Math.random() * Math.PI * 2;
+                            
+                            obj.traverse(child => {
+                                if (child.isMesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                    child.material.roughness = 0.9;
+                                    child.material.metalness = 0.1;
+                                }
+                            });
+                            
+                            obj.userData.isLandscape = true;
+                            landscape.push(obj);
+                            placedObjects.push(obj);
+                            scene.add(obj);
+                        },
+                        undefined,
+                        () => {
+                            const geometry = Math.random() > 0.5 ? 
+                                new THREE.ConeGeometry(1, 3, 8) : 
+                                new THREE.SphereGeometry(1, 8, 8);
+                            
+                            const obj = new THREE.Mesh(
+                                geometry,
+                                new THREE.MeshStandardMaterial({ 
+                                    color: Math.random() > 0.5 ? 0x1a5a1a : 0x707070,
+                                    roughness: 0.9,
+                                    metalness: 0.1
+                                })
+                            );
+                            
+                            const scale = Math.random() * 
+                                       (config.landscapeObjects.scaleRange.max - config.landscapeObjects.scaleRange.min) + 
+                                       config.landscapeObjects.scaleRange.min;
+                            
+                            obj.scale.set(scale, scale, scale);
+                            obj.position.set(position.x, 0, position.z);
+                            obj.rotation.y = Math.random() * Math.PI * 2;
+                            obj.castShadow = true;
+                            obj.receiveShadow = true;
+                            obj.userData.isLandscape = true;
+                            
+                            landscape.push(obj);
+                            placedObjects.push(obj);
+                            scene.add(obj);
+                        }
+                    );
+                }
+            }
+
+            function dropGrenade(bomber, currentTime) {
+                if (currentTime - bomber.userData.lastBombTime < 
+                    Math.random() * (config.bombers.maxBombInterval - config.bombers.minBombInterval) + 
+                    config.bombers.minBombInterval) {
+                    return;
+                }
+                
+                if (Math.random() > config.bombers.bombChance * config.bombers.bombIntensity) {
+                    return;
+                }
+                
+                const grenade = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.3, 8, 8),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0x660000,
+                        roughness: 0.8
+                    })
+                );
+                
+                grenade.position.copy(bomber.position);
+                grenade.position.y -= 1;
+                grenade.castShadow = true;
+                grenade.receiveShadow = true;
+                
+                grenade.userData = {
+                    isGrenade: true,
+                    speed: 0.1,
+                    fallSpeed: 0,
+                    gravity: 0.01,
+                    damage: config.bombers.damage,
+                    timer: 100
+                };
+                
+                grenades.push(grenade);
+                scene.add(grenade);
+                bomber.userData.lastBombTime = currentTime;
+            }
+
+            function kamikazeAttack(kamikazeObj) {
+                const player = controls.getObject().position;
+                const targetPos = kamikazeObj.position;
+                const attack = kamikazeObj.userData.attackParams;
+
+                const direction = new THREE.Vector3();
+                
+                if (!attack.isInFinalAttack) {
+                    direction.set(0, 0, 1); // Движение вперед по Z
+                    
+                    const distanceToPlayer = targetPos.distanceTo(player);
+                    if (distanceToPlayer < attack.attackStartDistance) {
+                        attack.isInFinalAttack = true;
+                        attack.fixedTargetPoint = new THREE.Vector3(
+                            player.x, 
+                            0, // Цель - земля под игроком
+                            player.z
+                        );
+                    }
+                } else {
+                    direction.subVectors(attack.fixedTargetPoint, targetPos).normalize();
+                    direction.y -= config.kamikaze.gravity;
+                    direction.normalize();
+                }
+
+                // Плавный поворот модели
+                if (direction.length() > 0 && kamikazeObj.children && kamikazeObj.children[0]) {
+                    let targetRotation = Math.atan2(direction.x, direction.z);
+                    const currentRotation = kamikazeObj.children[0].rotation.y;
+                    
+                    // Корректировка для плавного поворота
+                    const rotationDiff = targetRotation - currentRotation;
+                    const normalizedDiff = ((rotationDiff + Math.PI) % (Math.PI * 2)) - Math.PI;
+                    
+                    kamikazeObj.children[0].rotation.y = currentRotation + normalizedDiff * config.kamikaze.rotationSpeed;
+                }
+
+                // Применяем движение
+                kamikazeObj.userData.speed = attack.isInFinalAttack ? 
+                    kamikazeObj.userData.baseSpeed * attack.speedMultiplier : 
+                    kamikazeObj.userData.baseSpeed;
+
+                targetPos.x += direction.x * kamikazeObj.userData.speed;
+                targetPos.z += direction.z * kamikazeObj.userData.speed;
+                targetPos.y += direction.y * kamikazeObj.userData.speed;
+
+                // Проверка столкновения с землей
+                if (attack.isInFinalAttack && targetPos.y <= 0.5) {
+                    const explosionPos = targetPos.clone();
+                    explodeTarget(kamikazeObj, true);
+                    
+                    const distanceToPlayer = explosionPos.distanceTo(player);
+                    const explosionRadius = config.kamikaze.explosionRange;
+                    
+                    if (distanceToPlayer < explosionRadius) {
+                        const damage = config.kamikaze.damage * 
+                                     (1 - distanceToPlayer / explosionRadius);
+                        takeDamage(damage);
+                        showDamageEffects();
+                    }
+                    return true;
+                }
+
+                return false;
+            }
+
+            function showDamageEffects() {
+                const now = Date.now();
+                if (now - lastDamageTime < 1000) return;
+                lastDamageTime = now;
+                
+                damageOverlay.style.backgroundColor = 'rgba(255, 0, 0, ' + 
+                    config.damageEffects.damageOverlayOpacity + ')';
+                
+                setTimeout(() => {
+                    damageOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0)';
+                }, config.damageEffects.damageOverlayDuration);
+                
+                if (!isCameraShaking) {
+                    isCameraShaking = true;
+                    cameraOriginalPosition.copy(camera.position);
+                    
+                    const shakeEndTime = Date.now() + config.damageEffects.cameraShakeDuration;
+                    const intensity = config.damageEffects.cameraShakeIntensity;
+                    
+                    const shakeCamera = () => {
+                        if (Date.now() > shakeEndTime) {
+                            camera.position.copy(cameraOriginalPosition);
+                            isCameraShaking = false;
+                            return;
+                        }
+                        
+                        camera.position.x = cameraOriginalPosition.x + 
+                            (Math.random() * 2 - 1) * intensity;
+                        camera.position.y = cameraOriginalPosition.y + 
+                            (Math.random() * 2 - 1) * intensity;
+                        camera.position.z = cameraOriginalPosition.z + 
+                            (Math.random() * 2 - 1) * intensity;
+                        
+                        requestAnimationFrame(shakeCamera);
+                    };
+                    
+                    shakeCamera();
+                }
+            }
+
+            function explodeTarget(target, isKamikaze = false) {
+                const explosionGeometry = new THREE.SphereGeometry(isKamikaze ? 2 : 1.5, 16, 16);
+                const explosionMaterial = new THREE.MeshStandardMaterial({
+                    color: target.userData.color,
+                    transparent: true,
+                    opacity: 0.7,
+                    roughness: 0.5,
+                    emissive: isKamikaze ? 0xff0000 : 0xff6600,
+                    emissiveIntensity: 0.5
+                });
+                const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+                explosion.position.copy(target.position);
+                scene.add(explosion);
+                
+                if (target.userData.isBomber) {
+                    bombers = bombers.filter(b => b !== target);
+                } else if (target.userData.isKamikaze) {
+                    kamikaze = kamikaze.filter(k => k !== target);
+                }
+                
+                scene.remove(target);
+                
+                setTimeout(() => {
+                    scene.remove(explosion);
+                }, 300);
+                
+                setTimeout(() => {
+                    if (target.userData.isBomber) {
+                        spawnBomber();
+                    } else if (target.userData.isKamikaze) {
+                        spawnKamikaze();
+                    }
+                }, 1000);
+            }
+
+            function setupControls() {
+                controls = new THREE.PointerLockControls(camera, renderer.domElement);
+                
+                document.getElementById('start-button').addEventListener('click', () => {
+                    controls.lock().catch(e => {
+                        alert("Разрешите блокировку курсора для игры!");
+                    });
+                });
+
+                controls.addEventListener('lock', () => {
+                    isGameStarted = true;
+                    document.getElementById('start-screen').style.display = 'none';
+                    lastSpawnTime = Date.now();
+                });
+
+                controls.addEventListener('unlock', () => {
+                    isGameStarted = false;
+                    document.getElementById('start-screen').style.display = 'flex';
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (!isGameStarted) return;
+                    
+                    switch(e.key.toLowerCase()) {
+                        case 'w':
+                            moveState.forward = true;
+                            break;
+                        case 's':
+                            moveState.backward = true;
+                            break;
+                        case 'r':
+                            reload();
+                            break;
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    switch(e.key.toLowerCase()) {
+                        case 'w':
+                            moveState.forward = false;
+                            break;
+                        case 's':
+                            moveState.backward = false;
+                            break;
+                    }
+                });
+            }
+
+            function updatePlayerPosition() {
+                if (!isGameStarted) return;
+                
+                const moveVector = new THREE.Vector3();
+                const direction = new THREE.Vector3();
+                
+                camera.getWorldDirection(direction);
+                direction.y = 0;
+                direction.normalize();
+                
+                if (moveState.forward) {
+                    moveVector.add(direction.multiplyScalar(config.playerSpeed));
+                }
+                if (moveState.backward) {
+                    moveVector.add(direction.multiplyScalar(-config.playerSpeed));
+                }
+
+                if (moveVector.length() > 0) {
+                    const newPosition = controls.getObject().position.clone().add(moveVector);
+                    
+                    const bounds = {
+                        minX: -config.landscapeObjects.positionRange.x - config.playerBoundsExtension,
+                        maxX: config.landscapeObjects.positionRange.x + config.playerBoundsExtension,
+                        minZ: -config.landscapeObjects.positionRange.z - config.playerBoundsExtension,
+                        maxZ: config.landscapeObjects.positionRange.z + config.playerBoundsExtension
+                    };
+                    
+                    if (newPosition.x > bounds.minX && newPosition.x < bounds.maxX &&
+                        newPosition.z > bounds.minZ && newPosition.z < bounds.maxZ) {
+                        controls.getObject().position.copy(newPosition);
+                    }
+                }
+            }
+
+            function checkGrenadeCollisions() {
+                for (let i = grenades.length - 1; i >= 0; i--) {
+                    const grenade = grenades[i];
+                    
+                    grenade.position.y -= grenade.userData.fallSpeed;
+                    grenade.userData.fallSpeed += grenade.userData.gravity;
+                    grenade.userData.timer--;
+                    
+                    if (grenade.userData.timer <= 0 || grenade.position.y <= 0) {
+                        explodeGrenade(grenade);
+                        scene.remove(grenade);
+                        grenades.splice(i, 1);
+                        continue;
+                    }
+                    
+                    const distanceToPlayer = grenade.position.distanceTo(controls.getObject().position);
+                    if (distanceToPlayer < 1.5) {
+                        takeDamage(grenade.userData.damage);
+                        showDamageEffects();
+                        scene.remove(grenade);
+                        grenades.splice(i, 1);
+                    }
+                }
+            }
+
+            function explodeGrenade(grenade) {
+                const explosionGeometry = new THREE.SphereGeometry(1, 8, 8);
+                const explosionMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xff5500,
+                    transparent: true,
+                    opacity: 0.6,
+                    roughness: 0.5
+                });
+                const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+                explosion.position.copy(grenade.position);
+                scene.add(explosion);
+                
+                setTimeout(() => {
+                    scene.remove(explosion);
+                }, 200);
+            }
+
+            function takeDamage(amount) {
+                health -= Math.floor(amount);
+                updateHUD();
+                
+                if (health <= 0) {
+                    gameOver();
+                }
+            }
+
+            function gameOver() {
+                isGameStarted = false;
+                controls.unlock();
+                document.getElementById('start-screen').style.display = 'flex';
+                document.getElementById('start-button').textContent = 'Играть снова';
+                
+                resetGame();
+            }
+
+            function resetGame() {
+                bombers.forEach(bomber => scene.remove(bomber));
+                kamikaze.forEach(k => scene.remove(k));
+                landscape.forEach(obj => scene.remove(obj));
+                grenades.forEach(grenade => scene.remove(grenade));
+                
+                bombers = [];
+                kamikaze = [];
+                landscape = [];
+                grenades = [];
+                ammoCount = config.ammoStart;
+                score = 0;
+                health = config.healthStart;
+                
+                controls.getObject().position.set(0, config.playerHeight, 0);
+                kamikazeFormationCenter.set(0, config.playerHeight, -20);
+                
+                createGround();
+                loadModels();
+                updateHUD();
+            }
+
+            function shoot() {
+                if (ammoCount <= 0 || !isGameStarted) return;
+                
+                ammoCount--;
+                updateHUD();
+
+                if (gun) {
+                    gun.position.z += 0.1;
+                    setTimeout(() => gun.position.z -= 0.1, 100);
+                }
+
+                const raycaster = new THREE.Raycaster(
+                    camera.position,
+                    camera.getWorldDirection(new THREE.Vector3())
+                );
+                
+                const intersects = raycaster.intersectObjects(scene.children, true);
+                
+                for (const intersect of intersects) {
+                    let obj = intersect.object;
+                    
+                    while (obj) {
+                        if (obj.userData.isTarget) {
+                            let targetToRemove = obj;
+                            while (targetToRemove.parent && targetToRemove.parent.userData.isTarget) {
+                                targetToRemove = targetToRemove.parent;
+                            }
+                            
+                            explodeTarget(targetToRemove, targetToRemove.userData.isKamikaze);
+                            
+                            score += targetToRemove.userData.isKamikaze ? 15 : 10;
+                            updateHUD();
+                            
+                            return;
+                        }
+                        obj = obj.parent;
+                    }
+                }
+            }
+
+            function reload() {
+                ammoCount = config.ammoStart;
+                updateHUD();
+            }
+
+            function updateHUD() {
+                document.getElementById('ammo').textContent = `Патроны: ${ammoCount}`;
+                document.getElementById('score').textContent = `Очки: ${score}`;
+                document.getElementById('health').textContent = `Здоровье: ${Math.max(0, health)}`;
+            }
+
+            function setupEventListeners() {
+                window.addEventListener('resize', onWindowResize);
+                document.addEventListener('mousedown', onMouseDown);
+                document.addEventListener('keydown', onKeyDown);
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function onMouseDown(e) {
+                if (e.button === 0 && isGameStarted) shoot();
+            }
+
+            function onKeyDown(e) {
+                if (e.key === 'r' && isGameStarted) reload();
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                if (isGameStarted) {
+                    updatePlayerPosition();
+                    
+                    const currentTime = Date.now();
+                    if (currentTime - lastSpawnTime > config.spawnInterval) {
+                        if (bombers.length < config.bombers.count) spawnBomber();
+                        if (kamikaze.length < config.kamikaze.count) spawnKamikaze();
+                        lastSpawnTime = currentTime;
+                    }
+                    
+                    // Обновляем бомбардировщиков
+                    for (let i = bombers.length - 1; i >= 0; i--) {
+                        const bomber = bombers[i];
+                        
+                        bomber.position.z += bomber.userData.speed;
+                        
+                        if (bomber.userData.waveMotion) {
+                            bomber.position.y = bomber.userData.initialHeight + 
+                                            Math.sin(bomber.position.z * config.waveFrequency + 
+                                            bomber.userData.waveOffset) * config.waveAmplitude;
+                        }
+                        
+                        dropGrenade(bomber, currentTime);
+                        
+                        if (bomber.userData.fadingIn && bomber.position.z < config.spawnDistance.max + config.fadeDistance) {
+                            const fadeProgress = Math.min(1, (bomber.position.z - config.spawnDistance.max) / config.fadeDistance);
+                            bomber.traverse(child => {
+                                if (child.isMesh) {
+                                    child.material.opacity = fadeProgress;
+                                }
+                            });
+                            if (fadeProgress >= 1) {
+                                bomber.userData.fadingIn = false;
+                            }
+                        }
+                        
+                        if (bomber.position.z > config.despawnDistance - config.fadeDistance) {
+                            const fadeProgress = 1 - Math.min(1, (bomber.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
+                            bomber.traverse(child => {
+                                if (child.isMesh) {
+                                    child.material.opacity = fadeProgress;
+                                    const scale = bomber.userData.initialScale * fadeProgress;
+                                    child.scale.set(scale, scale, scale);
+                                }
+                            });
+                        }
+                        
+                        if (bomber.position.z > config.despawnDistance) {
+                            scene.remove(bomber);
+                            bombers.splice(i, 1);
+                            spawnBomber();
+                        }
+                    }
+                    
+                    // Обновляем камикадзе
+                    for (let i = kamikaze.length - 1; i >= 0; i--) {
+                        const kamikazeObj = kamikaze[i];
+                        
+                        if (kamikazeAttack(kamikazeObj)) {
+                            continue;
+                        }
+                        
+                        // Движение вперед, если не в режиме атаки
+                        if (!kamikazeObj.userData.attackParams.isInFinalAttack) {
+                            kamikazeObj.position.z += kamikazeObj.userData.speed;
+                        }
+                        
+                        if (kamikazeObj.userData.fadingIn && kamikazeObj.position.z < config.spawnDistance.max + config.fadeDistance) {
+                            const fadeProgress = Math.min(1, (kamikazeObj.position.z - config.spawnDistance.max) / config.fadeDistance);
+                            kamikazeObj.traverse(child => {
+                                if (child.isMesh) {
+                                    child.material.opacity = fadeProgress;
+                                }
+                            });
+                            if (fadeProgress >= 1) {
+                                kamikazeObj.userData.fadingIn = false;
+                            }
+                        }
+                        
+                        if (kamikazeObj.position.z > config.despawnDistance - config.fadeDistance) {
+                            const fadeProgress = 1 - Math.min(1, (kamikazeObj.position.z - (config.despawnDistance - config.fadeDistance)) / config.fadeDistance);
+                            kamikazeObj.traverse(child => {
+                                if (child.isMesh) {
+                                    child.material.opacity = fadeProgress;
+                                    const scale = kamikazeObj.userData.initialScale * fadeProgress;
+                                    child.scale.set(scale, scale, scale);
+                                }
+                            });
+                        }
+                        
+                        if (kamikazeObj.position.z > config.despawnDistance) {
+                            scene.remove(kamikazeObj);
+                            kamikaze.splice(i, 1);
+                            spawnKamikaze();
+                        }
+                    }
+                    
+                    checkGrenadeCollisions();
+                }
+
+                renderer.render(scene, camera);
+            }
+
+            return { init };
+        })();
+
+        window.onload = DronoBoy.init;
+    </script>
+</body>
+</html>
