@@ -139,17 +139,17 @@
                         waveDensity: 0.7,
                         waveWidthUsage: 0.8,
                         waveDistribution: "uniform",
-                        spawnInterval: 1500 // Интервал между появлениями мишеней в волне (мс)
+                        spawnInterval: 1500
                     },
                     kamikaze: {
                         groupSpread: 10,
                         inGroupSpread: 3,
-                        groupSize: 1,
+                        groupSize: 2,
                         spawnDelay: 300,
                         waveDensity: 0.6,
                         waveWidthUsage: 0.9,
                         waveDistribution: "uniform",
-                        spawnInterval: 2000 // Интервал между появлениями мишеней в волне (мс)
+                        spawnInterval: 2000
                     }
                 },
 
@@ -178,9 +178,9 @@
                     modelPath: 'models/kamikaze.glb',
                     color: 0xff6666,
                     trackingSpeed: 0.03,
-                    attackStartDistance: 25,
-                    damage: 0,
-                    acceleration: 0.001,
+                    attackStartDistance: 5,
+                    damage: 30,
+                    acceleration: 0.059,
                     maxSpeed: 0.3,
                     minDistanceToGround: 1.5,
                     attackHeightOffset: 0.8,
@@ -193,7 +193,9 @@
                     hitRadius: 0.5,
                     hitRadiusMultiplier: 0.3,
                     playerRadius: 0.5,
-                    heightRange: { min: 3.5, max: 12 }
+                    heightRange: { min: 5.5, max: 12 },
+                    maxActive: 5,
+                    waveCooldown: 5000
                 },
 
                 damageEffects: {
@@ -477,7 +479,12 @@
 
             function spawnKamikazeWave() {
                 const now = Date.now();
-                if (now - lastKamikazeGroupTime < config.waveSettings.kamikaze.spawnDelay) return;
+                
+                // Проверяем кулдаун и максимальное количество
+                if (now - lastKamikazeGroupTime < config.kamikazeSettings.waveCooldown || 
+                    kamikazes.length >= config.kamikazeSettings.maxActive) {
+                    return;
+                }
                 
                 lastKamikazeGroupTime = now;
                 
@@ -489,12 +496,20 @@
                 const groupCenterZ = playerPosition.z - config.spawnDistance + 
                                    (Math.random() * 20 - 10) * (1 - config.waveSettings.kamikaze.waveDensity);
                 
-                for (let i = 0; i < config.waveSettings.kamikaze.groupSize; i++) {
+                // Количество для спавна в этой волне (не больше максимального)
+                const toSpawn = Math.min(
+                    config.waveSettings.kamikaze.groupSize,
+                    config.kamikazeSettings.maxActive - kamikazes.length
+                );
+                
+                for (let i = 0; i < toSpawn; i++) {
                     setTimeout(() => {
+                        if (kamikazes.length >= config.kamikazeSettings.maxActive) return;
+                        
                         let x, z;
                         
                         if (config.waveSettings.kamikaze.waveDistribution === "uniform") {
-                            const step = waveWidth / (config.waveSettings.kamikaze.groupSize + 1);
+                            const step = waveWidth / (toSpawn + 1);
                             x = groupCenterX - waveWidth/2 + step * (i + 1);
                             z = groupCenterZ + (Math.random() * 2 - 1) * config.waveSettings.kamikaze.inGroupSpread;
                         } else {
@@ -506,13 +521,6 @@
                         
                         spawnKamikaze(false, x, z);
                     }, i * config.waveSettings.kamikaze.spawnInterval);
-                }
-                
-                kamikazeGroupsSpawned++;
-                
-                if (kamikazeGroupsSpawned >= Math.ceil(config.kamikazeCount / config.waveSettings.kamikaze.groupSize)) {
-                    kamikazeGroupsSpawned = 0;
-                    lastKamikazeGroupTime = 0;
                 }
             }
 
@@ -678,7 +686,7 @@
                                 child.material.transparent = true;
                                 child.material.opacity = initialSpawn ? 1 : 0;
                                 child.material.roughness = 0.7;
-                                child.material.metalness = 0.1;
+                                child.material.metalness = 0.1,
                                 child.material.color.setHex(config.kamikazeSettings.color);
                             }
                         });
@@ -1023,7 +1031,7 @@
                 
                 if (isKamikaze) {
                     kamikazes = kamikazes.filter(t => t !== target);
-                    setTimeout(() => spawnKamikaze(), 1000);
+                    // Убрали автоматический респавн
                 } else {
                     bombers = bombers.filter(t => t !== target);
                     setTimeout(() => spawnBomber(), 1000);
@@ -1242,13 +1250,6 @@
                             
                             score += 10;
                             updateHUD();
-                            
-                            if (obj.userData.isKamikaze) {
-                                setTimeout(spawnKamikaze, 1000);
-                            } else {
-                                setTimeout(spawnBomber, 1000);
-                            }
-                            
                             return;
                         }
                         obj = obj.parent;
@@ -1383,7 +1384,13 @@
                     const currentTime = Date.now();
                     if (currentTime - lastSpawnTime > config.spawnInterval) {
                         if (bombers.length < config.bomberCount) spawnBomberWave();
-                        if (kamikazes.length < config.kamikazeCount) spawnKamikazeWave();
+                        
+                        // Проверяем нужно ли спавнить камикадзе (не чаще чем waveCooldown)
+                        if (kamikazes.length < config.kamikazeSettings.maxActive && 
+                            currentTime - lastKamikazeGroupTime > config.kamikazeSettings.waveCooldown) {
+                            spawnKamikazeWave();
+                        }
+                        
                         lastSpawnTime = currentTime;
                     }
                     
