@@ -225,6 +225,7 @@
             function setupCamera() {
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
                 camera.position.y = config.playerHeight;
+                scene.add(camera); // Добавляем камеру в сцену сразу
             }
 
             function setupRenderer() {
@@ -298,82 +299,69 @@
                 
                 const loader = new THREE.GLTFLoader(manager);
                 
-                // Загрузка оружия с улучшенным карбоновым эффектом
+                // Загрузка оружия с улучшенной обработкой ошибок
                 loader.load('models/gun.glb', 
                     (gltf) => {
+                        console.log('Модель оружия загружена');
                         gun = gltf.scene;
                         
-                        // Принудительно применяем карбоновый эффект
+                        // Упрощенный карбоновый эффект без сложных шейдеров
                         gun.traverse((child) => {
                             if (child.isMesh) {
-                                // Сохраняем оригинальный материал
-                                const originalMaterial = child.material.clone();
-                                
-                                // Создаём кастомный шейдер
-                                originalMaterial.onBeforeCompile = (shader) => {
-                                    shader.fragmentShader = shader.fragmentShader.replace(
-                                        "#include <dithering_fragment>",
-                                        `
-                                        // Карбоновый узор
-                                        float carbonX = sin(vUv.x * 200.0) * 0.5 + 0.5;
-                                        float carbonY = sin(vUv.y * 100.0) * 0.5 + 0.5;
-                                        float carbonPattern = smoothstep(0.4, 0.6, carbonX * carbonY);
-                                        
-                                        // Применяем к цвету
-                                        gl_FragColor.rgb = mix(
-                                            gl_FragColor.rgb, 
-                                            gl_FragColor.rgb * 1.5, 
-                                            carbonPattern
-                                        );
-                                        #include <dithering_fragment>
-                                        `
-                                    );
-                                };
-                                
-                                child.material = originalMaterial;
-                                child.material.needsUpdate = true;
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0x222222,
+                                    roughness: 0.3,
+                                    metalness: 0.7,
+                                    emissive: 0x111111,
+                                    emissiveIntensity: 0.2
+                                });
                                 child.castShadow = true;
                             }
                         });
 
-                        gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
-                        gun.scale.set(config.gunScale, config.gunScale, config.gunScale);
+                        gun.position.set(
+                            config.gunPosition.x, 
+                            config.gunPosition.y, 
+                            config.gunPosition.z
+                        );
+                        gun.scale.set(
+                            config.gunScale, 
+                            config.gunScale, 
+                            config.gunScale
+                        );
+                        
                         camera.add(gun);
-                        scene.add(camera);
+                        console.log('Оружие добавлено к камере');
                     },
                     undefined,
                     (error) => {
                         console.error('Ошибка загрузки модели оружия:', error);
-                        // Fallback-вариант с карбоновым эффектом
-                        const gunGeometry = new THREE.BoxGeometry(0.3, 0.1, 0.5);
-                        const gunMaterial = new THREE.MeshStandardMaterial({ 
-                            color: 0x222222,
-                            roughness: 0.3,
-                            metalness: 0.7,
-                            onBeforeCompile: (shader) => {
-                                shader.fragmentShader = shader.fragmentShader.replace(
-                                    "#include <dithering_fragment>",
-                                    `
-                                    vec2 uv = vUv * 50.0;
-                                    float carbon = sin(uv.x) * sin(uv.y);
-                                    carbon = smoothstep(0.3, 0.7, carbon);
-                                    gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * 1.5, carbon);
-                                    #include <dithering_fragment>
-                                    `
-                                );
-                            }
-                        });
-                        
-                        gun = new THREE.Mesh(gunGeometry, gunMaterial);
-                        gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
-                        camera.add(gun);
-                        scene.add(camera);
+                        createFallbackGun();
                     }
                 );
 
                 loadLandscapeObjects();
                 nextBomberWaveTime = Date.now();
                 nextKamikazeWaveTime = Date.now();
+            }
+
+            function createFallbackGun() {
+                console.log('Создаем примитив вместо оружия');
+                const gunGeometry = new THREE.BoxGeometry(0.3, 0.1, 0.5);
+                const gunMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x222222,
+                    roughness: 0.3,
+                    metalness: 0.7
+                });
+                
+                gun = new THREE.Mesh(gunGeometry, gunMaterial);
+                gun.position.set(
+                    config.gunPosition.x, 
+                    config.gunPosition.y, 
+                    config.gunPosition.z
+                );
+                camera.add(gun);
+                console.log('Примитивное оружие добавлено к камере');
             }
 
             function spawnBomberWave() {
@@ -392,14 +380,12 @@
                         loader.load(config.bombers.model, 
                             (gltf) => {
                                 const model = gltf.scene;
-                                // Принудительно устанавливаем материалы для всех мешей
                                 model.traverse((child) => {
                                     if (child.isMesh) {
                                         child.material = new THREE.MeshStandardMaterial({
                                             color: config.bombers.color,
                                             roughness: 0.7,
-                                            metalness: 0.3,
-                                            transparent: false
+                                            metalness: 0.3
                                         });
                                         child.castShadow = true;
                                         child.receiveShadow = true;
@@ -440,27 +426,18 @@
                 bomber.position.set(position.x, initialHeight, position.z);
                 bomber.scale.set(config.bombers.size, config.bombers.size, config.bombers.size);
                 
-                // Создаем контейнер для модели
                 const container = new THREE.Group();
                 container.add(bomber);
                 container.position.copy(bomber.position);
                 container.scale.copy(bomber.scale);
                 bomber.position.set(0, 0, 0);
                 
-                // Настройка материалов с плавным появлением
                 container.traverse(child => {
                     if (child.isMesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
-                        
-                        // Создаем временный материал для fade-in
-                        child.material = new THREE.MeshStandardMaterial({
-                            color: config.bombers.color,
-                            transparent: true,
-                            opacity: 0.01,
-                            roughness: 0.7,
-                            metalness: 0.3
-                        });
+                        child.material.transparent = true;
+                        child.material.opacity = 0.01;
                     }
                 });
                 
@@ -502,14 +479,12 @@
                         loader.load(config.kamikaze.model, 
                             (gltf) => {
                                 const model = gltf.scene;
-                                // Принудительно устанавливаем материалы для всех мешей
                                 model.traverse((child) => {
                                     if (child.isMesh) {
                                         child.material = new THREE.MeshStandardMaterial({
                                             color: config.kamikaze.color,
                                             roughness: 0.7,
-                                            metalness: 0.3,
-                                            transparent: false
+                                            metalness: 0.3
                                         });
                                         child.castShadow = true;
                                         child.receiveShadow = true;
@@ -550,27 +525,18 @@
                 kamikazeObj.position.set(position.x, initialHeight, position.z);
                 kamikazeObj.scale.set(config.kamikaze.size, config.kamikaze.size, config.kamikaze.size);
                 
-                // Создаем контейнер для модели
                 const container = new THREE.Group();
                 container.add(kamikazeObj);
                 container.position.copy(kamikazeObj.position);
                 container.scale.copy(kamikazeObj.scale);
                 kamikazeObj.position.set(0, 0, 0);
                 
-                // Настройка материалов с плавным появлением
                 container.traverse(child => {
                     if (child.isMesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
-                        
-                        // Создаем временный материал для fade-in
-                        child.material = new THREE.MeshStandardMaterial({
-                            color: config.kamikaze.color,
-                            transparent: true,
-                            opacity: 0.01,
-                            roughness: 0.7,
-                            metalness: 0.3
-                        });
+                        child.material.transparent = true;
+                        child.material.opacity = 0.01;
                     }
                 });
                 
@@ -649,7 +615,7 @@
                     waveMotion: Math.random() > 0.5,
                     initialHeight: initialHeight,
                     waveOffset: Math.random() * Math.PI * 2,
-                    initialScale: config.bombers.size * 0.5,
+                    initialScale: config.bombers.size,
                     color: config.bombers.color,
                     lastBombTime: 0,
                     baseSpeed: speed
@@ -694,7 +660,7 @@
                     fadeStartTime: Date.now(),
                     speed: speed,
                     initialHeight: initialHeight,
-                    initialScale: config.kamikaze.size * 0.4,
+                    initialScale: config.kamikaze.size,
                     color: config.kamikaze.color,
                     baseSpeed: speed,
                     attackParams: {
@@ -1361,6 +1327,7 @@
                 updateHUD();
 
                 if (gun) {
+                    // Анимация отдачи оружия
                     gun.position.z += 0.1;
                     setTimeout(() => gun.position.z -= 0.1, 100);
                 }
@@ -1445,7 +1412,6 @@
                     for (let i = bombers.length - 1; i >= 0; i--) {
                         const bomber = bombers[i];
                         
-                        // Плавное появление
                         if (bomber.userData.fadingIn) {
                             const fadeProgress = Math.min(1, (currentTime - bomber.userData.fadeStartTime) / config.bombers.fadeInDuration);
                             bomber.traverse(child => {
@@ -1484,7 +1450,6 @@
                     for (let i = kamikaze.length - 1; i >= 0; i--) {
                         const kamikazeObj = kamikaze[i];
                         
-                        // Плавное появление
                         if (kamikazeObj.userData.fadingIn) {
                             const fadeProgress = Math.min(1, (currentTime - kamikazeObj.userData.fadeStartTime) / config.kamikaze.fadeInDuration);
                             kamikazeObj.traverse(child => {
