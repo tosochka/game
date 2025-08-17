@@ -293,54 +293,78 @@
             function loadModels() {
                 const manager = new THREE.LoadingManager();
                 manager.onError = function(url) {
-                    console.warn('Error loading resource:', url);
+                    console.warn('Ошибка загрузки ресурса:', url);
                 };
                 
                 const loader = new THREE.GLTFLoader(manager);
                 
-                // Загрузка оружия с карбоновым эффектом
+                // Загрузка оружия с улучшенным карбоновым эффектом
                 loader.load('models/gun.glb', 
                     (gltf) => {
                         gun = gltf.scene;
-                        gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
-                        gun.scale.set(config.gunScale, config.gunScale, config.gunScale);
                         
-                        // Применяем карбоновый эффект
+                        // Принудительно применяем карбоновый эффект
                         gun.traverse((child) => {
                             if (child.isMesh) {
-                                const originalMaterial = child.material;
-                                originalMaterial.defines = originalMaterial.defines || {};
-                                originalMaterial.defines["USE_UV"] = "";
+                                // Сохраняем оригинальный материал
+                                const originalMaterial = child.material.clone();
                                 
+                                // Создаём кастомный шейдер
                                 originalMaterial.onBeforeCompile = (shader) => {
                                     shader.fragmentShader = shader.fragmentShader.replace(
                                         "#include <dithering_fragment>",
                                         `
-                                        float carbonPattern = sin(vUv.x * 200.0) * sin(vUv.y * 100.0);
-                                        carbonPattern = smoothstep(0.4, 0.6, carbonPattern);
-                                        gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * 1.2, carbonPattern);
+                                        // Карбоновый узор
+                                        float carbonX = sin(vUv.x * 200.0) * 0.5 + 0.5;
+                                        float carbonY = sin(vUv.y * 100.0) * 0.5 + 0.5;
+                                        float carbonPattern = smoothstep(0.4, 0.6, carbonX * carbonY);
+                                        
+                                        // Применяем к цвету
+                                        gl_FragColor.rgb = mix(
+                                            gl_FragColor.rgb, 
+                                            gl_FragColor.rgb * 1.5, 
+                                            carbonPattern
+                                        );
                                         #include <dithering_fragment>
                                         `
                                     );
                                 };
+                                
+                                child.material = originalMaterial;
                                 child.material.needsUpdate = true;
+                                child.castShadow = true;
                             }
                         });
-                        
+
+                        gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
+                        gun.scale.set(config.gunScale, config.gunScale, config.gunScale);
                         camera.add(gun);
                         scene.add(camera);
                     },
                     undefined,
                     (error) => {
-                        console.error('Error loading gun model:', error);
-                        gun = new THREE.Mesh(
-                            new THREE.BoxGeometry(0.3, 0.1, 0.5),
-                            new THREE.MeshStandardMaterial({ 
-                                color: 0x222222,
-                                roughness: 0.3,
-                                metalness: 0.7
-                            })
-                        );
+                        console.error('Ошибка загрузки модели оружия:', error);
+                        // Fallback-вариант с карбоновым эффектом
+                        const gunGeometry = new THREE.BoxGeometry(0.3, 0.1, 0.5);
+                        const gunMaterial = new THREE.MeshStandardMaterial({ 
+                            color: 0x222222,
+                            roughness: 0.3,
+                            metalness: 0.7,
+                            onBeforeCompile: (shader) => {
+                                shader.fragmentShader = shader.fragmentShader.replace(
+                                    "#include <dithering_fragment>",
+                                    `
+                                    vec2 uv = vUv * 50.0;
+                                    float carbon = sin(uv.x) * sin(uv.y);
+                                    carbon = smoothstep(0.3, 0.7, carbon);
+                                    gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * 1.5, carbon);
+                                    #include <dithering_fragment>
+                                    `
+                                );
+                            }
+                        });
+                        
+                        gun = new THREE.Mesh(gunGeometry, gunMaterial);
                         gun.position.set(config.gunPosition.x, config.gunPosition.y, config.gunPosition.z);
                         camera.add(gun);
                         scene.add(camera);
@@ -367,13 +391,28 @@
                         const loader = new THREE.GLTFLoader();
                         loader.load(config.bombers.model, 
                             (gltf) => {
-                                const bomber = setupBomberModel(gltf.scene, position);
+                                const model = gltf.scene;
+                                // Принудительно устанавливаем материалы для всех мешей
+                                model.traverse((child) => {
+                                    if (child.isMesh) {
+                                        child.material = new THREE.MeshStandardMaterial({
+                                            color: config.bombers.color,
+                                            roughness: 0.7,
+                                            metalness: 0.3,
+                                            transparent: false
+                                        });
+                                        child.castShadow = true;
+                                        child.receiveShadow = true;
+                                    }
+                                });
+                                
+                                const bomber = setupBomberModel(model, position);
                                 bombers.push(bomber);
                                 scene.add(bomber);
                             },
                             undefined,
                             (error) => {
-                                console.error('Error loading bomber model:', error);
+                                console.error('Ошибка загрузки модели бомбардировщика:', error);
                                 const bomber = createFallbackBomber(position);
                                 bombers.push(bomber);
                                 scene.add(bomber);
@@ -399,7 +438,7 @@
                                    config.bombers.heightRange.min;
                 
                 bomber.position.set(position.x, initialHeight, position.z);
-                bomber.scale.set(config.bombers.size * 0.1, config.bombers.size * 0.1, config.bombers.size * 0.1);
+                bomber.scale.set(config.bombers.size, config.bombers.size, config.bombers.size);
                 
                 // Создаем контейнер для модели
                 const container = new THREE.Group();
@@ -420,7 +459,7 @@
                             transparent: true,
                             opacity: 0.01,
                             roughness: 0.7,
-                            metalness: 0.1
+                            metalness: 0.3
                         });
                     }
                 });
@@ -438,7 +477,7 @@
                     waveMotion: Math.random() > 0.5,
                     initialHeight: initialHeight,
                     waveOffset: Math.random() * Math.PI * 2,
-                    initialScale: config.bombers.size * 0.1,
+                    initialScale: config.bombers.size,
                     color: config.bombers.color,
                     lastBombTime: 0,
                     baseSpeed: speed
@@ -462,13 +501,28 @@
                         const loader = new THREE.GLTFLoader();
                         loader.load(config.kamikaze.model, 
                             (gltf) => {
-                                const kamikazeObj = setupKamikazeModel(gltf.scene, position);
+                                const model = gltf.scene;
+                                // Принудительно устанавливаем материалы для всех мешей
+                                model.traverse((child) => {
+                                    if (child.isMesh) {
+                                        child.material = new THREE.MeshStandardMaterial({
+                                            color: config.kamikaze.color,
+                                            roughness: 0.7,
+                                            metalness: 0.3,
+                                            transparent: false
+                                        });
+                                        child.castShadow = true;
+                                        child.receiveShadow = true;
+                                    }
+                                });
+                                
+                                const kamikazeObj = setupKamikazeModel(model, position);
                                 kamikaze.push(kamikazeObj);
                                 scene.add(kamikazeObj);
                             },
                             undefined,
                             (error) => {
-                                console.error('Error loading kamikaze model:', error);
+                                console.error('Ошибка загрузки модели камикадзе:', error);
                                 const kamikazeObj = createFallbackKamikaze(position);
                                 kamikaze.push(kamikazeObj);
                                 scene.add(kamikazeObj);
@@ -494,7 +548,7 @@
                                    config.kamikaze.heightRange.min;
                 
                 kamikazeObj.position.set(position.x, initialHeight, position.z);
-                kamikazeObj.scale.set(config.kamikaze.size * 0.1, config.kamikaze.size * 0.1, config.kamikaze.size * 0.1);
+                kamikazeObj.scale.set(config.kamikaze.size, config.kamikaze.size, config.kamikaze.size);
                 
                 // Создаем контейнер для модели
                 const container = new THREE.Group();
@@ -515,7 +569,7 @@
                             transparent: true,
                             opacity: 0.01,
                             roughness: 0.7,
-                            metalness: 0.1
+                            metalness: 0.3
                         });
                     }
                 });
@@ -531,7 +585,7 @@
                     fadeStartTime: Date.now(),
                     speed: speed,
                     initialHeight: initialHeight,
-                    initialScale: config.kamikaze.size * 0.1,
+                    initialScale: config.kamikaze.size,
                     color: config.kamikaze.color,
                     baseSpeed: speed,
                     attackParams: {
@@ -569,7 +623,7 @@
                         transparent: true,
                         opacity: 0.01,
                         roughness: 0.7,
-                        metalness: 0.1
+                        metalness: 0.3
                     })
                 );
                 
@@ -616,7 +670,7 @@
                         transparent: true,
                         opacity: 0.01,
                         roughness: 0.7,
-                        metalness: 0.1
+                        metalness: 0.3
                     })
                 );
                 
@@ -669,7 +723,7 @@
             function loadLandscapeObjects() {
                 const manager = new THREE.LoadingManager();
                 manager.onError = function(url) {
-                    console.warn('Error loading landscape resource:', url);
+                    console.warn('Ошибка загрузки ландшафтного объекта:', url);
                 };
                 
                 const loader = new THREE.GLTFLoader(manager);
@@ -709,7 +763,7 @@
                         },
                         undefined,
                         (error) => {
-                            console.error('Error loading landscape object:', error);
+                            console.error('Ошибка загрузки ландшафтного объекта:', error);
                             const geometry = Math.random() > 0.5 ? 
                                 new THREE.ConeGeometry(1, 3, 8) : 
                                 new THREE.SphereGeometry(1, 8, 8);
@@ -1134,14 +1188,14 @@
                         const promise = controls.lock();
                         if (promise) {
                             promise.catch(e => {
-                                console.error("Pointer lock error:", e);
+                                console.error("Ошибка блокировки указателя:", e);
                                 alert("Разрешите блокировку курсора для игры! Нажмите на экран после загрузки.");
                             });
                         } else {
-                            console.warn("Pointer lock API not available");
+                            console.warn("API блокировки указателя недоступно");
                         }
                     } catch (e) {
-                        console.error("Error locking pointer:", e);
+                        console.error("Ошибка при блокировке указателя:", e);
                     }
                 });
 
