@@ -178,9 +178,9 @@
                     modelPath: 'models/kamikaze.glb',
                     color: 0xff6666,
                     trackingSpeed: 0.03,
-                    attackStartDistance: 5,
+                    attackStartDistance: 25,
                     damage: 30,
-                    acceleration: 0.059,
+                    acceleration: 0.001,
                     maxSpeed: 0.3,
                     minDistanceToGround: 1.5,
                     attackHeightOffset: 0.8,
@@ -193,9 +193,15 @@
                     hitRadius: 0.5,
                     hitRadiusMultiplier: 0.3,
                     playerRadius: 0.5,
-                    heightRange: { min: 5.5, max: 12 },
+                    heightRange: { min: 3.5, max: 12 },
                     maxActive: 5,
-                    waveCooldown: 5000
+                    waveCooldown: 5000,
+                    firstWave: {
+                        count: 3,
+                        distance: 70,
+                        spread: 20,
+                        height: 7
+                    }
                 },
 
                 damageEffects: {
@@ -477,10 +483,21 @@
                 }
             }
 
+            function spawnFirstKamikazeWave() {
+                for (let i = 0; i < config.kamikazeSettings.firstWave.count; i++) {
+                    const x = (Math.random() * 2 - 1) * config.kamikazeSettings.firstWave.spread;
+                    const z = playerPosition.z - config.kamikazeSettings.firstWave.distance;
+                    const y = config.kamikazeSettings.firstWave.height;
+                    
+                    spawnKamikaze(false, x, z, y, true);
+                }
+                
+                lastKamikazeGroupTime = Date.now();
+            }
+
             function spawnKamikazeWave() {
                 const now = Date.now();
                 
-                // Проверяем кулдаун и максимальное количество
                 if (now - lastKamikazeGroupTime < config.kamikazeSettings.waveCooldown || 
                     kamikazes.length >= config.kamikazeSettings.maxActive) {
                     return;
@@ -496,7 +513,6 @@
                 const groupCenterZ = playerPosition.z - config.spawnDistance + 
                                    (Math.random() * 20 - 10) * (1 - config.waveSettings.kamikaze.waveDensity);
                 
-                // Количество для спавна в этой волне (не больше максимального)
                 const toSpawn = Math.min(
                     config.waveSettings.kamikaze.groupSize,
                     config.kamikazeSettings.maxActive - kamikazes.length
@@ -658,21 +674,31 @@
                 );
             }
 
-            function spawnKamikaze(initialSpawn = false, customX = null, customZ = null) {
+            function spawnKamikaze(initialSpawn = false, customX = null, customZ = null, customY = null, isFirstWave = false) {
                 const loader = new THREE.GLTFLoader();
                 
-                let spawnZ, x;
-                if (initialSpawn) {
-                    spawnZ = playerPosition.z - config.spawnDistance + (Math.random() * 20 - 10);
+                let x, z, y;
+                
+                if (isFirstWave) {
+                    // Координаты для первой волны
+                    x = customX;
+                    z = customZ;
+                    y = customY !== null ? customY : config.kamikazeSettings.firstWave.height;
+                } else if (initialSpawn) {
+                    // Обычный начальный спавн
                     x = (Math.random() * 2 - 1) * config.targetMovementRangeX;
+                    z = playerPosition.z - config.spawnDistance + (Math.random() * 20 - 10);
+                    y = Math.random() * 
+                        (config.kamikazeSettings.heightRange.max - config.kamikazeSettings.heightRange.min) + 
+                        config.kamikazeSettings.heightRange.min;
                 } else {
-                    spawnZ = customZ !== null ? customZ : playerPosition.z - config.spawnDistance;
+                    // Волновой спавн
                     x = customX !== null ? customX : (Math.random() * 2 - 1) * config.targetMovementRangeX;
-                    
-                    const screenPos = new THREE.Vector3(x, config.kamikazeSettings.heightRange.min + 5, spawnZ).project(camera);
-                    if (Math.abs(screenPos.x) < 1.5 && Math.abs(screenPos.y) < 1.5) {
-                        spawnZ = playerPosition.z - config.spawnDistance * 1.5;
-                    }
+                    z = customZ !== null ? customZ : playerPosition.z - config.spawnDistance;
+                    y = customY !== null ? customY : 
+                        Math.random() * 
+                        (config.kamikazeSettings.heightRange.max - config.kamikazeSettings.heightRange.min) + 
+                        config.kamikazeSettings.heightRange.min;
                 }
 
                 loader.load(config.kamikazeSettings.modelPath, 
@@ -684,9 +710,9 @@
                                 child.castShadow = true;
                                 child.receiveShadow = true;
                                 child.material.transparent = true;
-                                child.material.opacity = initialSpawn ? 1 : 0;
+                                child.material.opacity = initialSpawn || isFirstWave ? 1 : 0;
                                 child.material.roughness = 0.7;
-                                child.material.metalness = 0.1,
+                                child.material.metalness = 0.1;
                                 child.material.color.setHex(config.kamikazeSettings.color);
                             }
                         });
@@ -700,11 +726,7 @@
                                          config.targetSettings.modelScale.kamikaze / size;
                         kamikaze.scale.set(scaleFactor, scaleFactor, scaleFactor);
                         
-                        const initialHeight = Math.random() * 
-                            (config.kamikazeSettings.heightRange.max - config.kamikazeSettings.heightRange.min) + 
-                            config.kamikazeSettings.heightRange.min;
-                        
-                        kamikaze.position.set(x, initialHeight, spawnZ);
+                        kamikaze.position.set(x, y, z);
                         
                         const speed = Math.random() * 
                             (config.targetSpeed.max - config.targetSpeed.min) + 
@@ -712,9 +734,9 @@
                         
                         kamikaze.userData = {
                             isKamikaze: true,
-                            fadingIn: !initialSpawn,
+                            fadingIn: !initialSpawn && !isFirstWave,
                             speed: speed,
-                            initialHeight: initialHeight,
+                            initialHeight: y,
                             baseSize: size,
                             currentScale: scaleFactor,
                             lastBombTime: 0,
@@ -736,10 +758,6 @@
                     },
                     undefined,
                     () => {
-                        const initialHeight = Math.random() * 
-                            (config.kamikazeSettings.heightRange.max - config.kamikazeSettings.heightRange.min) + 
-                            config.kamikazeSettings.heightRange.min;
-                        
                         const speed = Math.random() * 
                             (config.targetSpeed.max - config.targetSpeed.min) + 
                             config.targetSpeed.min;
@@ -749,7 +767,7 @@
                             new THREE.MeshStandardMaterial({ 
                                 color: config.kamikazeSettings.color,
                                 transparent: true,
-                                opacity: initialSpawn ? 1 : 0,
+                                opacity: initialSpawn || isFirstWave ? 1 : 0,
                                 roughness: 0.7,
                                 metalness: 0.1
                             })
@@ -757,7 +775,7 @@
                         
                         kamikaze.castShadow = true;
                         kamikaze.receiveShadow = true;
-                        kamikaze.position.set(x, initialHeight, spawnZ);
+                        kamikaze.position.set(x, y, z);
                         kamikaze.rotation.y = Math.PI;
                         kamikaze.scale.set(
                             config.targetSettings.baseScale * config.targetSettings.modelScale.kamikaze,
@@ -767,9 +785,9 @@
                         
                         kamikaze.userData = {
                             isKamikaze: true,
-                            fadingIn: !initialSpawn,
+                            fadingIn: !initialSpawn && !isFirstWave,
                             speed: speed,
-                            initialHeight: initialHeight,
+                            initialHeight: y,
                             baseSize: 1,
                             currentScale: config.targetSettings.baseScale * config.targetSettings.modelScale.kamikaze,
                             lastBombTime: 0,
@@ -1031,7 +1049,6 @@
                 
                 if (isKamikaze) {
                     kamikazes = kamikazes.filter(t => t !== target);
-                    // Убрали автоматический респавн
                 } else {
                     bombers = bombers.filter(t => t !== target);
                     setTimeout(() => spawnBomber(), 1000);
@@ -1051,6 +1068,9 @@
                     isGameStarted = true;
                     document.getElementById('start-screen').style.display = 'none';
                     lastSpawnTime = Date.now();
+                    
+                    // Спавн первой волны камикадзе сразу перед игроком
+                    spawnFirstKamikazeWave();
                 });
 
                 controls.addEventListener('unlock', () => {
@@ -1385,7 +1405,6 @@
                     if (currentTime - lastSpawnTime > config.spawnInterval) {
                         if (bombers.length < config.bomberCount) spawnBomberWave();
                         
-                        // Проверяем нужно ли спавнить камикадзе (не чаще чем waveCooldown)
                         if (kamikazes.length < config.kamikazeSettings.maxActive && 
                             currentTime - lastKamikazeGroupTime > config.kamikazeSettings.waveCooldown) {
                             spawnKamikazeWave();
