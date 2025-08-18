@@ -36,18 +36,41 @@
             flex-direction: column;
         }
         #start-button {
+            position: relative;
             padding: 10px 20px;
             font-size: 20px;
-            background: #4CAF50;
+            background: #333;
             border: none;
             color: white;
             cursor: pointer;
             border-radius: 5px;
             transition: all 0.1s;
+            overflow: hidden;
         }
-        #start-button:active {
+        #start-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: var(--progress, 0%);
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s;
+            z-index: 0;
+        }
+        #start-button span {
+            position: relative;
+            z-index: 1;
+        }
+        #start-button:disabled {
+            cursor: not-allowed;
+            color: #aaa;
+        }
+        #start-button:disabled::before {
+            background: #555;
+        }
+        #start-button:not(:disabled):active {
             transform: scale(0.95);
-            background: #45a049;
         }
         #damage-overlay {
             position: absolute;
@@ -59,6 +82,10 @@
             opacity: 0;
             transition: opacity 0.3s;
             background-color: rgba(255, 50, 0, 0.5);
+        }
+        #loading-text {
+            margin-top: 10px;
+            font-size: 18px;
         }
     </style>
 </head>
@@ -72,7 +99,10 @@
     <div id="crosshair"></div>
     <div id="damage-overlay"></div>
     <div id="start-screen">
-        <button id="start-button">Начать игру</button>
+        <button id="start-button" disabled>
+            <span>Загрузка...</span>
+        </button>
+        <div id="loading-text">0%</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
@@ -229,6 +259,40 @@
             let lastBomberSpawnTime = 0;
             let lastKamikazeSpawnTime = 0;
 
+            // Loading tracking variables
+            let landscapeResourcesToLoad = 0;
+            let loadedLandscapeResources = 0;
+            let startButton = document.getElementById('start-button');
+            let loadingText = document.getElementById('loading-text');
+            let landscapeLoadingComplete = false;
+            let isRestarting = false;
+
+            function updateLoadingProgress() {
+                const progress = Math.round((loadedLandscapeResources / landscapeResourcesToLoad) * 100);
+                startButton.style.setProperty('--progress', progress + '%');
+                loadingText.textContent = `${progress}%`;
+                
+                if (progress >= 100) {
+                    landscapeLoadingComplete = true;
+                    startButton.querySelector('span').textContent = isRestarting ? 'Играть снова' : 'Начать игру';
+                    startButton.disabled = false;
+                }
+            }
+
+            function incrementLoadedLandscapeResources() {
+                loadedLandscapeResources++;
+                updateLoadingProgress();
+            }
+
+            function resetLoadingState() {
+                loadedLandscapeResources = 0;
+                landscapeLoadingComplete = false;
+                startButton.disabled = true;
+                startButton.querySelector('span').textContent = 'Загрузка...';
+                startButton.style.setProperty('--progress', '0%');
+                loadingText.textContent = '0%';
+            }
+
             function createScene() {
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x87CEEB);
@@ -376,6 +440,10 @@
                 const loader = new THREE.GLTFLoader();
                 const placedObjects = [];
                 
+                // Reset loading state for landscape objects
+                landscapeResourcesToLoad = config.landscapeObjects.count;
+                resetLoadingState();
+                
                 for (let i = 0; i < config.landscapeObjects.count; i++) {
                     const typeIndex = Math.floor(Math.random() * config.landscapeObjects.types.length);
                     const modelPath = config.landscapeObjects.types[typeIndex];
@@ -407,6 +475,7 @@
                             landscape.push(obj);
                             placedObjects.push(obj);
                             scene.add(obj);
+                            incrementLoadedLandscapeResources();
                         },
                         undefined,
                         () => {
@@ -437,6 +506,7 @@
                             landscape.push(obj);
                             placedObjects.push(obj);
                             scene.add(obj);
+                            incrementLoadedLandscapeResources();
                         }
                     );
                 }
@@ -680,19 +750,16 @@
                 let x, z, y;
                 
                 if (isFirstWave) {
-                    // Координаты для первой волны
                     x = customX;
                     z = customZ;
                     y = customY !== null ? customY : config.kamikazeSettings.firstWave.height;
                 } else if (initialSpawn) {
-                    // Обычный начальный спавн
                     x = (Math.random() * 2 - 1) * config.targetMovementRangeX;
                     z = playerPosition.z - config.spawnDistance + (Math.random() * 20 - 10);
                     y = Math.random() * 
                         (config.kamikazeSettings.heightRange.max - config.kamikazeSettings.heightRange.min) + 
                         config.kamikazeSettings.heightRange.min;
                 } else {
-                    // Волновой спавн
                     x = customX !== null ? customX : (Math.random() * 2 - 1) * config.targetMovementRangeX;
                     z = customZ !== null ? customZ : playerPosition.z - config.spawnDistance;
                     y = customY !== null ? customY : 
@@ -1059,6 +1126,8 @@
                 controls = new THREE.PointerLockControls(camera, renderer.domElement);
                 
                 document.getElementById('start-button').addEventListener('click', () => {
+                    if (!landscapeLoadingComplete) return;
+                    
                     controls.lock().catch(e => {
                         alert("Разрешите блокировку курсора для игры!");
                     });
@@ -1069,7 +1138,6 @@
                     document.getElementById('start-screen').style.display = 'none';
                     lastSpawnTime = Date.now();
                     
-                    // Спавн первой волны камикадзе сразу перед игроком
                     spawnFirstKamikazeWave();
                 });
 
@@ -1198,12 +1266,13 @@
                 isGameStarted = false;
                 controls.unlock();
                 document.getElementById('start-screen').style.display = 'flex';
-                document.getElementById('start-button').textContent = 'Играть снова';
                 
+                isRestarting = true;
                 resetGame();
             }
 
             function resetGame() {
+                // Clear all game objects
                 bombers.forEach(bomber => {
                     if (DEBUG_MODE && bomber.userData.debugHelper) {
                         scene.remove(bomber.userData.debugHelper);
@@ -1221,6 +1290,7 @@
                 landscape.forEach(obj => scene.remove(obj));
                 grenades.forEach(grenade => scene.remove(grenade));
                 
+                // Reset game state
                 bombers = [];
                 kamikazes = [];
                 landscape = [];
@@ -1229,9 +1299,11 @@
                 score = 0;
                 health = config.healthStart;
                 
+                // Reset player position
                 controls.getObject().position.set(0, config.playerHeight, 0);
                 playerPosition.set(0, config.playerHeight, 0);
                 
+                // Recreate game world
                 createGround();
                 loadModels();
                 updateHUD();
@@ -1387,11 +1459,17 @@
                 setupRenderer();
                 createLighting();
                 createGround();
-                loadModels();
+                createParticles();
                 setupControls();
                 setupEventListeners();
                 
                 damageOverlay = document.getElementById('damage-overlay');
+                
+                // Initialize loading state
+                resetLoadingState();
+                isRestarting = false;
+                
+                loadModels();
                 animate();
             }
 
