@@ -140,8 +140,7 @@
                         clusterSize: 2,
                         waveInterval: { min: 800, max: 1500 }
                     },
-                    fadeInDuration: 1500,
-                    finalFaceDistance: 5.0 // Новый параметр - дистанция финального разворота
+                    fadeInDuration: 1500
                 },
                 spawnDistance: { min: 100, max: 150 },
                 despawnDistance: 150,
@@ -513,14 +512,16 @@
                     config.kamikaze.spawnInterval.min);
             }
 
-            function setupKamikazeModel(model, position) {
-                const kamikazeObj = model;
-                
-                if (kamikazeObj.children && kamikazeObj.children[0]) {
-                    kamikazeObj.children[0].rotation.y = Math.PI;
-                } else {
-                    kamikazeObj.rotation.y = Math.PI;
-                }
+				function setupKamikazeModel(model, position) {
+					const kamikazeObj = model;
+					
+					// Если модель загружена как GLTF, она может быть внутри группы
+					// Поэтому поворачиваем первый дочерний элемент (саму модель)
+					if (kamikazeObj.children && kamikazeObj.children[0]) {
+						kamikazeObj.children[0].rotation.y = Math.PI; // ← Вот здесь!
+					} else {
+						kamikazeObj.rotation.y = Math.PI; // Если нет дочерних элементов, поворачиваем сам объект
+					}
                 
                 const initialHeight = Math.random() * 
                                    (config.kamikaze.heightRange.max - config.kamikaze.heightRange.min) + 
@@ -574,8 +575,7 @@
                             (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
                             0
                         ),
-                        targetRotation: 0,
-                        finalFaceToPlayer: false
+                        targetRotation: 0
                     }
                 };
                 
@@ -684,8 +684,7 @@
                             (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
                             0
                         ),
-                        targetRotation: 0,
-                        finalFaceToPlayer: false
+                        targetRotation: 0
                     }
                 };
                 
@@ -1029,29 +1028,10 @@
                     }
                 } else {
                     direction.subVectors(attack.fixedTargetPoint, targetPos).normalize();
-                    
-                    // Новый код: финальный разворот лицом к игроку
-                    const distanceToTarget = targetPos.distanceTo(attack.fixedTargetPoint);
-                    if (distanceToTarget < config.kamikaze.finalFaceDistance) {
-                        const playerDirection = new THREE.Vector3().subVectors(
-                            controls.getObject().position, 
-                            targetPos
-                        ).normalize();
-                        
-                        // Переопределяем направление атаки строго на игрока
-                        direction.copy(playerDirection);
-                        attack.fixedTargetPoint.copy(controls.getObject().position);
-                        
-                        // Разворачиваем модель лицом к игроку
-                        if (kamikazeObj.children && kamikazeObj.children[0]) {
-                            const targetRotation = Math.atan2(playerDirection.x, playerDirection.z);
-                            kamikazeObj.children[0].rotation.y = targetRotation;
-                        }
-                    }
-
                     direction.y -= config.kamikaze.gravity;
                     direction.normalize();
 
+                    const distanceToTarget = targetPos.distanceTo(attack.fixedTargetPoint);
                     if (distanceToTarget < 1.0) {
                         const explosionPos = targetPos.clone();
                         explodeTarget(kamikazeObj, true);
