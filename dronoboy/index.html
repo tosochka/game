@@ -512,16 +512,14 @@
                     config.kamikaze.spawnInterval.min);
             }
 
-				function setupKamikazeModel(model, position) {
-					const kamikazeObj = model;
-					
-					// Если модель загружена как GLTF, она может быть внутри группы
-					// Поэтому поворачиваем первый дочерний элемент (саму модель)
-					if (kamikazeObj.children && kamikazeObj.children[0]) {
-						kamikazeObj.children[0].rotation.y = Math.PI; // ← Вот здесь!
-					} else {
-						kamikazeObj.rotation.y = Math.PI; // Если нет дочерних элементов, поворачиваем сам объект
-					}
+            function setupKamikazeModel(model, position) {
+                const kamikazeObj = model;
+                
+                if (kamikazeObj.children && kamikazeObj.children[0]) {
+                    kamikazeObj.children[0].rotation.y = Math.PI;
+                } else {
+                    kamikazeObj.rotation.y = Math.PI;
+                }
                 
                 const initialHeight = Math.random() * 
                                    (config.kamikaze.heightRange.max - config.kamikaze.heightRange.min) + 
@@ -964,7 +962,7 @@
                     attack.isTurningAround = false;
                     attack.isInFinalAttack = true;
                     attack.fixedTargetPoint = new THREE.Vector3(
-                        controls.getObject().position.x,
+                        0, // Изменено: теперь атакуем центр экрана по X
                         Math.max(
                             config.kamikaze.minExplosionHeight,
                             Math.random() * 
@@ -1016,7 +1014,7 @@
                     if (distanceToPlayer < attack.attackStartDistance) {
                         attack.isInFinalAttack = true;
                         attack.fixedTargetPoint = new THREE.Vector3(
-                            player.x, 
+                            0, // Изменено: теперь атакуем центр экрана по X
                             Math.max(
                                 config.kamikaze.minExplosionHeight,
                                 Math.random() * 
