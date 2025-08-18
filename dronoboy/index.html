@@ -114,17 +114,17 @@
                     speed: { min: 0.03, max: 0.18 },
                     heightRange: { min: 3.5, max: 12 },
                     trackingSpeed: 0.02,
-                    attackStartDistance: 15,
+                    attackStartDistance: 25,
                     damage: 30,
                     explosionRange: 5,
                     attackSpeedMultiplier: 1.5,
-                    attackHeightRange: { min: 0.5, max: 1.0 },
+                    attackHeightRange: { min: 0.9, max: 1.8 },
                     formationSpread: { 
                         horizontal: 3, 
                         vertical: 2
                     },
                     gravity: 0.05,
-                    rotationSpeed: 0.05,
+                    rotationSpeed: 0.1,
                     color: 0x0000cc,
                     size: 1.0,
                     spawnInterval: { min: 1500, max: 3000 },
@@ -140,7 +140,8 @@
                         clusterSize: 2,
                         waveInterval: { min: 800, max: 1500 }
                     },
-                    fadeInDuration: 1500
+                    fadeInDuration: 1500,
+                    facePlayerBeforeExplosionDistance: 3.0 // Новый параметр - расстояние, на котором камикадзе разворачивается к игроку
                 },
                 spawnDistance: { min: 100, max: 150 },
                 despawnDistance: 150,
@@ -573,7 +574,8 @@
                             (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
                             0
                         ),
-                        targetRotation: 0
+                        targetRotation: 0,
+                        hasFacedPlayer: false // Новый флаг - развернулся ли уже к игроку
                     }
                 };
                 
@@ -682,7 +684,8 @@
                             (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
                             0
                         ),
-                        targetRotation: 0
+                        targetRotation: 0,
+                        hasFacedPlayer: false
                     }
                 };
                 
@@ -961,11 +964,14 @@
                     
                     attack.isTurningAround = false;
                     attack.isInFinalAttack = true;
-                    
-                    // Фиксируем точку прямо перед игроком (центр экрана)
                     attack.fixedTargetPoint = new THREE.Vector3(
                         controls.getObject().position.x,
-                        controls.getObject().position.y + 0.5, // Небольшое смещение вверх
+                        Math.max(
+                            config.kamikaze.minExplosionHeight,
+                            Math.random() * 
+                            (config.kamikaze.attackHeightRange.max - config.kamikaze.attackHeightRange.min) + 
+                            config.kamikaze.attackHeightRange.min
+                        ),
                         controls.getObject().position.z
                     );
                 }
@@ -1010,25 +1016,38 @@
                     const distanceToPlayer = targetPos.distanceTo(player);
                     if (distanceToPlayer < attack.attackStartDistance) {
                         attack.isInFinalAttack = true;
-                        
-                        // Фиксируем точку прямо перед игроком (центр экрана)
                         attack.fixedTargetPoint = new THREE.Vector3(
-                            player.x,
-                            player.y + 0.5, // Небольшое смещение вверх
+                            player.x, 
+                            Math.max(
+                                config.kamikaze.minExplosionHeight,
+                                Math.random() * 
+                                (config.kamikaze.attackHeightRange.max - config.kamikaze.attackHeightRange.min) + 
+                                config.kamikaze.attackHeightRange.min
+                            ),
                             player.z
                         );
                     }
                 } else {
-                    // Добавляем небольшую случайность (±0.25 единицы) для естественности
-                    const targetPoint = attack.fixedTargetPoint.clone();
-                    targetPoint.x += (Math.random() - 0.5) * 0.5;
-                    targetPoint.z += (Math.random() - 0.5) * 0.5;
-                    
-                    direction.subVectors(targetPoint, targetPos).normalize();
+                    direction.subVectors(attack.fixedTargetPoint, targetPos).normalize();
                     direction.y -= config.kamikaze.gravity;
                     direction.normalize();
 
-                    const distanceToTarget = targetPos.distanceTo(targetPoint);
+                    const distanceToTarget = targetPos.distanceTo(attack.fixedTargetPoint);
+                    
+                    // Новый код: разворот к игроку перед взрывом
+                    if (distanceToTarget < config.kamikaze.facePlayerBeforeExplosionDistance && !attack.hasFacedPlayer) {
+                        attack.hasFacedPlayer = true;
+                        
+                        // Вычисляем направление к игроку
+                        const playerDirection = new THREE.Vector3().subVectors(player, targetPos).normalize();
+                        
+                        // Поворачиваем модель к игроку
+                        if (kamikazeObj.children && kamikazeObj.children[0]) {
+                            let targetRotation = Math.atan2(playerDirection.x, playerDirection.z);
+                            kamikazeObj.children[0].rotation.y = targetRotation;
+                        }
+                    }
+                    
                     if (distanceToTarget < 1.0) {
                         const explosionPos = targetPos.clone();
                         explodeTarget(kamikazeObj, true);
