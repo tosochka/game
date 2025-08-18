@@ -124,7 +124,7 @@
                         vertical: 2
                     },
                     gravity: 0.05,
-                    rotationSpeed: 0.1,
+                    rotationSpeed: 0.2,
                     color: 0x0000cc,
                     size: 1.0,
                     spawnInterval: { min: 1500, max: 3000 },
@@ -141,7 +141,7 @@
                         waveInterval: { min: 800, max: 1500 }
                     },
                     fadeInDuration: 1500,
-                    facePlayerBeforeExplosionDistance: 3.0 // Новый параметр - расстояние, на котором камикадзе разворачивается к игроку
+                    facePlayerDistance: 5.0
                 },
                 spawnDistance: { min: 100, max: 150 },
                 despawnDistance: 150,
@@ -574,8 +574,7 @@
                             (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
                             0
                         ),
-                        targetRotation: 0,
-                        hasFacedPlayer: false // Новый флаг - развернулся ли уже к игроку
+                        targetRotation: 0
                     }
                 };
                 
@@ -684,8 +683,7 @@
                             (Math.random() - 0.5) * 2 * config.kamikaze.formationSpread.vertical,
                             0
                         ),
-                        targetRotation: 0,
-                        hasFacedPlayer: false
+                        targetRotation: 0
                     }
                 };
                 
@@ -1034,18 +1032,15 @@
 
                     const distanceToTarget = targetPos.distanceTo(attack.fixedTargetPoint);
                     
-                    // Новый код: разворот к игроку перед взрывом
-                    if (distanceToTarget < config.kamikaze.facePlayerBeforeExplosionDistance && !attack.hasFacedPlayer) {
-                        attack.hasFacedPlayer = true;
+                    // Разворот к игроку при приближении
+                    if (distanceToTarget < config.kamikaze.facePlayerDistance && kamikazeObj.children && kamikazeObj.children[0]) {
+                        const lookAtPlayer = new THREE.Vector3().subVectors(player, targetPos).normalize();
+                        const targetRotation = Math.atan2(lookAtPlayer.x, lookAtPlayer.z);
                         
-                        // Вычисляем направление к игроку
-                        const playerDirection = new THREE.Vector3().subVectors(player, targetPos).normalize();
-                        
-                        // Поворачиваем модель к игроку
-                        if (kamikazeObj.children && kamikazeObj.children[0]) {
-                            let targetRotation = Math.atan2(playerDirection.x, playerDirection.z);
-                            kamikazeObj.children[0].rotation.y = targetRotation;
-                        }
+                        // Плавный поворот к игроку
+                        const currentRotation = kamikazeObj.children[0].rotation.y;
+                        const rotationDiff = ((targetRotation - currentRotation + Math.PI) % (Math.PI * 2)) - Math.PI;
+                        kamikazeObj.children[0].rotation.y += rotationDiff * config.kamikaze.rotationSpeed;
                     }
                     
                     if (distanceToTarget < 1.0) {
@@ -1063,13 +1058,6 @@
                         }
                         return true;
                     }
-                }
-
-                if (kamikazeObj.children && kamikazeObj.children[0]) {
-                    let targetRotation = Math.atan2(direction.x, direction.z);
-                    const currentRotation = kamikazeObj.children[0].rotation.y;
-                    const rotationDiff = ((targetRotation - currentRotation + Math.PI) % (Math.PI * 2)) - Math.PI;
-                    kamikazeObj.children[0].rotation.y = currentRotation + rotationDiff * config.kamikaze.rotationSpeed;
                 }
 
                 kamikazeObj.userData.speed = attack.isInFinalAttack ? 
