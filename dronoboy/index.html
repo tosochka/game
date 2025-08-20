@@ -1441,7 +1441,7 @@
                 const particleCount = 20;
                 
                 for (let i = 0; i < particleCount; i++) {
-                    const particleGeometry = new THREE.SphereGeometry(0.3, 12, 12);
+                    const particleGeometry = new THREE.SphereGeometry(0.2, 8, 8);
                     const particleMaterial = new THREE.MeshBasicMaterial({
                         color: color,
                         transparent: true,
@@ -1488,7 +1488,7 @@
             }
 
             function explodeTarget(target, isKamikaze = false) {
-                const explosionGeometry = new THREE.SphereGeometry(isKamikaze ? 2 : 2.5, 16, 20);
+                const explosionGeometry = new THREE.SphereGeometry(isKamikaze ? 0.5 : 7.5, 16, 16);
                 const explosionMaterial = new THREE.MeshStandardMaterial({
                     color: target.userData.color,
                     transparent: true,
@@ -1694,7 +1694,7 @@
             }
 
             function explodeGrenade(grenade) {
-                const explosionGeometry = new THREE.SphereGeometry(3, 12, 12);
+                const explosionGeometry = new THREE.SphereGeometry(1, 8, 8);
                 const explosionMaterial = new THREE.MeshStandardMaterial({
                     color: 0xff5500,
                     transparent: true,
