@@ -146,13 +146,13 @@
                     count: 8,
                     model: 'models/bomber.glb',
                     speed: { min: 0.1, max: 0.15 },
-                    heightRange: { min: 15, max: 30 },
+                    heightRange: { min: 30, max: 60 },
                     bombChance: 0.03,
                     bombIntensity: 1.0,
                     minBombInterval: 1000,
                     maxBombInterval: 3000,
                     damage: 20,
-                    color: 0xcc0000,
+                    color: 0x680000,
                     size: 2.0,
                     spawnInterval: { min: 2000, max: 4000 },
                     waveSettings: {
@@ -181,7 +181,7 @@
                     },
                     gravity: 0.05,
                     rotationSpeed: 0.1,
-                    color: 0x0000cc,
+                    color: 0x5C5C5C,
                     size: 1.0,
                     spawnInterval: { min: 1500, max: 3000 },
                     minExplosionHeight: 0.3,
@@ -1441,7 +1441,7 @@
                 const particleCount = 20;
                 
                 for (let i = 0; i < particleCount; i++) {
-                    const particleGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+                    const particleGeometry = new THREE.SphereGeometry(0.3, 12, 12);
                     const particleMaterial = new THREE.MeshBasicMaterial({
                         color: color,
                         transparent: true,
@@ -1488,7 +1488,7 @@
             }
 
             function explodeTarget(target, isKamikaze = false) {
-                const explosionGeometry = new THREE.SphereGeometry(isKamikaze ? 2 : 1.5, 16, 16);
+                const explosionGeometry = new THREE.SphereGeometry(isKamikaze ? 2 : 2.5, 16, 20);
                 const explosionMaterial = new THREE.MeshStandardMaterial({
                     color: target.userData.color,
                     transparent: true,
@@ -1694,7 +1694,7 @@
             }
 
             function explodeGrenade(grenade) {
-                const explosionGeometry = new THREE.SphereGeometry(1, 8, 8);
+                const explosionGeometry = new THREE.SphereGeometry(3, 12, 12);
                 const explosionMaterial = new THREE.MeshStandardMaterial({
                     color: 0xff5500,
                     transparent: true,
