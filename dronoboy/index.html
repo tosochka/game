@@ -232,7 +232,7 @@
 
                 kamikazeSettings: {
                     modelPath: 'models/kamikaze.glb',
-                    color: 0xFF9900,
+                    color: 0xFFFFFF,
                     trackingSpeed: 0.03,
                     attackStartDistance: 25,
                     damage: 30,
@@ -341,7 +341,7 @@
             function createScene() {
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x87CEEB);
-                scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+                scene.fog = new THREE.FogExp2(0x87CEEB, 0.004);
             }
 
             function setupCamera() {
