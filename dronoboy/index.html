@@ -263,6 +263,14 @@
                 damageEffects: {
                     screenShakeIntensity: 0.5,
                     overlayDuration: 300
+                },
+                
+                // ДОБАВЛЕНО: Настройки дульной вспышки
+                muzzleFlash: {
+                    color: 0xff6600,
+                    intensity: 1,
+                    distance: 40,
+                    duration: 50
                 }
             };
 
@@ -336,6 +344,21 @@
                 loadingText.textContent = '0%';
                 document.getElementById('loading-message').textContent = 'Пожалуйста, подождите, идет загрузка ресурсов...';
                 blockingOverlay.style.display = 'block';
+            }
+
+            // ДОБАВЛЕНО: Функция создания дульной вспышки
+            function createMuzzleFlash() {
+                const flash = new THREE.PointLight(
+                    config.muzzleFlash.color, 
+                    config.muzzleFlash.intensity, 
+                    config.muzzleFlash.distance
+                );
+                flash.position.set(0, 0, -1.5);
+                camera.add(flash);
+                
+                setTimeout(() => {
+                    camera.remove(flash);
+                }, config.muzzleFlash.duration);
             }
 
             function createScene() {
@@ -443,6 +466,7 @@
                     transparent: true,
                     opacity: 0.8
                 }));
+                particles.position.y = 50;
                 scene.add(particles);
             }
 
@@ -1410,6 +1434,9 @@
                 
                 ammoCount--;
                 updateHUD();
+
+                // ДОБАВЛЕНО: Создаем дульную вспышку
+                createMuzzleFlash();
 
                 // Сохраняем исходную позицию
                 const originalPosition = gun.position.clone();
